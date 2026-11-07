@@ -68,6 +68,15 @@ export type ToolOptions =
       margin: boolean;
       /** One per photo, in order: the paper's corners (fractions, clockwise from the top left) and quarter turns. */
       edits: { corners: [number, number][] | null; turns: number }[];
+    }
+  | {
+      tool: "scan-dokumen";
+      date: string;
+      paper: "a4" | "f4" | "photo";
+      margin: boolean;
+      edits: { corners: [number, number][] | null; turns: number }[];
+      /** "Tampilan": "Bersihkan" or "Warna asli". */
+      look: "clean" | "original";
     };
 
 /** The Size limit in bytes these options aim for, if any. */

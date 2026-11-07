@@ -1,6 +1,8 @@
 #[cfg(target_os = "android")]
 mod android;
 #[cfg(target_os = "android")]
+mod camera;
+#[cfg(target_os = "android")]
 mod apk_update;
 mod commands;
 mod error;
@@ -34,6 +36,9 @@ pub fn run() {
             // Copies left by a Task that Android cut short.
             #[cfg(target_os = "android")]
             android::clear_workspaces(app.handle());
+            // Photos taken for a Scan Dokumen Task that was cut short.
+            #[cfg(target_os = "android")]
+            camera::clear(app.handle());
             #[cfg(windows)]
             if let Some(window) = app.get_webview_window("main") {
                 round_corners(&window);
@@ -57,6 +62,10 @@ pub fn run() {
     #[cfg(target_os = "android")]
     let builder = builder.plugin(apk_update::init());
 
+    // Scan Dokumen's camera.
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(camera::init());
+
     // Installs new versions on desktop; the APK only learns of them (apk_update.rs).
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
@@ -75,6 +84,11 @@ pub fn run() {
             commands::pages::page_thumbnail,
             commands::photos::find_paper,
             commands::photos::edited_preview,
+            commands::camera::camera_permission,
+            commands::camera::ask_camera_permission,
+            commands::camera::open_app_settings,
+            commands::camera::take_photos,
+            commands::camera::discard_photos,
             commands::files::open_path,
             commands::files::can_save_results,
             commands::files::ask_to_save_results,

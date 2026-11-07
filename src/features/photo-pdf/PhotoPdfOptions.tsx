@@ -21,8 +21,8 @@ import {
   usePhotoEdits,
 } from "./photoEdits";
 
-const PAPERS = ["a4", "f4", "photo"] as const;
-type Paper = (typeof PAPERS)[number];
+export const PAPERS = ["a4", "f4", "photo"] as const;
+export type Paper = (typeof PAPERS)[number];
 
 export interface PhotoPdfSettings {
   /** "Ukuran kertas". */
@@ -44,37 +44,18 @@ function usePhotoPdfSettings() {
 }
 
 function Main({ settings, onChange, paths }: OptionsProps<PhotoPdfSettings>) {
-  const tr = useT();
-  const { t, count } = tr;
+  const { count } = useT();
   return (
     <>
-      <OptionField label={t("photoPdf.paper")}>
-        <RadioCards
-          label={t("photoPdf.paper")}
-          value={settings.paper}
-          options={PAPERS.map((paper) => ({
-            id: paper,
-            label: t(`photoPdf.paper.${paper}`),
-            description: t(`photoPdf.paper.${paper}.description`),
-          }))}
-          onChange={(paper) => onChange({ paper })}
-        />
-      </OptionField>
-      {paths.length > 0 && (
-        <p className="flex items-start gap-2.5 rounded-xl bg-badge-bg px-3.5 py-3 text-small text-text-muted">
-          <CircleCheck aria-hidden className="mt-px size-[18px] shrink-0 text-brand-strong" />
-          <span>
-            {t("photoPdf.note", { files: count("files.photo", paths.length), name: `scan ${today()}.pdf` })}{" "}
-            {t(settings.paper === "photo" ? "photoPdf.note.photo" : "photoPdf.note.paper")}
-          </span>
-        </p>
-      )}
+      <PaperField paper={settings.paper} onChange={(paper) => onChange({ paper })} />
+      {paths.length > 0 && <PdfNote files={count("files.photo", paths.length)} paper={settings.paper} />}
       <CropHost paths={paths} />
     </>
   );
 }
 
-function Advanced({ settings, onChange }: OptionsProps<PhotoPdfSettings>) {
+/** "Tanpa margin", in Advanced options: shown for A4 and F4 only. */
+export function NoMarginOption({ settings, onChange }: OptionsProps<{ noMargin: boolean }>) {
   const { t } = useT();
   return (
     <div className="flex items-start justify-between gap-6">
@@ -92,17 +73,21 @@ function Advanced({ settings, onChange }: OptionsProps<PhotoPdfSettings>) {
 }
 
 /** "3 foto → 1 PDF, 3 halaman." Every photo's outcome points at the same Result. */
-function summary(results: TaskResult[], { t, count }: Translator) {
+export function photosSummary(results: TaskResult[], { t, count }: Translator) {
   const pages = results[0]?.pages ?? results.length;
   return t("photoPdf.result", { files: count("files.photo", results.length), pages: count("pages", pages) });
 }
 
-/** Each row: the photo as it will go on its page, how it was cropped, and "Atur potongan" (D1). */
-function usePhotoRow(path: string): RowExtras {
+/**
+ * Each row: the photo as it will go on its page, how it was cropped, and
+ * "Atur potongan" (D1). With `clean`, the picture shows "Bersihkan" too (D4).
+ */
+export function usePhotoRow(path: string, clean = false): RowExtras {
   const { t } = useT();
   const { edit, source } = usePhotoEdits([path])[path];
   const plain = useThumbnail(path, 96);
-  const cropped = useEditedPreview(path, source === "finding" || isUnedited(edit) ? null : edit, 96);
+  const asIs = isUnedited(edit) && !clean;
+  const cropped = useEditedPreview(path, source === "finding" || asIs ? null : { ...edit, clean }, 96);
   const name = fileName(path);
 
   const note =
@@ -118,7 +103,7 @@ function usePhotoRow(path: string): RowExtras {
   const Icon = source === "notFound" ? CircleAlert : Scan;
 
   return {
-    thumbnail: isUnedited(edit) ? plain : cropped,
+    thumbnail: asIs ? plain : cropped,
     warn: source === "notFound",
     note: (
       <>
@@ -147,7 +132,7 @@ function usePhotoRow(path: string): RowExtras {
  * The crop editor for the photo whose "Atur potongan" was pressed. It lives
  * outside the file list, so its keys and presses stay its own.
  */
-function CropHost({ paths }: { paths: string[] }) {
+export function CropHost({ paths }: { paths: string[] }) {
   const path = useCropEditing();
   const edits = usePhotoEdits(path ? [path] : []);
   if (!path || !paths.includes(path)) return null;
@@ -175,7 +160,7 @@ export const jpgKePdf = defineTool({
   pick: pickImages,
   useSettings: usePhotoPdfSettings,
   Main,
-  Advanced,
+  Advanced: NoMarginOption,
   showAdvanced: (settings) => settings.paper !== "photo",
   toRequest: (settings, _files, paths) => ({
     tool: "jpg-ke-pdf",
@@ -184,6 +169,39 @@ export const jpgKePdf = defineTool({
     margin: settings.paper === "photo" || !settings.noMargin,
     edits: photoEditsFor(paths),
   }),
-  summary,
-  useRow: usePhotoRow,
+  summary: photosSummary,
+  useRow: (path) => usePhotoRow(path),
 });
+
+/** "Ukuran kertas". */
+export function PaperField({ paper, onChange }: { paper: Paper; onChange: (paper: Paper) => void }) {
+  const { t } = useT();
+  return (
+    <OptionField label={t("photoPdf.paper")}>
+      <RadioCards
+        label={t("photoPdf.paper")}
+        value={paper}
+        options={PAPERS.map((id) => ({
+          id,
+          label: t(`photoPdf.paper.${id}`),
+          description: t(`photoPdf.paper.${id}.description`),
+        }))}
+        onChange={onChange}
+      />
+    </OptionField>
+  );
+}
+
+/** "3 foto jadi 1 PDF: scan 2026-11-07.pdf." and how the pages are sized. */
+export function PdfNote({ files, paper }: { files: string; paper: Paper }) {
+  const { t } = useT();
+  return (
+    <p className="flex items-start gap-2.5 rounded-xl bg-badge-bg px-3.5 py-3 text-small text-text-muted">
+      <CircleCheck aria-hidden className="mt-px size-[18px] shrink-0 text-brand-strong" />
+      <span>
+        {t("photoPdf.note", { files, name: `scan ${today()}.pdf` })}{" "}
+        {t(paper === "photo" ? "photoPdf.note.photo" : "photoPdf.note.paper")}
+      </span>
+    </p>
+  );
+}

@@ -36,7 +36,19 @@ export interface ToolDef<S extends object> {
    * ke PDF's cropped picture, "Dipotong otomatis" and "Atur potongan" (D1).
    * A hook: it runs in every row.
    */
-  useRow?: (path: string, paths: string[]) => RowExtras;
+  useRow?: (path: string, paths: string[], settings: S) => RowExtras;
+  /**
+   * Where files come from besides the picker, such as Scan Dokumen's camera
+   * (D3): it takes the place of the empty drop zone and of "Tambah foto".
+   */
+  Source?: ComponentType<SourceProps>;
+  /** What the file list counts, when not its `noun`: Scan Dokumen's photos are "halaman". */
+  counts?: "pages";
+  /**
+   * Called with files that leave the page, removed or left behind with it,
+   * such as photos the camera took that only this Task used.
+   */
+  discard?: (paths: string[]) => void;
   /**
    * Whether `options` would leave this file as it is, like a JPG for "Ubah ke
    * JPG". Its row says so before the Task starts.
@@ -73,6 +85,12 @@ export interface RowExtras {
   warn?: boolean;
   /** A button before the row's menu. */
   action?: ReactNode;
+}
+
+export interface SourceProps {
+  /** No files yet: the Source fills the Files step. Otherwise it sits under the list. */
+  empty: boolean;
+  onAdd: (paths: string[]) => void;
 }
 
 export interface WorkspaceProps {

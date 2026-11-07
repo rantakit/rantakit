@@ -16,6 +16,7 @@ use imageproc::distance_transform::Norm;
 use imageproc::point::Point;
 use rantakit_core::{ErrorKind, Result};
 
+use crate::clean::cleaned;
 use crate::{decode, resize};
 
 /// Where the paper is in a photo: four corners as fractions (0–1) of the
@@ -24,16 +25,18 @@ pub type Corners = [[f32; 2]; 4];
 
 /// How one photo becomes a page: cropped and straightened to `corners`,
 /// or whole when there are none, then turned a quarter clockwise
-/// `quarter_turns` times.
+/// `quarter_turns` times, and with `clean`, made to look scanned
+/// ("Bersihkan", Scan Dokumen).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct PhotoEdit {
     pub corners: Option<Corners>,
     pub quarter_turns: u8,
+    pub clean: bool,
 }
 
 impl PhotoEdit {
     fn is_identity(&self) -> bool {
-        self.corners.is_none() && self.quarter_turns.is_multiple_of(4)
+        self.corners.is_none() && self.quarter_turns.is_multiple_of(4) && !self.clean
     }
 }
 
@@ -152,18 +155,23 @@ fn clockwise(points: [[f32; 2]; 4]) -> Corners {
     ]
 }
 
-/// The photo cropped, straightened and turned as `edit` says, at most
-/// `max_side` pixels on its longest side.
+/// The photo cropped, straightened, turned and cleaned as `edit` says, at
+/// most `max_side` pixels on its longest side.
 pub fn edited(img: &DynamicImage, edit: &PhotoEdit, max_side: u32) -> DynamicImage {
     let straight = match edit.corners {
         Some(corners) => DynamicImage::ImageRgb8(straighten(&img.to_rgb8(), &corners, max_side)),
         None => resize::fit_within(img.clone(), max_side),
     };
-    match edit.quarter_turns % 4 {
+    let turned = match edit.quarter_turns % 4 {
         1 => straight.rotate90(),
         2 => straight.rotate180(),
         3 => straight.rotate270(),
         _ => straight,
+    };
+    if edit.clean {
+        DynamicImage::ImageRgb8(cleaned(&turned.to_rgb8()))
+    } else {
+        turned
     }
 }
 

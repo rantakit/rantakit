@@ -71,6 +71,7 @@ function App() {
 
   /** Clears the Tool page; a running Task is stopped, and its finished Results stay. */
   const closeTool = () => {
+    if (tool) toolDef(tool).discard?.(paths);
     setTool(null);
     setPaths([]);
     job.reset();
@@ -307,6 +308,7 @@ function App() {
       onNavigate={navigate}
       onOpen={openFiles}
       tabBar={!pageTool || settingsPage}
+      screen={settingsPage ? "settings" : (pageTool ?? page)}
       titleBar={{
         canBack: history.canBack,
         canForward: history.canForward,
@@ -333,12 +335,17 @@ function App() {
             paths={paths}
             job={job}
             onPick={() => pickFiles(tool)}
-            onRemove={(path) => setPaths((prev) => prev.filter((p) => p !== path))}
+            onAdd={addFiles}
+            onRemove={(path) => {
+              toolDef(tool).discard?.([path]);
+              setPaths((prev) => prev.filter((p) => p !== path));
+            }}
             onReorder={setPaths}
             onBack={() => leaveTool(closeTool)}
             onStart={startJob}
             onUnsavedChange={setUnsaved}
             onProcessAnother={() => {
+              toolDef(tool).discard?.(paths);
               job.reset();
               setPaths([]);
             }}
@@ -428,7 +435,9 @@ function App() {
                 body:
                   tool && toolDef(tool).Workspace && paths[0]
                     ? t("arrange.replace.body", { name: fileName(paths[0]) })
-                    : t(`leave.body.${noun}`),
+                    : tool && toolDef(tool).Source
+                      ? t("leave.body.scan")
+                      : t(`leave.body.${noun}`),
                 leaveLabel: t("leave.leave"),
                 stayLabel: t("leave.stay"),
               })}

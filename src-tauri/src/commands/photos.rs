@@ -22,6 +22,9 @@ pub struct EditRequest {
     /// Quarter turns clockwise; negative turns left.
     #[serde(default)]
     pub turns: i32,
+    /// "Bersihkan", for a Scan Dokumen row's preview.
+    #[serde(default)]
+    pub clean: bool,
 }
 
 impl From<EditRequest> for PhotoEdit {
@@ -29,6 +32,7 @@ impl From<EditRequest> for PhotoEdit {
         Self {
             corners: edit.corners,
             quarter_turns: edit.turns.rem_euclid(4) as u8,
+            clean: edit.clean,
         }
     }
 }

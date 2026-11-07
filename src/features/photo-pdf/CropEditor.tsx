@@ -122,7 +122,7 @@ export function CropEditor({ path, name, position, count, edit, onDone, onCancel
   const subtitle = count > 1 ? t("crop.position", { position, count }) : null;
 
   return (
-    <ModalOverlay isOpen isDismissable={false} onOpenChange={(open) => !open && onCancel()} className="fixed inset-0 z-50 bg-bg">
+    <ModalOverlay isOpen isDismissable={false} onOpenChange={(open) => !open && onCancel()} className="fixed inset-0 z-50 bg-bg pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <Modal className="flex h-full w-full flex-col text-text">
         <Dialog aria-label={t("crop.title")} className="flex h-full flex-col outline-none">
           <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-3 md:gap-4 md:px-6 md:py-4">

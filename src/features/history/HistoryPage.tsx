@@ -154,7 +154,10 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
   const results = toOne ? [first] : entry.files;
   const names = toOne
     ? t("history.mergedFrom", {
-        files: count(entry.tool === "jpg-ke-pdf" ? "files.photo" : "files.pdf", entry.files.length),
+        files: count(
+          entry.tool === "jpg-ke-pdf" ? "files.photo" : entry.tool === "scan-dokumen" ? "pages" : "files.pdf",
+          entry.files.length,
+        ),
         name: fileName(first.resultPath),
       })
     : fromOne

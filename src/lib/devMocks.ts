@@ -11,6 +11,8 @@ import type { ToolInfo } from "@/features/home/tools";
  * `?historyOff` starts with History turned off, `?update` finds version 0.3.0
  * (with `?updateDeb`, as a Linux .deb that can't install it), `?pages` makes
  * each PDF a folder of 12 page files, as Pisah PDF will (X3).
+ * `?android` lists Scan Dokumen, whose camera is mocked: `?camera=ask` or
+ * `?camera=refused` starts without the permission.
  */
 const TOOLS: ToolInfo[] = [
   { id: "kompres-foto", job: "kecilkan-ubah", comingSoon: false },
@@ -21,6 +23,10 @@ const TOOLS: ToolInfo[] = [
   { id: "pisah-pdf", job: "atur-pdf", comingSoon: false },
   { id: "atur-halaman-pdf", job: "atur-pdf", comingSoon: false },
   { id: "jpg-ke-pdf", job: "scan", comingSoon: false },
+  // Android only.
+  ...(new URLSearchParams(location.search).has("android")
+    ? [{ id: "scan-dokumen", job: "scan", comingSoon: false } as const]
+    : []),
   ...(
     [
       ["kompres-dokumen", "kecilkan-ubah"],
@@ -45,6 +51,13 @@ export function devPick(noun: "photo" | "pdf"): Promise<string[]> {
 }
 
 const has = (flag: string) => new URLSearchParams(location.search).has(flag);
+
+/** Where the mocked camera puts its photos, and what it has done so far. */
+const CAMERA_FOLDER = "C:\\Users\\Rani\\AppData\\Local\\com.rantakit\\cache\\scans\\";
+const camera = {
+  permission: new URLSearchParams(location.search).get("camera") ?? "granted",
+  taken: 0,
+};
 
 /** A made-up but steady size for a path. */
 function sizeOf(path: string) {
@@ -253,7 +266,7 @@ async function runPageTask(id: number, { options, paths }: TaskArgs["request"], 
   const failed = (file: number, code: string) =>
     send({ event: "fileDone", file, outcome: { status: "failed", error: { code } } });
 
-  if (options.tool === "gabung-pdf" || options.tool === "jpg-ke-pdf") {
+  if (options.tool === "gabung-pdf" || options.tool === "jpg-ke-pdf" || options.tool === "scan-dokumen") {
     for (const file of paths.keys()) {
       if (!(await progress(file))) {
         paths.forEach((_, i) => failed(i, "cancelled"));
@@ -266,7 +279,7 @@ async function runPageTask(id: number, { options, paths }: TaskArgs["request"], 
         return;
       }
     }
-    const photos = options.tool === "jpg-ke-pdf";
+    const photos = options.tool !== "gabung-pdf";
     const pages = photos ? paths.length : paths.reduce((sum, path) => sum + pageCountOf(path), 0);
     const outputPath = `${paths[0].slice(0, paths[0].lastIndexOf("\\") + 1)}${photos ? "scan" : "merged"} ${options.date}.pdf`;
     const bytes = paths.reduce((sum, path) => sum + sizeOf(path), 0);
@@ -345,7 +358,7 @@ function runTask({ request, onEvent }: TaskArgs) {
       ? "resized"
       : "compressed";
 
-  if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf", "jpg-ke-pdf"].includes(request.options.tool)) {
+  if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf", "jpg-ke-pdf", "scan-dokumen"].includes(request.options.tool)) {
     runPageTask(id, request, send).then(() => send({ event: "finished" }));
     return id;
   }
@@ -491,6 +504,25 @@ export function installDevMocks() {
       }
       case "start_task":
         return runTask(args as unknown as TaskArgs);
+      case "camera_permission":
+        return camera.permission;
+      case "ask_camera_permission":
+        camera.permission = "granted";
+        return true;
+      case "open_app_settings":
+        // As if the camera were allowed there.
+        camera.permission = "granted";
+        return null;
+      case "take_photos":
+        // Two pages each time the camera opens.
+        return new Promise((resolve) =>
+          setTimeout(
+            () => resolve({ paths: [1, 2].map(() => `${CAMERA_FOLDER}scan-${++camera.taken}.jpg`), gallery: false }),
+            300,
+          ),
+        );
+      case "discard_photos":
+        return null;
       case "cancel_task":
         cancelled.add((args as { id: number }).id);
         return null;

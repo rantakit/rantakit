@@ -1,3 +1,4 @@
+pub mod camera;
 pub mod files;
 pub mod history;
 pub mod language;

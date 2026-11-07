@@ -10,6 +10,8 @@ export interface PhotoEdit {
   corners: Corners | null;
   /** Quarter turns clockwise. */
   turns: number;
+  /** "Bersihkan", for a Scan Dokumen row's preview; the Task takes it from "Tampilan". */
+  clean?: boolean;
 }
 
 /**

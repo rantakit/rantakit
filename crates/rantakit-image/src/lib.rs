@@ -1,3 +1,4 @@
+mod clean;
 mod encode;
 pub mod paper;
 pub mod options;

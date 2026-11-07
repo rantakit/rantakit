@@ -6,6 +6,7 @@ import { ubahUkuranFoto } from "@/features/resize/ResizeOptions";
 import { aturHalamanPdf } from "@/features/arrange/ArrangeOptions";
 import { gabungPdf } from "@/features/merge/MergeOptions";
 import { jpgKePdf } from "@/features/photo-pdf/PhotoPdfOptions";
+import { scanDokumen } from "@/features/scan/ScanOptions";
 import { pisahPdf } from "@/features/split/SplitOptions";
 import type { ToolDef } from "./toolDef";
 
@@ -23,6 +24,7 @@ export const TOOL_DEFS = {
   "pisah-pdf": pisahPdf,
   "atur-halaman-pdf": aturHalamanPdf,
   "jpg-ke-pdf": jpgKePdf,
+  "scan-dokumen": scanDokumen,
 } satisfies Partial<Record<ToolId, AnyToolDef>>;
 
 export type ShippedTool = keyof typeof TOOL_DEFS;

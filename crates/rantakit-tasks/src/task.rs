@@ -35,9 +35,11 @@ pub enum ToolOptions {
     AturHalamanPdf(Vec<PageEdit>),
     /// Every Original, a photo, in order, as one page each of one PDF.
     JpgKePdf(PhotosToPdf),
+    /// The photos the camera took, in order, as one page each of one PDF.
+    ScanDokumen(PhotosToPdf),
 }
 
-/// JPG ke PDF's choices.
+/// JPG ke PDF's and Scan Dokumen's choices.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PhotosToPdf {
     /// The user's today, such as "2026-11-07": `scan 2026-11-07.pdf`.
@@ -49,6 +51,9 @@ pub struct PhotosToPdf {
     /// How each Original, by index, is cropped and turned; one left out is
     /// used whole.
     pub edits: Vec<PhotoEdit>,
+    /// "Bersihkan": every page made to look scanned. Scan Dokumen's
+    /// "Tampilan"; JPG ke PDF leaves it off.
+    pub clean: bool,
 }
 
 /// A page photo is at most this long, about 200 dpi on A4, so a few phone
@@ -122,12 +127,21 @@ impl ToolOptions {
             Self::PisahPdf(_) => ToolId::PisahPdf,
             Self::AturHalamanPdf(_) => ToolId::AturHalamanPdf,
             Self::JpgKePdf(_) => ToolId::JpgKePdf,
+            Self::ScanDokumen(_) => ToolId::ScanDokumen,
         }
     }
 
     /// Whether every Original goes into one Result, as in Gabung PDF.
     pub fn merges(&self) -> bool {
-        matches!(self, Self::GabungPdf { .. } | Self::JpgKePdf(_))
+        matches!(self, Self::GabungPdf { .. } | Self::JpgKePdf(_) | Self::ScanDokumen(_))
+    }
+
+    /// The choices of a Tool that makes photos into a PDF.
+    fn photos(&self) -> Option<&PhotosToPdf> {
+        match self {
+            Self::JpgKePdf(opts) | Self::ScanDokumen(opts) => Some(opts),
+            _ => None,
+        }
     }
 
     /// The English word in the Result name: `ijazah (compressed).pdf`.
@@ -140,7 +154,7 @@ impl ToolOptions {
             Self::GabungPdf { .. } => "merged",
             Self::PisahPdf(_) => "pages",
             Self::AturHalamanPdf(_) => "edited",
-            Self::JpgKePdf(_) => "scan",
+            Self::JpgKePdf(_) | Self::ScanDokumen(_) => "scan",
         }
     }
 }
@@ -304,7 +318,7 @@ fn run_file(
                 cancel,
             )
         }
-        ToolOptions::GabungPdf { .. } | ToolOptions::JpgKePdf(_) => {
+        ToolOptions::GabungPdf { .. } | ToolOptions::JpgKePdf(_) | ToolOptions::ScanDokumen(_) => {
             unreachable!("run_task merges every Original at once")
         }
         ToolOptions::PisahPdf(split) => {
@@ -394,9 +408,9 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
             .map(|at| Err(if at == file { kind.clone() } else { ErrorKind::Cancelled }))
             .collect()
     };
-    let (date, mut parts) = match &task.tool {
-        ToolOptions::GabungPdf { date } => (date, Parts::Pdfs(Vec::with_capacity(count))),
-        ToolOptions::JpgKePdf(opts) => (&opts.date, Parts::Photos(Vec::with_capacity(count))),
+    let (date, mut parts) = match (&task.tool, task.tool.photos()) {
+        (ToolOptions::GabungPdf { date }, _) => (date, Parts::Pdfs(Vec::with_capacity(count))),
+        (_, Some(opts)) => (&opts.date, Parts::Photos(Vec::with_capacity(count))),
         _ => return fail(0, ErrorKind::UnsupportedFormat),
     };
 
@@ -412,10 +426,13 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
         let read = fs::metadata(original)
             .map_err(|e| ErrorKind::reading(&e))
             .and_then(|meta| {
-                match (&mut parts, &task.tool) {
+                match (&mut parts, task.tool.photos()) {
                     (Parts::Pdfs(pdfs), _) => pdfs.push(PdfDocument::open(original)?),
-                    (Parts::Photos(photos), ToolOptions::JpgKePdf(opts)) => {
-                        let edit = opts.edits.get(file).copied().unwrap_or_default();
+                    (Parts::Photos(photos), Some(opts)) => {
+                        let edit = PhotoEdit {
+                            clean: opts.clean,
+                            ..opts.edits.get(file).copied().unwrap_or_default()
+                        };
                         let page = rantakit_image::page_photo(&read_original(original)?, &edit, PAGE_PHOTO_SIDE)?;
                         photos.push(PagePhoto {
                             jpeg: page.jpeg,
@@ -446,9 +463,9 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
     let path = named_path(folder, &dated_stem(task.tool.suffix(), date), "pdf");
     let mut quiet = |_| {};
     let mut tracker = Tracker::new(&mut quiet, cancel);
-    let made = match (parts, &task.tool) {
+    let made = match (parts, task.tool.photos()) {
         (Parts::Pdfs(pdfs), _) => PdfDocument::merge(pdfs),
-        (Parts::Photos(photos), ToolOptions::JpgKePdf(opts)) => PdfDocument::from_photos(photos, opts.paper, opts.margin),
+        (Parts::Photos(photos), Some(opts)) => PdfDocument::from_photos(photos, opts.paper, opts.margin),
         (Parts::Photos(_), _) => Err(ErrorKind::UnsupportedFormat),
     };
     let saved = made.and_then(|merged| {

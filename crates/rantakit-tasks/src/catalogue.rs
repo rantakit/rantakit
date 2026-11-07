@@ -218,7 +218,7 @@ pub const CATALOGUE: &[Tool] = &[
         Scan,
         &[],
         &[Platform::Android],
-        ComingSoon,
+        Shipped,
     ),
     tool(ToolId::GabungPdf, AturPdf, &[Pdf], ALL, Shipped).taking(FileCount::AtLeastTwo),
     tool(ToolId::PisahPdf, AturPdf, &[Pdf], ALL, Shipped),

@@ -24,6 +24,8 @@ interface ToolPageProps {
   paths: string[];
   job: CompressJob;
   onPick: () => void;
+  /** Files from a Tool's own Source, such as Scan Dokumen's camera. */
+  onAdd: (paths: string[]) => void;
   onRemove: (path: string) => void;
   onReorder: (paths: string[]) => void;
   onBack: () => void;
@@ -47,6 +49,7 @@ export function ToolPage({
   paths,
   job,
   onPick,
+  onAdd,
   onRemove,
   onReorder,
   onBack,
@@ -75,7 +78,7 @@ export function ToolPage({
       ? (info: FileInfo) =>
           def.leavesUnchanged?.(request, info) ? unchangedNote(t, request) : (def.fileNote?.(request, info, tr) ?? null)
       : undefined;
-  const blocked = paths.length === 0 ? t(`options.needFiles.${def.noun}`) : (def.blocked?.(settings, files, paths.length, tr) ?? null);
+  const blocked = paths.length === 0 ? t(def.counts ? "options.needFiles.pages" : `options.needFiles.${def.noun}`) : (def.blocked?.(settings, files, paths.length, tr) ?? null);
   const Icon = TOOL_ICONS[tool];
   const running = job.isRunning;
   const hasResult = !running && job.items.length > 0;
@@ -98,7 +101,7 @@ export function ToolPage({
     <Working
       label={t(`working.${tool}`, {
         current: Math.min(job.items.filter(isFinished).length + 1, job.items.length),
-        files: count(`files.${def.noun}`, job.items.length),
+        files: count(def.counts ?? `files.${def.noun}`, job.items.length),
       })}
       fraction={overall(job.items)}
       onCancel={job.cancel}
@@ -140,7 +143,10 @@ export function ToolPage({
             onPick={onPick}
             onRemove={onRemove}
             onReorder={def.ordered ? onReorder : undefined}
-            useRow={def.useRow}
+            useRow={def.useRow && ((path, all) => def.useRow!(path, all, settings))}
+            Source={def.Source}
+            onAdd={onAdd}
+            counts={def.counts}
           />
         )}
       </section>

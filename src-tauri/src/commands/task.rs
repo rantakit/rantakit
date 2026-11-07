@@ -108,9 +108,22 @@ pub enum OptionsRequest {
         #[serde(default)]
         edits: Vec<EditRequest>,
     },
+    /// Like JPG ke PDF, for the photos the camera took.
+    ScanDokumen {
+        date: String,
+        #[serde(default)]
+        paper: PaperRequest,
+        #[serde(default = "default_margin")]
+        margin: bool,
+        #[serde(default)]
+        edits: Vec<EditRequest>,
+        /// "Tampilan": "Bersihkan" (the default) or "Warna asli".
+        #[serde(default)]
+        look: LookRequest,
+    },
 }
 
-/// "Ukuran kertas" for JPG ke PDF.
+/// "Ukuran kertas" for JPG ke PDF and Scan Dokumen.
 #[derive(Debug, Default, Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PaperRequest {
@@ -121,8 +134,33 @@ pub enum PaperRequest {
     Photo,
 }
 
+/// Scan Dokumen's "Tampilan".
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LookRequest {
+    /// "Bersihkan".
+    #[default]
+    Clean,
+    /// "Warna asli".
+    Original,
+}
+
 fn default_margin() -> bool {
     true
+}
+
+fn photos_to_pdf(date: String, paper: PaperRequest, margin: bool, edits: Vec<EditRequest>, clean: bool) -> PhotosToPdf {
+    PhotosToPdf {
+        date,
+        paper: match paper {
+            PaperRequest::A4 => PaperSize::A4,
+            PaperRequest::F4 => PaperSize::F4,
+            PaperRequest::Photo => PaperSize::Photo,
+        },
+        margin,
+        edits: edits.into_iter().map(PhotoEdit::from).collect(),
+        clean,
+    }
 }
 
 /// One page of Atur Halaman PDF's Result.
@@ -278,16 +316,14 @@ impl From<OptionsRequest> for ToolOptions {
                 paper,
                 margin,
                 edits,
-            } => Self::JpgKePdf(PhotosToPdf {
+            } => Self::JpgKePdf(photos_to_pdf(date, paper, margin, edits, false)),
+            OptionsRequest::ScanDokumen {
                 date,
-                paper: match paper {
-                    PaperRequest::A4 => PaperSize::A4,
-                    PaperRequest::F4 => PaperSize::F4,
-                    PaperRequest::Photo => PaperSize::Photo,
-                },
+                paper,
                 margin,
-                edits: edits.into_iter().map(PhotoEdit::from).collect(),
-            }),
+                edits,
+                look,
+            } => Self::ScanDokumen(photos_to_pdf(date, paper, margin, edits, look == LookRequest::Clean)),
         }
     }
 }

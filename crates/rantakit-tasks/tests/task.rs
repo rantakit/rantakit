@@ -94,7 +94,8 @@ fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
         ToolOptions::GabungPdf { .. } | ToolOptions::PisahPdf(_) | ToolOptions::AturHalamanPdf(_) => {
             ("ijazah.pdf", pages_pdf(3))
         }
-        ToolOptions::UbahFormatFoto(_) | ToolOptions::UbahUkuranFoto(_) | ToolOptions::JpgKePdf(_) => {
+        ToolOptions::UbahFormatFoto(_) | ToolOptions::UbahUkuranFoto(_) | ToolOptions::JpgKePdf(_)
+        | ToolOptions::ScanDokumen(_) => {
             ("foto.jpg", photo_jpg())
         }
     }
@@ -130,8 +131,10 @@ fn every_tool() -> Vec<ToolOptions> {
             vec![PhotoEdit {
                 corners: Some([[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]]),
                 quarter_turns: 1,
+                clean: false,
             }],
         ),
+        scan_dokumen(true),
     ]
 }
 
@@ -147,6 +150,17 @@ fn jpg_ke_pdf(paper: PaperSize, edits: Vec<PhotoEdit>) -> ToolOptions {
         paper,
         margin: true,
         edits,
+        clean: false,
+    })
+}
+
+fn scan_dokumen(clean: bool) -> ToolOptions {
+    ToolOptions::ScanDokumen(PhotosToPdf {
+        date: "2026-11-07".into(),
+        paper: PaperSize::A4,
+        margin: true,
+        edits: vec![],
+        clean,
     })
 }
 
@@ -381,8 +395,10 @@ fn every_tool_that_runs_is_shipped_and_accepts_its_original() {
         let facts = CATALOGUE.iter().find(|t| t.id == tool.id()).unwrap();
 
         assert_eq!(facts.availability, Availability::Shipped, "{tool:?}");
+        // Scan Dokumen takes photos from its camera, never files dropped in.
+        let from_camera = facts.id == ToolId::ScanDokumen && facts.accepts.is_empty();
         assert!(
-            facts.accepts.contains(&detect_kind(&path).unwrap()),
+            from_camera || facts.accepts.contains(&detect_kind(&path).unwrap()),
             "{tool:?}"
         );
     }
@@ -549,6 +565,7 @@ fn photos_become_one_pdf_a_page_each_in_order() {
         PhotoEdit {
             corners: Some([[0.3, 0.1], [0.7, 0.1], [0.7, 0.9], [0.3, 0.9]]),
             quarter_turns: 0,
+            clean: false,
         },
     ];
 
@@ -681,4 +698,21 @@ fn arranging_pages_makes_an_edited_copy() {
 
     let as_it_is = (0..3).map(PageEdit::keep).collect();
     assert_eq!(arrange(as_it_is).err(), Some(ErrorKind::Unchanged));
+}
+
+#[test]
+fn scanned_pages_become_one_pdf_and_the_photos_stay() {
+    let dir = scratch("scan_dokumen");
+    let first = write(&dir, "scan-1.jpg", &photo_jpg());
+    let second = write(&dir, "scan-2.jpg", &photo_jpg());
+
+    let outcomes = run(&task(scan_dokumen(true), vec![first.clone(), second.clone()]));
+
+    let scan = dir.join("scan 2026-11-07.pdf");
+    for outcome in &outcomes {
+        assert_eq!(outcome.as_ref().unwrap().path, scan);
+    }
+    assert_eq!(pages_in(&scan), 2);
+    assert_eq!(fs::read(&first).unwrap(), photo_jpg(), "the Original is untouched");
+    assert_eq!(file_names(&dir), ["scan 2026-11-07.pdf", "scan-1.jpg", "scan-2.jpg"]);
 }

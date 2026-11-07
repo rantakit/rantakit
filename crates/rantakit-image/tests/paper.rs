@@ -68,6 +68,7 @@ fn straightening_keeps_only_the_paper() {
     let edit = PhotoEdit {
         corners: Some(corners.map(|(x, y)| [x as f32 / (w - 1) as f32, y as f32 / (h - 1) as f32])),
         quarter_turns: 0,
+        clean: false,
     };
 
     let page = page_photo(&original, &edit, 2400).unwrap();
@@ -85,7 +86,7 @@ fn straightening_keeps_only_the_paper() {
 #[test]
 fn a_turn_swaps_the_sides() {
     let original = jpeg_of(&DynamicImage::ImageRgb8(RgbImage::new(400, 300)), 90);
-    let edit = PhotoEdit { corners: None, quarter_turns: 1 };
+    let edit = PhotoEdit { corners: None, quarter_turns: 1, clean: false };
 
     let page = page_photo(&original, &edit, 2400).unwrap();
 
@@ -126,4 +127,66 @@ fn a_png_becomes_a_jpg() {
     let page = page_photo(png.get_ref(), &PhotoEdit::default(), 2400).unwrap();
 
     assert_eq!(image::guess_format(&page.jpeg).unwrap(), image::ImageFormat::Jpeg);
+}
+
+/// A page photographed under a lamp: paper that darkens to one side, a line
+/// of dark text, and a red stamp.
+fn shaded_page() -> RgbImage {
+    RgbImage::from_fn(800, 1000, |x, y| {
+        let light = 230.0 - 110.0 * x as f32 / 800.0;
+        let paper = |share: f32| (light * share) as u8;
+        if (300..330).contains(&y) && (100..700).contains(&x) {
+            Rgb([paper(0.25), paper(0.25), paper(0.27)])
+        } else if (600..700).contains(&y) && (500..640).contains(&x) {
+            Rgb([paper(0.95), paper(0.3), paper(0.3)])
+        } else {
+            Rgb([paper(1.0), paper(0.98), paper(0.94)])
+        }
+    })
+}
+
+#[test]
+fn cleaning_whitens_the_paper_and_keeps_writing_and_colors() {
+    let original = jpeg_of(&DynamicImage::ImageRgb8(shaded_page()), 92);
+    let edit = PhotoEdit {
+        clean: true,
+        ..PhotoEdit::default()
+    };
+
+    let page = page_photo(&original, &edit, 2400).unwrap();
+
+    let img = image::load_from_memory(&page.jpeg).unwrap().to_rgb8();
+    let at = |x, y| img.get_pixel(x, y).0;
+    for (x, y) in [(50, 50), (400, 500), (760, 900), (780, 100)] {
+        assert!(at(x, y).iter().all(|&c| c > 235), "paper at ({x}, {y}) is {:?}", at(x, y));
+    }
+    for x in [150, 400, 650] {
+        assert!(at(x, 315).iter().all(|&c| c < 110), "text at ({x}, 315) is {:?}", at(x, 315));
+    }
+    let [r, g, b] = at(570, 650);
+    assert!(r > 150 && r > g + 80 && r > b + 80, "the stamp stays red: {:?}", [r, g, b]);
+}
+
+#[test]
+fn cleaning_removes_a_hard_edged_shadow() {
+    // A hand's shadow over the left of the page: half as bright, with a sharp edge.
+    let mut img = shaded_page();
+    for (x, _, pixel) in img.enumerate_pixels_mut() {
+        if x < 300 {
+            pixel.0 = pixel.0.map(|c| c / 2);
+        }
+    }
+    let original = jpeg_of(&DynamicImage::ImageRgb8(img), 92);
+    let edit = PhotoEdit {
+        clean: true,
+        ..PhotoEdit::default()
+    };
+
+    let page = page_photo(&original, &edit, 2400).unwrap();
+
+    let img = image::load_from_memory(&page.jpeg).unwrap().to_rgb8();
+    for x in [50, 200, 270, 330, 500] {
+        let pixel = img.get_pixel(x, 800).0;
+        assert!(pixel.iter().all(|&c| c > 225), "paper at ({x}, 800) is {pixel:?}");
+    }
 }
