@@ -72,13 +72,15 @@ The features Rantakit has and plans, by release. Releases have no dates; see [RO
 | v0.4          | Extract PDF pages          | Save chosen pages as a new PDF                                     |
 | v0.4          | Rotate PDF pages           | Turn pages the right way up                                        |
 | v0.4          | Reorder PDF pages          | Change the order of pages                                          |
-| v0.5          | Images to PDF              | Turn photos into one PDF, with crop and straighten                 |
-| v0.5          | Capture documents          | Scan paper with the camera into a clean PDF (Android)              |
-| v0.7          | Image format conversions   | Convert HEIC and WebP photos to JPG or PNG                         |
-| v0.7          | PDF to images              | Turn PDF pages into JPG images                                     |
-| v0.7          | Compress office document   | Make Word, Excel, and PowerPoint files smaller                     |
-| v0.8          | Compress audio             | Make audio files such as voice notes smaller                       |
-| v0.9          | Compress video             | Make videos small enough to send or upload                         |
+| v0.4          | Images to PDF              | Turn photos into one PDF, with crop and straighten                 |
+| v0.4          | Capture documents          | Scan paper with the camera into a clean PDF (Android)              |
+| v0.4          | Add watermark              | Mark ID copies for one purpose only, on photos and PDFs            |
+| v0.4          | Remove location info       | Remove location and camera info from photos before sharing         |
+| v0.4          | Image format conversions   | Convert HEIC and WebP photos to JPG or PNG                         |
+| v0.4          | PDF to images              | Turn PDF pages into JPG images                                     |
+| v0.4          | Compress office document   | Make Word, Excel, and PowerPoint files smaller                     |
+| v0.5          | Compress audio             | Make audio files such as voice notes smaller                       |
+| v0.6          | Compress video             | Make videos small enough to send or upload                         |
 | After 1.0     | Extract text from images   | Get text out of images and PDFs, in Indonesian and English         |
 | Not scheduled | Compress GIF               | Not in the roadmap yet                                             |
 | Not scheduled | macOS and iOS support      | Not in the roadmap yet                                             |

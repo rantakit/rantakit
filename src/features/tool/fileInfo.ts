@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { usePage } from "@/features/pages/pageThumbnails";
 
 /** Mirrors `FileInfo` in `src-tauri/src/commands/files.rs`; null when it can't be read. */
 export interface FileInfo {
@@ -45,6 +46,18 @@ function loadThumbnail(path: string, size: number) {
     thumbnails.set(key, url);
   }
   return url;
+}
+
+/**
+ * The picture for a file's tile: the photo itself, or a PDF's first page
+ * (X1), `size` px on its longest side; null while it loads.
+ */
+export function useFileTile(path: string | null, noun: "photo" | "pdf", size: number) {
+  const photo = useThumbnail(noun === "photo" ? path : null, size);
+  const page = usePage(noun === "pdf" ? path : null, 0, size);
+  return noun === "pdf"
+    ? { thumbnail: page, thumbnailKind: "page" as const }
+    : { thumbnail: photo, thumbnailKind: "photo" as const };
 }
 
 /**

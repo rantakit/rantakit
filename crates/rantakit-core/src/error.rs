@@ -26,6 +26,11 @@ pub enum ErrorKind {
     #[error("the Original was moved or deleted")]
     OriginalMissing,
 
+    /// None of the pages asked for are in the file, such as page 5 of a
+    /// 3-page PDF.
+    #[error("none of the pages asked for are in the file")]
+    NoSuchPages,
+
     /// The cancel token was set. An outcome, not a problem.
     #[error("cancelled")]
     Cancelled,
@@ -49,6 +54,7 @@ impl ErrorKind {
             Self::NotEnoughSpace => "not-enough-space",
             Self::CannotWrite => "cannot-write",
             Self::OriginalMissing => "original-missing",
+            Self::NoSuchPages => "no-such-pages",
             Self::Cancelled => "cancelled",
             Self::Unchanged => "unchanged",
         }

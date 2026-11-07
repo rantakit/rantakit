@@ -7,7 +7,10 @@ import { useT } from "@/i18n";
 import type { JobItem } from "@/features/compress/useCompressJob";
 import { formatBytes } from "@/lib/format";
 import { isAndroidApp } from "@/lib/platform";
-import { useFileInfo, useThumbnail, type FileInfo } from "./fileInfo";
+import { useFileInfo, useFileTile, type FileInfo } from "./fileInfo";
+import { OrderedFiles } from "./OrderedFiles";
+import type { ComponentType } from "react";
+import type { RowExtras, SourceProps } from "./toolDef";
 import { unchangedNote } from "./unchanged";
 
 export const NOUN_ICONS = { photo: Image, pdf: File };
@@ -21,18 +24,40 @@ interface FilesColumnProps {
   skipNote?: (info: FileInfo) => string | null;
   onPick: () => void;
   onRemove: (path: string) => void;
+  /** Tools that make one Result from several files: the user sets the order (X2). */
+  onReorder?: (paths: string[]) => void;
+  /** What an ordered row shows in place of the size (D1). */
+  useRow?: (path: string, paths: string[]) => RowExtras;
+  /** Where files come from besides the picker, such as Scan Dokumen's camera. */
+  Source?: ComponentType<SourceProps>;
+  onAdd: (paths: string[]) => void;
+  /** What the heading counts, when not `noun`. */
+  counts?: "pages";
 }
 
 /**
  * The Files step: one drop zone while empty, then a row per file and "Tambah
  * foto". On desktop the count and "Tambah foto" stay put while the list scrolls.
  */
-export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove }: FilesColumnProps) {
+export function FilesColumn({
+  noun,
+  paths,
+  items,
+  skipNote,
+  onPick,
+  onRemove,
+  onReorder,
+  useRow,
+  Source,
+  onAdd,
+  counts,
+}: FilesColumnProps) {
   const tr = useT();
   const { t, count, locale } = tr;
   const infos = useFileInfo(paths);
 
   if (paths.length === 0) {
+    if (Source) return <Source empty onAdd={onAdd} />;
     return (
       <div className="mx-5 mb-5 flex min-h-80 flex-1 flex-col items-center justify-center gap-4 rounded-[20px] border-2 border-dashed border-border-strong p-8 text-center md:min-h-0">
         <span className="flex size-18 items-center justify-center rounded-[20px] bg-brand-soft text-brand-strong">
@@ -52,37 +77,54 @@ export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove }: 
   return (
     <div className="flex flex-1 flex-col md:min-h-0">
       <div className="flex items-baseline justify-between gap-3 px-5 pb-3">
-        <h2 className="text-section">{count(`files.${noun}`, paths.length)}</h2>
+        <h2 className="text-section">{count(counts ?? `files.${noun}`, paths.length)}</h2>
         {total > 0 && (
           <span className="text-small text-text-muted">{t("files.total", { size: formatBytes(total, locale) })}</span>
         )}
       </div>
 
       <div className="px-5 md:min-h-0 md:flex-1 md:overflow-y-auto">
-        <ul
-          aria-label={t("files.list")}
-          className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface"
-        >
-          {items
-            ? items.map((item) => <WorkingRow key={item.path} item={item} noun={noun} />)
-            : paths.map((path) => (
-                <ReadyRow
-                  key={path}
-                  path={path}
-                  noun={noun}
-                  info={infos[path]}
-                  skipNote={infos[path] ? skipNote?.(infos[path]) : null}
-                  onRemove={() => onRemove(path)}
-                />
-              ))}
-        </ul>
+        {onReorder && !items ? (
+          <OrderedFiles
+            noun={noun}
+            paths={paths}
+            infos={infos}
+            onReorder={onReorder}
+            onRemove={onRemove}
+            useRow={useRow}
+          />
+        ) : (
+          <ul
+            aria-label={t("files.list")}
+            className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface"
+          >
+            {items
+              ? items.map((item) => <WorkingRow key={item.path} item={item} noun={noun} />)
+              : paths.map((path) => (
+                  <ReadyRow
+                    key={path}
+                    path={path}
+                    noun={noun}
+                    info={infos[path]}
+                    skipNote={infos[path] ? skipNote?.(infos[path]) : null}
+                    onRemove={() => onRemove(path)}
+                  />
+                ))}
+          </ul>
+        )}
       </div>
 
       <div className={`flex flex-wrap items-center gap-3 px-5 py-4 ${items ? "invisible" : ""}`}>
-        <Button variant="secondary" size="row" onPress={onPick}>
-          <Plus aria-hidden className="size-5" /> {t(`files.add.${noun}`)}
-        </Button>
-        {!isAndroidApp && <span className="text-small text-text-muted">{t(`files.dropMore.${noun}`)}</span>}
+        {Source ? (
+          <Source empty={false} onAdd={onAdd} />
+        ) : (
+          <>
+            <Button variant="secondary" size="row" onPress={onPick}>
+              <Plus aria-hidden className="size-5" /> {t(`files.add.${noun}`)}
+            </Button>
+            {!isAndroidApp && <span className="text-small text-text-muted">{t(`files.dropMore.${noun}`)}</span>}
+          </>
+        )}
       </div>
     </div>
   );
@@ -102,7 +144,7 @@ function ReadyRow({
   onRemove: () => void;
 }) {
   const { t, count, locale } = useT();
-  const thumbnail = useThumbnail(noun === "photo" ? path : null, 96);
+  const tile = useFileTile(path, noun, 96);
   const name = fileName(path);
   const meta = [
     info?.pages != null ? count("pages", info.pages) : null,
@@ -115,7 +157,7 @@ function ReadyRow({
       name={name}
       title={path}
       icon={NOUN_ICONS[noun]}
-      thumbnail={thumbnail}
+      {...tile}
       status="ready"
       note={meta.join(" · ")}
       onRemove={onRemove}
@@ -127,8 +169,8 @@ function ReadyRow({
 /** A file while its Task runs: waiting, a progress bar, or done with its new size. */
 function WorkingRow({ item, noun }: { item: JobItem; noun: "photo" | "pdf" }) {
   const { t, locale } = useT();
-  const thumbnail = useThumbnail(noun === "photo" ? item.path : null, 96);
-  const common = { name: item.name, title: item.path, icon: NOUN_ICONS[noun], thumbnail };
+  const tile = useFileTile(item.path, noun, 96);
+  const common = { name: item.name, title: item.path, icon: NOUN_ICONS[noun], ...tile };
   switch (item.status) {
     case "pending":
       return <FileRow {...common} status="waiting" note={t("task.file.waiting")} />;

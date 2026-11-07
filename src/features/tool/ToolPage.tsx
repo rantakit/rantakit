@@ -24,10 +24,15 @@ interface ToolPageProps {
   paths: string[];
   job: CompressJob;
   onPick: () => void;
+  /** Files from a Tool's own Source, such as Scan Dokumen's camera. */
+  onAdd: (paths: string[]) => void;
   onRemove: (path: string) => void;
+  onReorder: (paths: string[]) => void;
   onBack: () => void;
   onStart: (options: ToolOptions) => void;
   onProcessAnother: () => void;
+  /** For a Tool with its own work area: whether it has changes that leaving would lose. */
+  onUnsavedChange: (unsaved: boolean) => void;
 }
 
 /**
@@ -39,8 +44,21 @@ interface ToolPageProps {
  * foot. A phone stacks everything and pins the main button to the bottom of
  * the screen, where the tab bar is on other pages.
  */
-export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, onProcessAnother }: ToolPageProps) {
-  const { t, count } = useT();
+export function ToolPage({
+  tool,
+  paths,
+  job,
+  onPick,
+  onAdd,
+  onRemove,
+  onReorder,
+  onBack,
+  onStart,
+  onProcessAnother,
+  onUnsavedChange,
+}: ToolPageProps) {
+  const tr = useT();
+  const { t, count } = tr;
   const def = toolDef(tool);
   const [settings, updateSettings] = def.useSettings();
   const { presets, save, rename, remove } = usePresets(tool);
@@ -54,13 +72,58 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
   const appSettings = useAppSettings();
   const infos = useFileInfo(paths);
   const files = paths.flatMap((path) => (infos[path] ? [infos[path]] : []));
-  const request = def.toRequest(settings, files);
-  const skipNote = def.leavesUnchanged
-    ? (info: FileInfo) => (def.leavesUnchanged!(request, info) ? unchangedNote(t, request) : null)
-    : undefined;
+  const request = def.toRequest(settings, files, paths);
+  const skipNote =
+    def.leavesUnchanged || def.fileNote
+      ? (info: FileInfo) =>
+          def.leavesUnchanged?.(request, info) ? unchangedNote(t, request) : (def.fileNote?.(request, info, tr) ?? null)
+      : undefined;
+  const blocked = paths.length === 0 ? t(def.counts ? "options.needFiles.pages" : `options.needFiles.${def.noun}`) : (def.blocked?.(settings, files, paths.length, tr) ?? null);
   const Icon = TOOL_ICONS[tool];
   const running = job.isRunning;
   const hasResult = !running && job.items.length > 0;
+  // One Result from several files that didn't get made: the list stays, to fix and try again.
+  const mergeFailed = def.ordered === true && hasResult && !job.items.some((item) => item.status === "done");
+
+  const heading = (
+    <>
+      {/* The desktop app goes back from the title bar, which Android doesn't have. */}
+      <Button variant="icon" aria-label={t("tool.back")} onPress={onBack} className={isDesktopApp ? "md:hidden" : undefined}>
+        <ArrowLeft aria-hidden className="size-5" />
+      </Button>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-strong">
+        <Icon aria-hidden className="size-5" />
+      </span>
+      <h1 className="truncate ps-1 font-display text-section">{t(`tool.${tool}`)}</h1>
+    </>
+  );
+  const working = running ? (
+    <Working
+      label={t(`working.${tool}`, {
+        current: Math.min(job.items.filter(isFinished).length + 1, job.items.length),
+        files: count(def.counts ?? `files.${def.noun}`, job.items.length),
+      })}
+      fraction={overall(job.items)}
+      onCancel={job.cancel}
+    />
+  ) : null;
+
+  // A Tool with its own work area, once its file is chosen (M3).
+  if (def.Workspace && paths.length > 0 && !hasResult) {
+    return (
+      <div className="flex flex-1 flex-col md:min-h-0">
+        <def.Workspace
+          key={paths[0]}
+          path={paths[0]}
+          pages={infos[paths[0]]?.pages ?? null}
+          heading={heading}
+          working={working}
+          onStart={onStart}
+          onUnsavedChange={onUnsavedChange}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[minmax(0,1fr)_20rem] md:grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_22.5rem]">
@@ -68,23 +131,9 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
         aria-label={t(hasResult ? "result.list" : `files.pick.${def.noun}`)}
         className="flex min-w-0 flex-col md:row-span-2 md:min-h-0"
       >
-        <header className="flex h-14 shrink-0 items-center gap-2 px-2 md:px-4">
-          {/* The desktop app goes back from the title bar, which Android doesn't have. */}
-          <Button
-            variant="icon"
-            aria-label={t("tool.back")}
-            onPress={onBack}
-            className={isDesktopApp ? "md:hidden" : undefined}
-          >
-            <ArrowLeft aria-hidden className="size-5" />
-          </Button>
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-strong">
-            <Icon aria-hidden className="size-5" />
-          </span>
-          <h1 className="truncate ps-1 font-display text-section">{t(`tool.${tool}`)}</h1>
-        </header>
+        <header className="flex h-14 shrink-0 items-center gap-2 px-2 md:px-4">{heading}</header>
         {hasResult ? (
-          <ResultList job={job} noun={def.noun} />
+          <ResultList job={job} noun={def.noun} comparesSizes={!def.summary} merges={def.ordered === true} />
         ) : (
           <FilesColumn
             noun={def.noun}
@@ -93,6 +142,11 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
             skipNote={skipNote}
             onPick={onPick}
             onRemove={onRemove}
+            onReorder={def.ordered ? onReorder : undefined}
+            useRow={def.useRow && ((path, all) => def.useRow!(path, all, settings))}
+            Source={def.Source}
+            onAdd={onAdd}
+            counts={def.counts}
           />
         )}
       </section>
@@ -103,26 +157,34 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
       >
         {hasResult ? (
           <div className="flex flex-col p-5 md:overflow-y-auto">
-            <ResultSummary job={job} noun={def.noun} resultsFolder={appSettings?.resultsFolder ?? null} />
+            <ResultSummary
+              job={job}
+              noun={def.noun}
+              summary={def.summary}
+              merges={def.ordered === true}
+              resultsFolder={appSettings?.resultsFolder ?? null}
+            />
           </div>
         ) : (
           <div
             inert={running}
             className={`flex flex-col gap-[22px] p-5 transition-opacity md:overflow-y-auto ${running ? "opacity-45" : ""}`}
           >
-            <PresetPicker
-              presets={presets}
-              selected={presetId}
-              onSelect={(preset) => {
-                if (preset) updateSettings(preset.options);
-                setPresetId(preset?.id ?? null);
-              }}
-              onManage={() => setPresetDialog("manage")}
-            />
-            <def.Main settings={settings} onChange={update} files={files} />
+            {def.presets !== false && (
+              <PresetPicker
+                presets={presets}
+                selected={presetId}
+                onSelect={(preset) => {
+                  if (preset) updateSettings(preset.options);
+                  setPresetId(preset?.id ?? null);
+                }}
+                onManage={() => setPresetDialog("manage")}
+              />
+            )}
+            <def.Main settings={settings} onChange={update} files={files} paths={paths} />
             {def.Advanced && (def.showAdvanced?.(settings, files) ?? true) && (
               <MoreOptions tool={tool}>
-                <def.Advanced settings={settings} onChange={update} files={files} />
+                <def.Advanced settings={settings} onChange={update} files={files} paths={paths} />
               </MoreOptions>
             )}
           </div>
@@ -131,28 +193,24 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
 
       {/* The main button: the panel's foot on desktop, pinned to the bottom of the screen on mobile. */}
       <div className="sticky bottom-0 flex flex-col gap-2 border-t border-border bg-panel p-5 md:static md:col-start-2 md:border-s">
-        {hasResult ? (
+        {mergeFailed ? (
+          <Button onPress={job.reset}>{t("result.backToFiles")}</Button>
+        ) : hasResult ? (
           <Button onPress={onProcessAnother}>{t("result.another")}</Button>
-        ) : running ? (
-          <Working
-            label={t(`working.${tool}`, {
-              current: Math.min(job.items.filter(isFinished).length + 1, job.items.length),
-              files: count(`files.${def.noun}`, job.items.length),
-            })}
-            fraction={overall(job.items)}
-            onCancel={job.cancel}
-          />
+        ) : working ? (
+          working
         ) : (
           <>
-            <Button variant="link" className="self-center" onPress={() => setPresetDialog("save")}>
-              <BookmarkPlus aria-hidden className="size-5" /> {t("preset.save")}
-            </Button>
-            <Button isDisabled={paths.length === 0} onPress={() => onStart(request)}>
+            {def.presets !== false && (
+              <Button variant="link" className="self-center" onPress={() => setPresetDialog("save")}>
+                <BookmarkPlus aria-hidden className="size-5" /> {t("preset.save")}
+              </Button>
+            )}
+            {/* Made again on press: a row may have changed what goes in, such as a crop. */}
+            <Button isDisabled={blocked !== null} onPress={() => onStart(def.toRequest(settings, files, paths))}>
               {t(`main.${tool}`)}
             </Button>
-            {paths.length === 0 && (
-              <p className="text-center text-small text-text-muted">{t(`options.needFiles.${def.noun}`)}</p>
-            )}
+            {blocked && <p className="text-center text-small text-text-muted">{blocked}</p>}
           </>
         )}
       </div>

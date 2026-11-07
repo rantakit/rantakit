@@ -12,6 +12,9 @@ const chosenNames = new Map<string, string>();
 /** A file's name: the last segment of a Windows or POSIX path, or the name Android gave a chosen file. */
 export const fileName = (path: string) => chosenNames.get(path) ?? path.split(/[\\/]/).pop() ?? path;
 
+/** Names a file Rantakit made itself, such as a photo the camera took: "Jepretan 1". */
+export const nameFile = (path: string, name: string) => void chosenNames.set(path, name);
+
 /**
  * Looks up the names of files chosen or shared on Android, whose `content://`
  * addresses do not contain them, so that `fileName` can show them.

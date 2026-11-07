@@ -118,20 +118,21 @@ impl History {
         })
     }
 
-    /// Adds a finished Task as one entry with each of its Results. A Task
-    /// without any Result leaves no entry.
+    /// Adds a finished Task as one entry with each of its Results. An
+    /// Original that made several Results (X3) adds each of them, in order,
+    /// with the same Original. A Task without any Result leaves no entry.
     pub fn record(&self, task: &Task, outcomes: &[FileOutcome]) -> Result<()> {
         let files: Vec<EntryFile> = task
             .originals
             .iter()
             .zip(outcomes)
-            .filter_map(|(original, outcome)| {
-                let result = outcome.as_ref().ok()?;
-                Some(EntryFile {
+            .filter_map(|(original, outcome)| outcome.as_ref().ok().map(|result| (original, result)))
+            .flat_map(|(original, result)| {
+                result.files().into_iter().map(|file| EntryFile {
                     original_path: original.clone(),
-                    result_path: result.path.clone(),
+                    result_path: file.path,
                     original_bytes: result.original_size,
-                    result_bytes: result.size,
+                    result_bytes: file.size,
                 })
             })
             .collect();
@@ -313,6 +314,47 @@ mod tests {
         ];
         history.record(&task, &failed).unwrap();
         assert_eq!(history.list().unwrap().len(), 1, "no Result, no entry");
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn several_results_from_one_original_stay_one_entry() {
+        let (history, dir) = temp_history("folder");
+        let task = Task {
+            tool: ToolOptions::KompresPdf(crate::PdfOptions {
+                quality: 70,
+                max_dimension: None,
+                max_bytes: None,
+            }),
+            originals: vec!["ijazah.pdf".into()],
+            results_folder: None,
+        };
+        let page = |n: u32| crate::task::FolderFile {
+            path: format!("ijazah (pages)/ijazah (page {n}).pdf").into(),
+            size: 10,
+        };
+        let outcomes = [Ok(ResultFile {
+            path: "ijazah (pages)".into(),
+            original_size: 100,
+            size: 30,
+            details: Details::Folder {
+                files: vec![page(1), page(2), page(3)],
+            },
+        })];
+        history.record(&task, &outcomes).unwrap();
+
+        let entries = history.list().unwrap();
+        assert_eq!(entries.len(), 1, "one Task, one entry");
+        let results: Vec<&Path> = entries[0].files.iter().map(|f| f.result_path.as_path()).collect();
+        assert_eq!(
+            results,
+            [
+                Path::new("ijazah (pages)/ijazah (page 1).pdf"),
+                Path::new("ijazah (pages)/ijazah (page 2).pdf"),
+                Path::new("ijazah (pages)/ijazah (page 3).pdf"),
+            ]
+        );
+        assert!(entries[0].files.iter().all(|f| f.original_path == Path::new("ijazah.pdf")));
         fs::remove_dir_all(dir).unwrap();
     }
 

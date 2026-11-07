@@ -10,13 +10,13 @@ Related documents:
 
 ## How this roadmap works
 
-- **Small releases.** Every release is usable on its own and ships through the existing release workflow.
+- **Small releases, except v0.4.** Every release is usable on its own and ships through the existing release workflow. v0.4 is the one large release: it holds the Tools for Jobs 2, 3, and 5 and the remaining photo and document formats.
 - **No dates.** Only the order and the contents of releases are planned.
 - **Both platforms from v0.4.** v0.2 is desktop only and v0.3 brings Android up to the same level. From v0.4 on, every Tool ships on Windows, Linux, and Android in the same release.
-- **One usability test, at the beta.** Five people from the primary audience test the beta of v0.11, before 1.0 (RANTAKIT.md §9). Releases before it do not wait for a usability test.
+- **One usability test, at the beta.** Five people from the primary audience test the beta of v0.8, before 1.0 (RANTAKIT.md §9). Releases before it do not wait for a usability test.
 - **Every Tool epic starts with a short grilling** that decides that Tool's Advanced options and its error messages, before any work on it.
 - **The size gate.** Heavy formats (photo formats, office documents, audio, video, Word/Excel to PDF) are measured before they are planned in detail; see [The size gate](#the-size-gate).
-- **1.0** means the full catalogue of v0.2 to v0.11 works on Windows, Android, and Linux. Whether 1.0 also requires the store and distribution channels is not decided yet.
+- **1.0** means the full catalogue of v0.2 to v0.8 works on Windows, Android, and Linux. Whether 1.0 also requires the store and distribution channels is not decided yet.
 
 Each release below has a **Goal** (what users can do afterwards), **Epics**, **Done when** (observable exit criteria), and **Open decisions** (settled at the start of the epic, not now).
 
@@ -26,14 +26,11 @@ Each release below has a **Goal** (what users can do afterwards), **Epics**, **D
 |---|---|---|
 | v0.2 | Foundation | Windows, Linux |
 | v0.3 | Android | Android |
-| v0.4 | Arrange PDF | All |
-| v0.5 | Paper → PDF | All |
-| v0.6 | Share safely | All |
-| v0.7 | More formats | All |
-| v0.8 | Audio | All |
-| v0.9 | Video | All |
-| v0.10 | Word/Excel to PDF | All |
-| v0.11 | Ready for 1.0 | All |
+| v0.4 | More Tools: arrange PDF, paper → PDF, share safely, more formats | All |
+| v0.5 | Audio | All |
+| v0.6 | Video | All |
+| v0.7 | Word/Excel to PDF | All |
+| v0.8 | Ready for 1.0 | All |
 | 1.0 | Rantakit 1.0 | All |
 | After 1.0 | Get text, then protect PDF | All |
 
@@ -45,8 +42,8 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 |---:|---:|---:|---:|
 | 20 MB | 16 MB | 8 MB | 10 MB |
 
-- Every heavy format fits within the caps except **Word/Excel to PDF**, which stays before 1.0: its epic starts by slimming it to fit (see [v0.10](#v010-wordexcel-to-pdf)).
-- A format that still does not fit **moves to after 1.0** until a lighter way to build it is found, unless the caps are raised on purpose. Its release is dropped from this list and the later version numbers close up.
+- Every heavy format fits within the caps except **Word/Excel to PDF**, which stays before 1.0: its epic starts by slimming it to fit (see [v0.7](#v07-wordexcel-to-pdf)).
+- A format that still does not fit **moves to after 1.0** until a lighter way to build it is found, unless the caps are raised on purpose. Its release is dropped from this list and the later version numbers close up; in v0.4, only that format leaves the release.
 - Heavy formats are never offered as optional downloads: only language data may be downloaded ([ADR 0001](docs/adr/0001-files-never-leave-the-device.md)).
 
 ## v0.2 Foundation
@@ -95,60 +92,41 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 
 **Done when:**
 
-- Compressing a 10-page scanned PDF takes under 5 seconds on an Android 8.0 emulator with 3 GB of RAM, recorded as an estimate; the check on a real phone runs on the v0.11 beta.
+- Compressing a 10-page scanned PDF takes under 5 seconds on an Android 8.0 emulator with 3 GB of RAM, recorded as an estimate; the check on a real phone runs on the v0.8 beta.
 - Works on Android 8.0 and later.
 - Both APKs are published on GitHub Releases, signed with the release keystore.
 
 **Open decisions:** none; settled while writing the stories (2026-11-03).
 
-## v0.4 Arrange PDF
+## v0.4 More Tools
 
-**Goal:** people can put PDFs together the way a portal asks for them (Job 3).
+**Goal:** people can put PDFs together the way a portal asks for them (Job 3), turn paper documents into one clean PDF (Job 2), share ID copies and photos without them being misused (Job 5), and convert and compress the other formats they receive (Job 1).
 
-**Epics:** Gabung PDF (merge); Pisah PDF (split); Atur Halaman PDF (arrange pages: reorder, rotate, delete, extract).
-
-**Done when:** each Tool follows the three-step layout and its Result names, on all platforms.
-
-**Open decisions:** Advanced options for each Tool.
-
-## v0.5 Paper → PDF
-
-**Goal:** people can turn paper documents into one clean PDF (Job 2).
+**Stories:** [docs/stories/v0.4.md](docs/stories/v0.4.md)
 
 **Epics:**
 
-- **JPG ke PDF** (JPG to PDF) with crop and straighten, on all platforms.
-- **Scan Dokumen** (scan document) on Android: camera, automatic edge detection, crop, straighten, clean up, several pages into one PDF.
+- **Shared pieces** (first, before the other epics): PDF page thumbnails rendered with `hayro`, starting by measuring `hayro` without its embedded CJK character maps and checking real Indonesian PDFs; files in a chosen order; several Results from one file.
+- **Arrange PDF (Job 3):** Gabung PDF (merge); Pisah PDF (split, and extract pages); Atur Halaman PDF (arrange pages: reorder, rotate, delete).
+- **Paper → PDF (Job 2):**
+  - **JPG ke PDF** (JPG to PDF) with crop and straighten, on all platforms.
+  - **Scan Dokumen** (scan document) on Android: camera, automatic edge detection, crop, straighten, clean up, several pages into one PDF.
+- **Share safely (Job 5):** Beri Watermark (add a watermark to photos and PDFs); Hapus Info Lokasi (remove location and camera info from photos).
+- **More formats (Job 1):**
+  - **More photo conversion:** HEIC and WebP → JPG or PNG.
+  - **PDF ke JPG** (PDF to JPG), rendered with `hayro`.
+  - **Compress office documents:** Word, Excel, and PowerPoint files.
 
-**Done when:** "Turn these 3 photos of your KK into one PDF" works unaided on desktop and Android.
+**Done when:**
 
-**Open decisions:** Advanced options for each Tool; how clean-up works on low-end phones.
+- Each Tool follows the three-step layout and its Result names, on all platforms.
+- "Turn these 3 photos of your KK into one PDF" works unaided on desktop and Android.
+- "Put 'Hanya untuk verifikasi Bank X' (Only for Bank X verification) on this KTP (ID card) photo" works unaided.
+- Each new format is within the size budget. A format that does not fit leaves v0.4 by the size gate instead of holding the release back.
 
-## v0.6 Share safely
+**Open decisions:** Advanced options for each Tool; how clean-up works on low-end phones; the page rendering fallback if `hayro` fails real documents (Android's `PdfRenderer` plus a fix to `hayro`); whether Kompres Dokumen accepts the older `.doc`, `.xls`, and `.ppt`. The UI and UX were settled while writing the stories (2026-11-07).
 
-**Goal:** people can share ID copies and photos without them being misused (Job 5).
-
-**Epics:** Beri Watermark (add a watermark to photos and PDFs); Hapus Info Lokasi (remove location and camera info from photos).
-
-**Done when:** "Put 'Hanya untuk verifikasi Bank X' (Only for Bank X verification) on this KTP (ID card) photo" works unaided.
-
-**Open decisions:** Advanced options for each Tool.
-
-## v0.7 More formats
-
-**Goal:** photos and documents in the other formats people receive can be converted and compressed (Job 1).
-
-**Epics:**
-
-- **More photo conversion:** HEIC and WebP → JPG or PNG.
-- **PDF ke JPG** (PDF to JPG), rendered with `hayro`. The epic starts by measuring `hayro` without its embedded CJK character maps and checking real Indonesian PDFs.
-- **Compress office documents:** Word, Excel, and PowerPoint files.
-
-**Done when:** each format is within the size budget, and each Tool follows the three-step layout on all platforms.
-
-**Open decisions:** Advanced options for each Tool; the PDF to JPG fallback if `hayro` fails real documents (Android's `PdfRenderer` plus a fix to `hayro`).
-
-## v0.8 Audio
+## v0.5 Audio
 
 **Goal:** people can make audio files (for example WhatsApp voice notes) smaller and convert them to common formats.
 
@@ -158,7 +136,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 
 **Open decisions:** supported formats; Tool names; Advanced options.
 
-## v0.9 Video
+## v0.6 Video
 
 **Goal:** people can make videos small enough to send or upload.
 
@@ -168,7 +146,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 
 **Open decisions:** supported formats; Advanced options; speed bar on low-end phones; what happens if Linux has no usable encoder (ADR 0008 moves video to after 1.0).
 
-## v0.10 Word/Excel to PDF
+## v0.7 Word/Excel to PDF
 
 **Goal:** people can turn Word and Excel files into PDFs that portals accept.
 
@@ -181,7 +159,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 
 **Open decisions:** which layouts and fonts must be supported; Advanced options.
 
-## v0.11 Ready for 1.0
+## v0.8 Ready for 1.0
 
 **Goal:** everything planned for 1.0 is stable, accessible, and small.
 
@@ -197,7 +175,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 
 ## 1.0
 
-The catalogue of v0.2 to v0.11 works on Windows, Android, and Linux, minus any format the size gate moved out.
+The catalogue of v0.2 to v0.8 works on Windows, Android, and Linux, minus any format the size gate moved out.
 
 ## After 1.0
 

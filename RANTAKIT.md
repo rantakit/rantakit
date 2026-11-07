@@ -125,14 +125,17 @@ On desktop, steps 1 and 2 sit side by side on one screen. On a phone they are st
 
 | Tool | Result name |
 |---|---|
-| Kompres Foto / Kompres PDF | `ijazah (compressed).pdf` |
+| Kompres Foto / Kompres PDF / compress office documents | `ijazah (compressed).pdf` |
 | Convert / resize photo | `foto (converted).jpg`, `foto (resized).jpg` |
 | JPG ke PDF / Scan Dokumen | `scan 2026-10-31.pdf` |
 | Gabung PDF | `merged 2026-10-31.pdf` |
-| Pisah PDF / Atur Halaman PDF | `ijazah (pages 1-3).pdf`, `ijazah (edited).pdf` |
+| Pisah PDF / Atur Halaman PDF | `ijazah (pages 1-3).pdf`, `ijazah (page 1).pdf`, `ijazah (edited).pdf` |
+| PDF ke JPG | `ijazah (page 1).jpg` |
 | Beri Watermark | `ktp (watermarked).jpg` |
 | Hapus Info Lokasi | `foto (cleaned).jpg` |
 | Name already taken | `ijazah (compressed) (2).pdf` |
+
+- **Several Results from one Original** (Pisah PDF splitting every page, PDF ke JPG) go into a new folder named after it, `ijazah (pages)/`, so they don't scatter around the Original. A taken folder name gets a number, like a file: `ijazah (pages) (2)/`.
 
 ### History
 

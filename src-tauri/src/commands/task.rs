@@ -4,10 +4,12 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use rantakit_tasks::{
-    CancelToken, Compression, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
-    PhotoSize, Progress, RecentLimits, RecentTools, SettingsStore, Task, TaskEvent, ToolOptions,
-    WHITE, dpi_to_side, run_task,
+    CancelToken, Compression, Details, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
+    PageEdit, PaperSize, PhotoEdit, PhotoSize, PhotosToPdf, Progress, RecentLimits, RecentTools, SettingsStore,
+    Split, Task, TaskEvent, ToolOptions, WHITE, dpi_to_side, run_task,
 };
+
+use super::photos::EditRequest;
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
@@ -77,6 +79,99 @@ pub enum OptionsRequest {
         #[serde(default)]
         max_side: Option<u32>,
     },
+    GabungPdf {
+        /// The user's today, such as "2026-11-07", for `merged 2026-11-07.pdf`.
+        date: String,
+    },
+    PisahPdf {
+        /// "Ambil halaman": pages counted from 1, in order.
+        #[serde(default)]
+        pages: Option<Vec<usize>>,
+        /// "Pisah semua halaman" (1) or "Setiap N halaman"; used when `pages` is left out.
+        #[serde(default)]
+        every: Option<usize>,
+    },
+    AturHalamanPdf {
+        /// The Result's pages in order.
+        pages: Vec<PageRequest>,
+    },
+    JpgKePdf {
+        /// The user's today, for `scan 2026-11-07.pdf`.
+        date: String,
+        #[serde(default)]
+        paper: PaperRequest,
+        /// False for "Tanpa margin" in Advanced options.
+        #[serde(default = "default_margin")]
+        margin: bool,
+        /// One per photo, in the order of `paths`; a missing one keeps the
+        /// photo whole.
+        #[serde(default)]
+        edits: Vec<EditRequest>,
+    },
+    /// Like JPG ke PDF, for the photos the camera took.
+    ScanDokumen {
+        date: String,
+        #[serde(default)]
+        paper: PaperRequest,
+        #[serde(default = "default_margin")]
+        margin: bool,
+        #[serde(default)]
+        edits: Vec<EditRequest>,
+        /// "Tampilan": "Bersihkan" (the default) or "Warna asli".
+        #[serde(default)]
+        look: LookRequest,
+    },
+}
+
+/// "Ukuran kertas" for JPG ke PDF and Scan Dokumen.
+#[derive(Debug, Default, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PaperRequest {
+    #[default]
+    A4,
+    F4,
+    /// "Ikuti ukuran foto".
+    Photo,
+}
+
+/// Scan Dokumen's "Tampilan".
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LookRequest {
+    /// "Bersihkan".
+    #[default]
+    Clean,
+    /// "Warna asli".
+    Original,
+}
+
+fn default_margin() -> bool {
+    true
+}
+
+fn photos_to_pdf(date: String, paper: PaperRequest, margin: bool, edits: Vec<EditRequest>, clean: bool) -> PhotosToPdf {
+    PhotosToPdf {
+        date,
+        paper: match paper {
+            PaperRequest::A4 => PaperSize::A4,
+            PaperRequest::F4 => PaperSize::F4,
+            PaperRequest::Photo => PaperSize::Photo,
+        },
+        margin,
+        edits: edits.into_iter().map(PhotoEdit::from).collect(),
+        clean,
+    }
+}
+
+/// One page of Atur Halaman PDF's Result.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PageRequest {
+    /// The page of the Original, counted from 0.
+    pub page: usize,
+    /// Quarter turns clockwise; negative turns left.
+    #[serde(default)]
+    pub turns: i32,
 }
 
 #[derive(Debug, Default, Clone, Copy, Deserialize)]
@@ -202,6 +297,33 @@ impl From<OptionsRequest> for ToolOptions {
             OptionsRequest::UbahUkuranFoto { size, max_side } => {
                 Self::resize(max_side.unwrap_or(PhotoSize::from(size).side()))
             }
+            OptionsRequest::GabungPdf { date } => Self::GabungPdf { date },
+            OptionsRequest::PisahPdf { pages, every } => Self::PisahPdf(match pages {
+                Some(pages) => Split::Take(pages),
+                None => Split::Every(every.unwrap_or(1).max(1)),
+            }),
+            OptionsRequest::AturHalamanPdf { pages } => Self::AturHalamanPdf(
+                pages
+                    .into_iter()
+                    .map(|page| PageEdit {
+                        page: page.page,
+                        quarter_turns: page.turns.rem_euclid(4) as u8,
+                    })
+                    .collect(),
+            ),
+            OptionsRequest::JpgKePdf {
+                date,
+                paper,
+                margin,
+                edits,
+            } => Self::JpgKePdf(photos_to_pdf(date, paper, margin, edits, false)),
+            OptionsRequest::ScanDokumen {
+                date,
+                paper,
+                margin,
+                edits,
+                look,
+            } => Self::ScanDokumen(photos_to_pdf(date, paper, margin, edits, look == LookRequest::Clean)),
         }
     }
 }
@@ -238,9 +360,27 @@ pub enum Outcome {
 #[serde(rename_all = "camelCase")]
 pub struct ResultMessage {
     pub input_path: PathBuf,
+    /// The Result, or the new folder holding several (X3).
     pub output_path: PathBuf,
     pub original_bytes: u64,
     pub compressed_bytes: u64,
+    /// When one Original made several Results: each, in order, inside
+    /// `output_path`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files: Option<Vec<PartMessage>>,
+    /// How many pages a PDF made of pages has: merged, taken out, or arranged.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pages: Option<usize>,
+    /// Pages asked for that the Original does not have, counted from 1.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub skipped_pages: Vec<usize>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PartMessage {
+    pub path: PathBuf,
+    pub bytes: u64,
 }
 
 /// An error kind as a code; `best` is set for "size-limit-unreachable".
@@ -272,6 +412,26 @@ fn outcome(original: &Path, outcome: &FileOutcome) -> Outcome {
                 output_path: result.path.clone(),
                 original_bytes: result.original_size,
                 compressed_bytes: result.size,
+                files: match &result.details {
+                    Details::Folder { files } => Some(
+                        files
+                            .iter()
+                            .map(|file| PartMessage {
+                                path: file.path.clone(),
+                                bytes: file.size,
+                            })
+                            .collect(),
+                    ),
+                    _ => None,
+                },
+                pages: match &result.details {
+                    Details::Pages { pages, .. } => Some(*pages),
+                    _ => None,
+                },
+                skipped_pages: match &result.details {
+                    Details::Pages { skipped, .. } => skipped.clone(),
+                    _ => Vec::new(),
+                },
             },
         },
         Err(kind) => Outcome::Failed { error: kind.into() },
@@ -421,6 +581,22 @@ fn run(
     use crate::android;
 
     let workspace = android::Workspace::new(app, id);
+    if task.tool.merges() {
+        return match &workspace {
+            Ok(workspace) => merge_on_android(app, workspace, task, on_event, cancel),
+            Err(err) => {
+                let outcomes: Vec<FileOutcome> = task
+                    .originals
+                    .iter()
+                    .map(|_| Err(ErrorKind::writing(err)))
+                    .collect();
+                for (file, outcome) in outcomes.iter().enumerate() {
+                    on_event(TaskEvent::FileDone { file, outcome });
+                }
+                outcomes
+            }
+        };
+    }
     let mut outcomes = Vec::with_capacity(task.originals.len());
     for (file, original) in task.originals.iter().enumerate() {
         let outcome = match &workspace {
@@ -440,7 +616,7 @@ fn run(
                 let result = run_task(&one, &mut progress, cancel).pop();
                 let saved = result
                     .expect("one Original")
-                    .and_then(|result| android::save(app, &copy, task.tool.suffix(), result));
+                    .and_then(|result| android::save(app, result));
                 workspace.remove(file);
                 saved
             }),
@@ -452,6 +628,75 @@ fn run(
         outcomes.push(outcome);
     }
     outcomes
+}
+
+/// Gabung PDF on Android: every Original is copied in first, then merged and
+/// saved once. A file that cannot be copied ends the Task as a file that
+/// cannot be read does: that file says why and the rest are `Cancelled`.
+#[cfg(target_os = "android")]
+fn merge_on_android(
+    app: &AppHandle,
+    workspace: &crate::android::Workspace,
+    task: &Task,
+    on_event: &mut dyn FnMut(TaskEvent),
+    cancel: &CancelToken,
+) -> Vec<FileOutcome> {
+    let count = task.originals.len();
+    fn finish(on_event: &mut dyn FnMut(TaskEvent), outcomes: Vec<FileOutcome>) -> Vec<FileOutcome> {
+        for (file, outcome) in outcomes.iter().enumerate() {
+            on_event(TaskEvent::FileDone { file, outcome });
+        }
+        outcomes
+    }
+    let fail = |file: usize, kind: ErrorKind| -> Vec<FileOutcome> {
+        (0..count)
+            .map(|at| Err(if at == file { kind.clone() } else { ErrorKind::Cancelled }))
+            .collect()
+    };
+
+    let mut copies = Vec::with_capacity(count);
+    for (file, original) in task.originals.iter().enumerate() {
+        if cancel.is_cancelled() {
+            return finish(on_event, fail(count, ErrorKind::Cancelled));
+        }
+        match workspace.copy_in(app, file, original) {
+            Ok(copy) => copies.push(copy),
+            Err(kind) => return finish(on_event, fail(file, kind)),
+        }
+    }
+    let merged = Task {
+        tool: task.tool.clone(),
+        originals: copies,
+        results_folder: Some(workspace.results()),
+    };
+    // Progress goes through as it is; the outcomes wait until the Result is saved.
+    let mut progress = |event: TaskEvent| {
+        if let TaskEvent::Progress { file, progress } = event {
+            on_event(TaskEvent::Progress { file, progress });
+        }
+    };
+    let outcomes = run_task(&merged, &mut progress, cancel);
+    let saved = match outcomes.iter().find_map(|outcome| outcome.as_ref().ok()) {
+        Some(result) => crate::android::save(app, result.clone()).map(|saved| saved.path),
+        None => Err(ErrorKind::Cancelled),
+    };
+    for file in 0..count {
+        workspace.remove(file);
+    }
+    let outcomes = match saved {
+        Ok(path) => outcomes
+            .into_iter()
+            .map(|outcome| {
+                outcome.map(|result| rantakit_tasks::ResultFile {
+                    path: path.clone(),
+                    ..result
+                })
+            })
+            .collect(),
+        Err(_) if outcomes.iter().all(Result::is_err) => outcomes,
+        Err(kind) => fail(0, kind),
+    };
+    finish(on_event, outcomes)
 }
 
 /// Stops a running Task. Finished Results stay; the file being worked on

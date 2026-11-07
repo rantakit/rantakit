@@ -117,6 +117,54 @@ pub struct Tool {
     pub accepts: &'static [FileKind],
     pub platforms: &'static [Platform],
     pub availability: Availability,
+    /// How many files the Tool takes at once.
+    pub files: FileCount,
+}
+
+/// How many files a Tool takes at once (X5 in docs/stories/v0.4.md).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileCount {
+    /// One or more, each made into its own Result.
+    Any,
+    /// Gabung PDF: there is nothing to merge in one file.
+    AtLeastTwo,
+    /// Atur Halaman PDF: one PDF per Task.
+    One,
+}
+
+impl FileCount {
+    pub fn allows(self, count: usize) -> bool {
+        match self {
+            Self::Any => count >= 1,
+            Self::AtLeastTwo => count >= 2,
+            Self::One => count == 1,
+        }
+    }
+}
+
+impl Tool {
+    /// Whether the Tool takes all of `kinds` at once: each kind, as many as
+    /// there are, and all from one family, so photos and PDFs never mix.
+    pub fn takes(&self, kinds: &[FileKind]) -> bool {
+        self.files.allows(kinds.len())
+            && kinds.iter().all(|kind| self.accepts.contains(kind))
+            && kinds.windows(2).all(|pair| family(pair[0]) == family(pair[1]))
+    }
+
+    const fn taking(self, files: FileCount) -> Self {
+        Self { files, ..self }
+    }
+}
+
+/// Files of one family can share a Task; a Tool page shows one kind of file.
+fn family(kind: FileKind) -> u8 {
+    match kind {
+        Jpg | Png | Heic | Webp => 0,
+        Pdf => 1,
+        Word | Excel | PowerPoint => 2,
+        Audio => 3,
+        Video => 4,
+    }
 }
 
 use Availability::*;
@@ -164,17 +212,17 @@ pub const CATALOGUE: &[Tool] = &[
     ),
     tool(ToolId::WordKePdf, KecilkanUbah, &[Word], ALL, ComingSoon),
     tool(ToolId::ExcelKePdf, KecilkanUbah, &[Excel], ALL, ComingSoon),
-    tool(ToolId::JpgKePdf, Scan, PHOTOS, ALL, ComingSoon),
+    tool(ToolId::JpgKePdf, Scan, PHOTOS, ALL, Shipped),
     tool(
         ToolId::ScanDokumen,
         Scan,
         &[],
         &[Platform::Android],
-        ComingSoon,
+        Shipped,
     ),
-    tool(ToolId::GabungPdf, AturPdf, &[Pdf], ALL, ComingSoon),
-    tool(ToolId::PisahPdf, AturPdf, &[Pdf], ALL, ComingSoon),
-    tool(ToolId::AturHalamanPdf, AturPdf, &[Pdf], ALL, ComingSoon),
+    tool(ToolId::GabungPdf, AturPdf, &[Pdf], ALL, Shipped).taking(FileCount::AtLeastTwo),
+    tool(ToolId::PisahPdf, AturPdf, &[Pdf], ALL, Shipped),
+    tool(ToolId::AturHalamanPdf, AturPdf, &[Pdf], ALL, Shipped).taking(FileCount::One),
     tool(ToolId::PdfKeJpg, AturPdf, &[Pdf], ALL, ComingSoon),
     tool(
         ToolId::BeriWatermark,
@@ -205,6 +253,7 @@ const fn tool(
         accepts,
         platforms,
         availability,
+        files: FileCount::Any,
     }
 }
 
@@ -215,17 +264,27 @@ pub fn tools_for(platform: Platform) -> impl Iterator<Item = &'static Tool> {
         .filter(move |tool| tool.platforms.contains(&platform))
 }
 
-/// The shipped Tools on `platform` that accept every one of `kinds`. Empty
-/// when `kinds` is empty.
+/// The shipped Tools on `platform` that take all of `kinds` at once (see
+/// [`Tool::takes`]), in catalogue order. Empty when `kinds` is empty.
 pub fn tools_for_kinds(kinds: &[FileKind], platform: Platform) -> Vec<ToolId> {
-    if kinds.is_empty() {
-        return Vec::new();
-    }
     tools_for(platform)
         .filter(|tool| tool.availability == Shipped)
-        .filter(|tool| kinds.iter().all(|kind| tool.accepts.contains(kind)))
+        .filter(|tool| tool.takes(kinds))
         .map(|tool| tool.id)
         .collect()
+}
+
+/// `tools` with the recently used ones first, newest first, then the rest
+/// in their own order. `recent` holds `ToolId::as_str` ids.
+pub fn recent_first(mut tools: Vec<ToolId>, recent: &[impl AsRef<str>]) -> Vec<ToolId> {
+    let rank = |tool: &ToolId| {
+        recent
+            .iter()
+            .position(|id| id.as_ref() == tool.as_str())
+            .unwrap_or(recent.len())
+    };
+    tools.sort_by_key(rank);
+    tools
 }
 
 /// The shipped Tools on `platform` that accept every one of `files`, judged by
@@ -241,7 +300,8 @@ pub fn tools_for_files(files: &[impl AsRef<Path>], platform: Platform) -> Vec<To
 /// What Rantakit can do with files dragged onto the window.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileMatch {
-    /// The shipped Tools that accept every file, in catalogue order; never
+    /// The shipped Tools that take every file, in catalogue order or, after
+    /// [`FileMatch::recent_first`], recently used first; never
     /// empty. `kinds` has each file's kind, in order.
     Fits {
         kinds: Vec<FileKind>,
@@ -252,6 +312,19 @@ pub enum FileMatch {
     /// Each file fits some Tool, but no Tool takes them all, like photos and
     /// PDFs together.
     Mixed,
+}
+
+impl FileMatch {
+    /// The same match with the recently used Tools first ([`recent_first`]).
+    pub fn recent_first(self, recent: &[impl AsRef<str>]) -> Self {
+        match self {
+            Self::Fits { kinds, tools } => Self::Fits {
+                kinds,
+                tools: recent_first(tools, recent),
+            },
+            other => other,
+        }
+    }
 }
 
 /// Which shipped Tools on `platform` can take all of `kinds`.
@@ -299,17 +372,21 @@ mod tests {
     }
 
     #[test]
-    fn photos_fit_the_photo_tools_and_pdfs_fit_kompres_pdf() {
+    fn photos_fit_the_photo_tools_and_pdfs_fit_the_shipped_pdf_tools() {
         let on = Platform::Windows;
         assert_eq!(
             tools_for_kinds(&[Jpg, Png], on),
             [
                 ToolId::KompresFoto,
                 ToolId::UbahFormatFoto,
-                ToolId::UbahUkuranFoto
+                ToolId::UbahUkuranFoto,
+                ToolId::JpgKePdf
             ]
         );
-        assert_eq!(tools_for_kinds(&[Pdf, Pdf], on), [ToolId::KompresPdf]);
+        assert_eq!(
+            tools_for_kinds(&[Pdf, Pdf], on),
+            [ToolId::KompresPdf, ToolId::GabungPdf, ToolId::PisahPdf]
+        );
     }
 
     #[test]
@@ -333,7 +410,8 @@ mod tests {
                 tools: vec![
                     ToolId::KompresFoto,
                     ToolId::UbahFormatFoto,
-                    ToolId::UbahUkuranFoto
+                    ToolId::UbahUkuranFoto,
+                    ToolId::JpgKePdf
                 ]
             }
         );
@@ -358,5 +436,69 @@ mod tests {
         assert!(listed(Platform::Android));
         assert!(!listed(Platform::Windows));
         assert!(!listed(Platform::Linux));
+    }
+
+    /// Every Tool that would take `kinds` once it ships, in catalogue order.
+    fn once_shipped(kinds: &[FileKind]) -> Vec<ToolId> {
+        CATALOGUE
+            .iter()
+            .filter(|tool| tool.takes(kinds))
+            .map(|tool| tool.id)
+            .collect()
+    }
+
+    #[test]
+    fn pdfs_lead_to_the_pdf_tools_by_how_many_there_are() {
+        use ToolId::*;
+        assert_eq!(
+            once_shipped(&[Pdf]),
+            [KompresPdf, PisahPdf, AturHalamanPdf, PdfKeJpg, BeriWatermark],
+            "one PDF: no Gabung PDF"
+        );
+        assert_eq!(
+            once_shipped(&[Pdf, Pdf]),
+            [KompresPdf, GabungPdf, PisahPdf, PdfKeJpg, BeriWatermark],
+            "two PDFs: Gabung PDF, and no Atur Halaman PDF"
+        );
+    }
+
+    #[test]
+    fn photos_lead_to_the_photo_tools() {
+        use ToolId::*;
+        assert_eq!(
+            once_shipped(&[Jpg, Png]),
+            [
+                KompresFoto,
+                UbahFormatFoto,
+                UbahUkuranFoto,
+                JpgKePdf,
+                BeriWatermark,
+                HapusInfoLokasi
+            ]
+        );
+    }
+
+    #[test]
+    fn office_documents_lead_to_kompres_dokumen() {
+        assert!(once_shipped(&[Word, Excel, PowerPoint]).contains(&ToolId::KompresDokumen));
+    }
+
+    #[test]
+    fn photos_and_pdfs_never_share_a_tool() {
+        assert!(
+            once_shipped(&[Jpg, Pdf]).is_empty(),
+            "Beri Watermark takes both, but not together"
+        );
+    }
+
+    #[test]
+    fn recently_used_tools_come_first() {
+        use ToolId::*;
+        let tools = vec![KompresFoto, UbahFormatFoto, UbahUkuranFoto, JpgKePdf];
+        assert_eq!(
+            recent_first(tools.clone(), &["jpg-ke-pdf", "kompres-pdf", "ubah-format-foto"]),
+            [JpgKePdf, UbahFormatFoto, KompresFoto, UbahUkuranFoto]
+        );
+        assert_eq!(recent_first(tools.clone(), &[] as &[&str]), tools);
     }
 }
