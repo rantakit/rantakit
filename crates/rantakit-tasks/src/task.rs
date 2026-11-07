@@ -120,6 +120,31 @@ pub enum Details {
         images: usize,
         images_recompressed: usize,
     },
+    /// One Original made several Results (X3), such as Pisah PDF's pages:
+    /// `ResultFile::path` is the new folder they are in, such as
+    /// `ijazah (pages)/`, and `ResultFile::size` is their total.
+    Folder { files: Vec<FolderFile> },
+}
+
+/// One of several Results in a [`Details::Folder`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct FolderFile {
+    pub path: PathBuf,
+    /// Size in bytes.
+    pub size: u64,
+}
+
+impl ResultFile {
+    /// Each file made, in order: the Result itself, or every file in its folder.
+    pub fn files(&self) -> Vec<FolderFile> {
+        match &self.details {
+            Details::Folder { files } => files.clone(),
+            _ => vec![FolderFile {
+                path: self.path.clone(),
+                size: self.size,
+            }],
+        }
+    }
 }
 
 /// What happens while a Task runs. `file` is an index into `Task::originals`.

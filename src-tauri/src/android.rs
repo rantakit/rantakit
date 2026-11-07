@@ -7,7 +7,9 @@ use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
 
-use rantakit_tasks::{ErrorKind, FileInfo, FileKind, ResultFile, result_name};
+use rantakit_tasks::{
+    Details, ErrorKind, FileInfo, FileKind, FolderFile, ResultFile, result_folder_name, result_name,
+};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_android_fs::{AndroidFsExt, FsUri, ImageFormat, PublicGeneralPurposeDir, Size};
 
@@ -71,6 +73,19 @@ pub fn kind(app: &AppHandle, path: &Path) -> Option<FileKind> {
 }
 
 /// A small JPG of a `content://` photo, made by the system.
+/// The whole of a chosen file, such as a PDF whose pages are drawn.
+pub fn read(app: &AppHandle, path: &Path) -> Result<Vec<u8>, ErrorKind> {
+    use std::io::Read;
+
+    let mut bytes = Vec::new();
+    app.android_fs()
+        .open_file_readable(&uri(path))
+        .map_err(io::Error::from)
+        .and_then(|mut file| file.read_to_end(&mut bytes))
+        .map_err(|err| ErrorKind::reading(&err))?;
+    Ok(bytes)
+}
+
 pub fn thumbnail(app: &AppHandle, path: &Path, size: u32) -> Option<Vec<u8>> {
     let preferred = Size {
         width: size,
@@ -199,52 +214,101 @@ impl Drop for Workspace {
 /// Saves `result` as a new file in `Download/Rantakit/` and removes its copy
 /// in the cache. The name follows the same rule as on desktop, counted
 /// against the Results this app saved there before; MediaStore numbers any
-/// other taken name itself, so no file is ever replaced.
+/// other taken name itself, so no file is ever replaced. Several Results
+/// from one Original (X3) go into a new folder there, such as
+/// `Download/Rantakit/ijazah (pages)/`.
 pub fn save(
     app: &AppHandle,
     original: &Path,
     suffix: &str,
     result: ResultFile,
 ) -> Result<ResultFile, ErrorKind> {
-    let fs = app.android_fs();
-    let storage = fs.public_storage();
+    if let Details::Folder { files } = &result.details {
+        return save_folder(app, original, suffix, files.clone(), result);
+    }
     let extension = result
         .path
         .extension()
         .unwrap_or_default()
-        .to_string_lossy();
-    #[allow(deprecated)]
-    // Only to look for names already taken; the file is written through MediaStore.
-    let folder = storage
-        .resolve_path(None, PublicGeneralPurposeDir::Download)
-        .map(|download| download.join(RESULTS_FOLDER))
-        .ok();
-    let taken = |name: &str| {
-        folder
-            .as_ref()
-            .is_some_and(|folder| folder.join(name).exists())
-    };
-    let name = (1..1000)
-        .map(|n| result_name(original, suffix, &extension, n))
-        .find(|name| !taken(name))
-        .unwrap_or_else(|| result_name(original, suffix, &extension, 1));
+        .to_string_lossy()
+        .into_owned();
+    let results = results_folder(app);
+    let name = free_name(results.as_deref(), |n| {
+        result_name(original, suffix, &extension, n)
+    });
+    let path = write_new(app, &Path::new(RESULTS_FOLDER).join(&name), &result.path)?;
+    Ok(ResultFile { path, ..result })
+}
 
+/// Each file of a folder Result, into a new folder in `Download/Rantakit/`.
+/// The files already saved stay when a later one fails, as in a Task that
+/// stops halfway.
+fn save_folder(
+    app: &AppHandle,
+    original: &Path,
+    suffix: &str,
+    files: Vec<FolderFile>,
+    result: ResultFile,
+) -> Result<ResultFile, ErrorKind> {
+    let results = results_folder(app);
+    let folder = free_name(results.as_deref(), |n| {
+        result_folder_name(original, suffix, n)
+    });
+    let relative = Path::new(RESULTS_FOLDER).join(&folder);
+    let mut saved = Vec::with_capacity(files.len());
+    for file in files {
+        let name = file.path.file_name().unwrap_or_default();
+        let path = write_new(app, &relative.join(name), &file.path)?;
+        saved.push(FolderFile { path, ..file });
+    }
+    let path = saved
+        .first()
+        .and_then(|file| file.path.parent())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| results.unwrap_or_default().join(&folder));
+    Ok(ResultFile {
+        path,
+        details: Details::Folder { files: saved },
+        ..result
+    })
+}
+
+/// `Download/Rantakit/` as a path, only to look for names already taken;
+/// files are written through MediaStore.
+fn results_folder(app: &AppHandle) -> Option<PathBuf> {
+    #[allow(deprecated)]
+    let download = app
+        .android_fs()
+        .public_storage()
+        .resolve_path(None, PublicGeneralPurposeDir::Download);
+    download.map(|download| download.join(RESULTS_FOLDER)).ok()
+}
+
+/// The first of `name(1)`, `name(2)`, … not taken in `folder`.
+fn free_name(folder: Option<&Path>, name: impl Fn(u32) -> String) -> String {
+    let taken = |candidate: &str| folder.is_some_and(|folder| folder.join(candidate).exists());
+    (1..1000)
+        .map(&name)
+        .find(|candidate| !taken(candidate))
+        .unwrap_or_else(|| name(1))
+}
+
+/// Copies `from` to a new file at `relative` inside `Download/`, removes
+/// `from`, and returns the new file's path.
+fn write_new(app: &AppHandle, relative: &Path, from: &Path) -> Result<PathBuf, ErrorKind> {
+    let fs = app.android_fs();
+    let storage = fs.public_storage();
     let cannot_write = |err: tauri_plugin_android_fs::Error| ErrorKind::writing(&err.into());
     // Pending until it is whole: other apps don't see it, and if Android
     // stops the Task halfway, Android 10 and later remove it after a week.
     let uri = storage
-        .create_new_file_with_pending(
-            None,
-            PublicGeneralPurposeDir::Download,
-            Path::new(RESULTS_FOLDER).join(&name),
-            None,
-        )
+        .create_new_file_with_pending(None, PublicGeneralPurposeDir::Download, relative, None)
         .map_err(cannot_write)?;
     let written = fs
         .open_file_writable(&uri)
         .map_err(io::Error::from)
         .and_then(|mut to| {
-            io::copy(&mut File::open(&result.path)?, &mut to)?;
+            io::copy(&mut File::open(from)?, &mut to)?;
             to.sync_all()
         })
         .and_then(|()| storage.set_pending(&uri, false).map_err(io::Error::from));
@@ -254,11 +318,12 @@ pub fn save(
     }
     // Android 9 and earlier only show the file in Gallery and Files once scanned.
     let _ = storage.scan(&uri);
-    let _ = fs::remove_file(&result.path);
+    let _ = fs::remove_file(from);
 
     #[allow(deprecated)] // The path is what the Result page and History show.
-    let path = storage
-        .get_path(&uri)
-        .unwrap_or_else(|_| folder.unwrap_or_default().join(&name));
-    Ok(ResultFile { path, ..result })
+    let path = storage.get_path(&uri).unwrap_or_else(|_| {
+        let download = storage.resolve_path(None, PublicGeneralPurposeDir::Download);
+        download.unwrap_or_default().join(relative)
+    });
+    Ok(path)
 }

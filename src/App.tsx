@@ -318,6 +318,7 @@ function App() {
             job={job}
             onPick={() => pickFiles(tool)}
             onRemove={(path) => setPaths((prev) => prev.filter((p) => p !== path))}
+            onReorder={setPaths}
             onBack={() => leaveTool(closeTool)}
             onStart={startJob}
             onProcessAnother={() => {

@@ -25,6 +25,7 @@ interface ToolPageProps {
   job: CompressJob;
   onPick: () => void;
   onRemove: (path: string) => void;
+  onReorder: (paths: string[]) => void;
   onBack: () => void;
   onStart: (options: ToolOptions) => void;
   onProcessAnother: () => void;
@@ -39,7 +40,7 @@ interface ToolPageProps {
  * foot. A phone stacks everything and pins the main button to the bottom of
  * the screen, where the tab bar is on other pages.
  */
-export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, onProcessAnother }: ToolPageProps) {
+export function ToolPage({ tool, paths, job, onPick, onRemove, onReorder, onBack, onStart, onProcessAnother }: ToolPageProps) {
   const { t, count } = useT();
   const def = toolDef(tool);
   const [settings, updateSettings] = def.useSettings();
@@ -84,7 +85,7 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
           <h1 className="truncate ps-1 font-display text-section">{t(`tool.${tool}`)}</h1>
         </header>
         {hasResult ? (
-          <ResultList job={job} noun={def.noun} />
+          <ResultList job={job} noun={def.noun} comparesSizes={!def.summary} />
         ) : (
           <FilesColumn
             noun={def.noun}
@@ -93,6 +94,7 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
             skipNote={skipNote}
             onPick={onPick}
             onRemove={onRemove}
+            onReorder={def.ordered ? onReorder : undefined}
           />
         )}
       </section>
@@ -103,7 +105,12 @@ export function ToolPage({ tool, paths, job, onPick, onRemove, onBack, onStart, 
       >
         {hasResult ? (
           <div className="flex flex-col p-5 md:overflow-y-auto">
-            <ResultSummary job={job} noun={def.noun} resultsFolder={appSettings?.resultsFolder ?? null} />
+            <ResultSummary
+              job={job}
+              noun={def.noun}
+              summary={def.summary}
+              resultsFolder={appSettings?.resultsFolder ?? null}
+            />
           </div>
         ) : (
           <div

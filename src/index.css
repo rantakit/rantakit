@@ -57,6 +57,10 @@
   --color-on-danger: #ffffff;
   /* Behind dialogs. */
   --color-backdrop: rgb(17 24 39 / 0.32);
+  /* A PDF page keeps its own white in both themes, with a thin edge (X1). */
+  --color-page: #ffffff;
+  --color-page-border: #d1d5db;
+  --color-page-number: #6b7280;
 
   /*
    * The six text styles (N2). Sizes follow the text size chosen in Settings
@@ -125,6 +129,7 @@
   --color-danger-hover: #fca5a5;
   --color-on-danger: #2a0a0a;
   --color-backdrop: rgb(0 0 0 / 0.6);
+  --color-page-border: #525252;
 }
 
 @layer base {

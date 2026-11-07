@@ -8,6 +8,7 @@ repository = "https://github.com/moez-rd/rantakit"
 edition = "2024"
 
 [dependencies]
+hayro = { version = "0.9", default-features = false, features = ["embed-fonts"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg"] }
 lopdf = { version = "0.46", default-features = false }
 rantakit-core = { path = "../rantakit-core" }

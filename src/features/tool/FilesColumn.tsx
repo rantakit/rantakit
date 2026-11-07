@@ -7,7 +7,8 @@ import { useT } from "@/i18n";
 import type { JobItem } from "@/features/compress/useCompressJob";
 import { formatBytes } from "@/lib/format";
 import { isAndroidApp } from "@/lib/platform";
-import { useFileInfo, useThumbnail, type FileInfo } from "./fileInfo";
+import { useFileInfo, useFileTile, type FileInfo } from "./fileInfo";
+import { OrderedFiles } from "./OrderedFiles";
 import { unchangedNote } from "./unchanged";
 
 export const NOUN_ICONS = { photo: Image, pdf: File };
@@ -21,13 +22,15 @@ interface FilesColumnProps {
   skipNote?: (info: FileInfo) => string | null;
   onPick: () => void;
   onRemove: (path: string) => void;
+  /** Tools that make one Result from several files: the user sets the order (X2). */
+  onReorder?: (paths: string[]) => void;
 }
 
 /**
  * The Files step: one drop zone while empty, then a row per file and "Tambah
  * foto". On desktop the count and "Tambah foto" stay put while the list scrolls.
  */
-export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove }: FilesColumnProps) {
+export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove, onReorder }: FilesColumnProps) {
   const tr = useT();
   const { t, count, locale } = tr;
   const infos = useFileInfo(paths);
@@ -59,23 +62,27 @@ export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove }: 
       </div>
 
       <div className="px-5 md:min-h-0 md:flex-1 md:overflow-y-auto">
-        <ul
-          aria-label={t("files.list")}
-          className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface"
-        >
-          {items
-            ? items.map((item) => <WorkingRow key={item.path} item={item} noun={noun} />)
-            : paths.map((path) => (
-                <ReadyRow
-                  key={path}
-                  path={path}
-                  noun={noun}
-                  info={infos[path]}
-                  skipNote={infos[path] ? skipNote?.(infos[path]) : null}
-                  onRemove={() => onRemove(path)}
-                />
-              ))}
-        </ul>
+        {onReorder && !items ? (
+          <OrderedFiles noun={noun} paths={paths} infos={infos} onReorder={onReorder} onRemove={onRemove} />
+        ) : (
+          <ul
+            aria-label={t("files.list")}
+            className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface"
+          >
+            {items
+              ? items.map((item) => <WorkingRow key={item.path} item={item} noun={noun} />)
+              : paths.map((path) => (
+                  <ReadyRow
+                    key={path}
+                    path={path}
+                    noun={noun}
+                    info={infos[path]}
+                    skipNote={infos[path] ? skipNote?.(infos[path]) : null}
+                    onRemove={() => onRemove(path)}
+                  />
+                ))}
+          </ul>
+        )}
       </div>
 
       <div className={`flex flex-wrap items-center gap-3 px-5 py-4 ${items ? "invisible" : ""}`}>
@@ -102,7 +109,7 @@ function ReadyRow({
   onRemove: () => void;
 }) {
   const { t, count, locale } = useT();
-  const thumbnail = useThumbnail(noun === "photo" ? path : null, 96);
+  const tile = useFileTile(path, noun, 96);
   const name = fileName(path);
   const meta = [
     info?.pages != null ? count("pages", info.pages) : null,
@@ -115,7 +122,7 @@ function ReadyRow({
       name={name}
       title={path}
       icon={NOUN_ICONS[noun]}
-      thumbnail={thumbnail}
+      {...tile}
       status="ready"
       note={meta.join(" · ")}
       onRemove={onRemove}
@@ -127,8 +134,8 @@ function ReadyRow({
 /** A file while its Task runs: waiting, a progress bar, or done with its new size. */
 function WorkingRow({ item, noun }: { item: JobItem; noun: "photo" | "pdf" }) {
   const { t, locale } = useT();
-  const thumbnail = useThumbnail(noun === "photo" ? item.path : null, 96);
-  const common = { name: item.name, title: item.path, icon: NOUN_ICONS[noun], thumbnail };
+  const tile = useFileTile(item.path, noun, 96);
+  const common = { name: item.name, title: item.path, icon: NOUN_ICONS[noun], ...tile };
   switch (item.status) {
     case "pending":
       return <FileRow {...common} status="waiting" note={t("task.file.waiting")} />;

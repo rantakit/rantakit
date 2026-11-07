@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use rantakit_tasks::{
-    CancelToken, Compression, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
+    CancelToken, Compression, Details, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
     PhotoSize, Progress, RecentLimits, RecentTools, SettingsStore, Task, TaskEvent, ToolOptions,
     WHITE, dpi_to_side, run_task,
 };
@@ -238,9 +238,21 @@ pub enum Outcome {
 #[serde(rename_all = "camelCase")]
 pub struct ResultMessage {
     pub input_path: PathBuf,
+    /// The Result, or the new folder holding several (X3).
     pub output_path: PathBuf,
     pub original_bytes: u64,
     pub compressed_bytes: u64,
+    /// When one Original made several Results: each, in order, inside
+    /// `output_path`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files: Option<Vec<PartMessage>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PartMessage {
+    pub path: PathBuf,
+    pub bytes: u64,
 }
 
 /// An error kind as a code; `best` is set for "size-limit-unreachable".
@@ -272,6 +284,18 @@ fn outcome(original: &Path, outcome: &FileOutcome) -> Outcome {
                 output_path: result.path.clone(),
                 original_bytes: result.original_size,
                 compressed_bytes: result.size,
+                files: match &result.details {
+                    Details::Folder { files } => Some(
+                        files
+                            .iter()
+                            .map(|file| PartMessage {
+                                path: file.path.clone(),
+                                bytes: file.size,
+                            })
+                            .collect(),
+                    ),
+                    _ => None,
+                },
             },
         },
         Err(kind) => Outcome::Failed { error: kind.into() },

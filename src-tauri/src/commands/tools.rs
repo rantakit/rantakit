@@ -1,10 +1,11 @@
 use std::path::{Path, PathBuf};
 
 use rantakit_tasks::{
-    Availability, FileKind, FileMatch, Platform, ToolId, detect_kind, match_kinds, tools_for,
+    Availability, FileKind, FileMatch, Platform, RecentTools, ToolId, detect_kind, match_kinds,
+    tools_for,
 };
 use serde::Serialize;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 #[cfg(target_os = "android")]
 use crate::android;
@@ -41,13 +42,16 @@ pub enum DropMatch {
     Mixed,
 }
 
-/// Which shipped Tools can take every one of `paths`, judged by content.
-/// Asked while files are dragged over the window, so it runs off the main thread.
+/// Which shipped Tools can take every one of `paths`, judged by content, the
+/// recently used ones first. Asked while files are dragged over the window,
+/// so it runs off the main thread.
 #[tauri::command]
 pub async fn match_files(app: AppHandle, paths: Vec<PathBuf>) -> DropMatch {
     let kinds: Option<Vec<FileKind>> = paths.iter().map(|path| kind(&app, path)).collect();
+    // Only an order; unreadable recent Tools leave the catalogue order.
+    let recent = app.state::<RecentTools>().list().unwrap_or_default();
     let matched = match kinds {
-        Some(kinds) => match_kinds(&kinds, Platform::current()),
+        Some(kinds) => match_kinds(&kinds, Platform::current()).recent_first(&recent),
         None => FileMatch::Unsupported,
     };
     match matched {

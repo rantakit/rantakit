@@ -9,7 +9,8 @@ import type { ToolInfo } from "@/features/home/tools";
  * URL switches: `?recent` fills Recent tools, `?fail` makes the second file
  * of every Task miss its Size limit, `?slow` makes Tasks take longer,
  * `?historyOff` starts with History turned off, `?update` finds version 0.3.0
- * (with `?updateDeb`, as a Linux .deb that can't install it).
+ * (with `?updateDeb`, as a Linux .deb that can't install it), `?pages` makes
+ * each PDF a folder of 12 page files, as Pisah PDF will (X3).
  */
 const TOOLS: ToolInfo[] = [
   { id: "kompres-foto", job: "kecilkan-ubah", comingSoon: false },
@@ -73,6 +74,27 @@ async function fakeThumbnail(path: string, size: number) {
   return blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
 }
 
+/** A white A4 page with a heading and grey lines, drawn after a moment like a real page. */
+async function fakePage(path: string, page: number, size: number) {
+  await new Promise((resolve) => setTimeout(resolve, 150 + (page % 4) * 80));
+  const canvas = document.createElement("canvas");
+  canvas.height = size;
+  canvas.width = Math.round(size / 1.414);
+  const context = canvas.getContext("2d")!;
+  const unit = canvas.width / 20;
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = `hsl(${(sizeOf(path) + page * 40) % 360} 45% 55%)`;
+  context.fillRect(2 * unit, 2 * unit, 9 * unit, 1.4 * unit);
+  context.fillStyle = "#cbd5e1";
+  for (let line = 0; line < 14; line++) {
+    const width = 16 - ((line * 7 + page) % 5);
+    context.fillRect(2 * unit, (5.5 + line * 1.6) * unit, width * unit, 0.6 * unit);
+  }
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg"));
+  return blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
+}
+
 /** A day of Tasks, one from yesterday, and an older one whose Result was moved. */
 function sampleHistory() {
   const now = Date.now();
@@ -95,6 +117,18 @@ function sampleHistory() {
       createdAt: now - 60 * 60 * 1000,
       files: ["KTP.jpg", "Pas foto.jpg", "Ijazah scan.jpg"].map((name) => file(name, "compressed")),
     },
+    {
+      id: "4",
+      tool: "pisah-pdf",
+      createdAt: now - 2 * 60 * 60 * 1000,
+      files: [1, 2, 3].map((page) => ({
+        originalPath: `${FOLDER}Ijazah.pdf`,
+        resultPath: `${FOLDER}Ijazah (pages)\\Ijazah (page ${page}).pdf`,
+        originalBytes: sizeOf(`${FOLDER}Ijazah.pdf`),
+        resultBytes: Math.round(sizeOf(`${FOLDER}Ijazah.pdf`) / 3),
+        exists: true,
+      })),
+    },
     { id: "2", tool: "kompres-pdf", createdAt: now - day, files: [file("Ijazah.pdf", "compressed")] },
     { id: "1", tool: "ubah-format-foto", createdAt: now - 9 * day, files: [file("Logo.jpg", "converted", false)] },
   ];
@@ -109,6 +143,18 @@ let nextTask = 1;
 interface TaskArgs {
   request: { options: { tool: string; to?: string; size?: string; maxSide?: number; limit?: number }; paths: string[] };
   onEvent: { onmessage: (message: unknown) => void };
+}
+
+/** One PDF split into 12 pages, in a new folder named after it. */
+function pagesOf(path: string, size: number) {
+  const dot = path.lastIndexOf(".");
+  const name = path.slice(FOLDER.length, dot);
+  const folder = `${FOLDER}${name} (pages)`;
+  const files = Array.from({ length: 12 }, (_, page) => ({
+    path: `${folder}\\${name} (page ${page + 1}).pdf`,
+    bytes: Math.round(size / 12),
+  }));
+  return { outputPath: folder, compressedBytes: files.reduce((sum, file) => sum + file.bytes, 0), files };
 }
 
 function runTask({ request, onEvent }: TaskArgs) {
@@ -164,6 +210,7 @@ function runTask({ request, onEvent }: TaskArgs) {
             outputPath: `${path.slice(0, dot)} (${suffix})${extension}`,
             originalBytes: size,
             compressedBytes: Math.round(size * 0.12),
+            ...(has("pages") && kindOf(path) === "pdf" ? pagesOf(path, size) : {}),
           },
         },
       });
@@ -239,6 +286,10 @@ export function installDevMocks() {
       case "thumbnail": {
         const { path, size } = args as { path: string; size: number };
         return isPdf(path) ? new ArrayBuffer(0) : fakeThumbnail(path, size);
+      }
+      case "page_thumbnail": {
+        const { path, page, size } = args as { path: string; page: number; size: number };
+        return fakePage(path, page, size);
       }
       case "start_task":
         return runTask(args as unknown as TaskArgs);

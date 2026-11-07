@@ -56,9 +56,23 @@ export interface TaskRequest {
 /** Mirrors `ResultMessage` in `src-tauri/src/commands/task.rs`. */
 export interface TaskResult {
   inputPath: string;
+  /** The Result, or the new folder holding several (X3), such as `ijazah (pages)`. */
   outputPath: string;
   originalBytes: number;
   compressedBytes: number;
+  /** When one Original made several Results: each, in order, inside `outputPath`. */
+  files?: ResultPart[];
+}
+
+/** Mirrors `PartMessage`: one of several Results from one Original. */
+export interface ResultPart {
+  path: string;
+  bytes: number;
+}
+
+/** Every file a Result made: itself, or each file in its folder. */
+export function resultFiles(result: TaskResult): ResultPart[] {
+  return result.files ?? [{ path: result.outputPath, bytes: result.compressedBytes }];
 }
 
 /** Mirrors `ErrorMessage`: an error kind as a code, turned into words by `errorMessage`. */

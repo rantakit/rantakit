@@ -28,6 +28,7 @@ pub fn run() {
             app.manage(SettingsStore::new(data.join("settings.json")));
             app.manage(Presets::new(data.join("presets.json")));
             app.manage(commands::task::RunningTasks::default());
+            app.manage(commands::pages::OpenPdfs::default());
             app.manage(commands::update::PendingUpdate::default());
             app.manage(commands::language::Language::default());
             // Copies left by a Task that Android cut short.
@@ -71,6 +72,7 @@ pub fn run() {
             commands::files::file_names,
             commands::files::take_shared_files,
             commands::files::thumbnail,
+            commands::pages::page_thumbnail,
             commands::files::open_path,
             commands::files::can_save_results,
             commands::files::ask_to_save_results,

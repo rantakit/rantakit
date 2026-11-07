@@ -141,17 +141,20 @@ const isToolId = (tool: string): tool is ToolId => tool in TOOL_ICONS;
 
 /** One Task: its Tool, time, Results, and sizes before and after. */
 function HistoryEntry({ entry }: { entry: HistoryItem }) {
-  const { t, locale } = useT();
+  const { t, count, locale } = useT();
   const [expanded, setExpanded] = useState(false);
   const known = isToolId(entry.tool);
   const Icon = known ? TOOL_ICONS[entry.tool as ToolId] : History;
   const existing = entry.files.filter((file) => file.exists);
   const first = entry.files[0];
-  const names =
-    entry.files.length === 1
+  // Several Results from one Original, such as its pages, sit in one folder (X3).
+  const fromOne = entry.files.length > 1 && entry.files.every((file) => file.originalPath === first.originalPath);
+  const names = fromOne
+    ? t("history.madeFrom", { name: fileName(first.originalPath), files: count("files.any", entry.files.length) })
+    : entry.files.length === 1
       ? fileName(first.resultPath)
       : t("history.andMore", { name: fileName(first.resultPath), count: entry.files.length - 1 });
-  const before = entry.files.reduce((sum, file) => sum + file.originalBytes, 0);
+  const before = fromOne ? first.originalBytes : entry.files.reduce((sum, file) => sum + file.originalBytes, 0);
   const after = entry.files.reduce((sum, file) => sum + file.resultBytes, 0);
   const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(entry.createdAt);
   const missing = existing.length === 0;
@@ -178,6 +181,8 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
           <span className="text-small text-text-muted">
             {missing ? (
               t("history.missing")
+            ) : fromOne ? (
+              formatBytes(after, locale)
             ) : (
               <>
                 {formatBytes(before, locale)} → {formatBytes(after, locale)}
@@ -189,11 +194,16 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
           // On a phone the buttons go on their own line, under the file names.
           <div className="flex w-full shrink-0 flex-wrap items-center gap-2 ps-16 md:w-auto md:ps-0">
             {entry.files.length === 1 && <OpenButton file={first} />}
-            {canShowInFolder && (
-              <Button variant="secondary" size="row" onPress={() => revealItemInDir(existing[0].resultPath)}>
-                <FolderOpen aria-hidden className="size-[18px]" /> {t("task.showInFolder")}
-              </Button>
-            )}
+            {canShowInFolder &&
+              (fromOne ? (
+                <Button variant="secondary" size="row" onPress={() => openPath(parentOf(existing[0].resultPath))}>
+                  <FolderOpen aria-hidden className="size-[18px]" /> {t("result.openFolder")}
+                </Button>
+              ) : (
+                <Button variant="secondary" size="row" onPress={() => revealItemInDir(existing[0].resultPath)}>
+                  <FolderOpen aria-hidden className="size-[18px]" /> {t("task.showInFolder")}
+                </Button>
+              ))}
             {canShare && (
               <Button
                 variant="secondary"
@@ -219,7 +229,7 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
       {expanded && !missing && (
         <ul className="flex flex-col divide-y divide-border border-t border-border">
           {entry.files.map((file) => (
-            <FileLine key={file.resultPath} file={file} />
+            <FileLine key={file.resultPath} file={file} fromOne={fromOne} />
           ))}
         </ul>
       )}
@@ -242,9 +252,15 @@ function OpenButton({ file }: { file: HistoryFile }) {
   );
 }
 
-/** One Result of an expanded entry. */
-function FileLine({ file }: { file: HistoryFile }) {
+/** The folder a Result sits in. */
+const parentOf = (path: string) => path.slice(0, Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")));
+
+/** One Result of an expanded entry; one of several from one Original shows only its own size. */
+function FileLine({ file, fromOne }: { file: HistoryFile; fromOne: boolean }) {
   const { t, locale } = useT();
+  const sizes = fromOne
+    ? formatBytes(file.resultBytes, locale)
+    : `${formatBytes(file.originalBytes, locale)} → ${formatBytes(file.resultBytes, locale)}`;
   return (
     <li className={`flex items-center gap-4 py-2.5 ps-20 pe-4 ${file.exists ? "" : "text-text-muted"}`}>
       <span className="flex min-w-0 flex-1 flex-col">
@@ -252,9 +268,7 @@ function FileLine({ file }: { file: HistoryFile }) {
           {fileName(file.resultPath)}
         </span>
         <span className="text-small text-text-muted">
-          {file.exists
-            ? `${formatBytes(file.originalBytes, locale)} → ${formatBytes(file.resultBytes, locale)}`
-            : t("history.missing")}
+          {file.exists ? sizes : t("history.missing")}
         </span>
       </span>
       {file.exists && <OpenButton file={file} />}
