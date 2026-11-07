@@ -73,6 +73,8 @@ pub fn run() {
             commands::files::take_shared_files,
             commands::files::thumbnail,
             commands::pages::page_thumbnail,
+            commands::photos::find_paper,
+            commands::photos::edited_preview,
             commands::files::open_path,
             commands::files::can_save_results,
             commands::files::ask_to_save_results,

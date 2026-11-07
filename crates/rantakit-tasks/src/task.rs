@@ -1,9 +1,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker};
-use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, Target, WHITE};
-use rantakit_pdf::{PageEdit, PdfDocument, PdfOptions};
+use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker, read_original};
+use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, PhotoEdit, Target, WHITE};
+use rantakit_pdf::{PageEdit, PagePhoto, PaperSize, PdfDocument, PdfOptions};
 
 use crate::catalogue::ToolId;
 use crate::names::{named_path, pages_suffix, result_folder, result_path};
@@ -33,7 +33,27 @@ pub enum ToolOptions {
     PisahPdf(Split),
     /// The one Original's pages as they will be, in order.
     AturHalamanPdf(Vec<PageEdit>),
+    /// Every Original, a photo, in order, as one page each of one PDF.
+    JpgKePdf(PhotosToPdf),
 }
+
+/// JPG ke PDF's choices.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PhotosToPdf {
+    /// The user's today, such as "2026-11-07": `scan 2026-11-07.pdf`.
+    pub date: String,
+    /// "Ukuran kertas".
+    pub paper: PaperSize,
+    /// The thin margin around each photo; "Tanpa margin" turns it off.
+    pub margin: bool,
+    /// How each Original, by index, is cropped and turned; one left out is
+    /// used whole.
+    pub edits: Vec<PhotoEdit>,
+}
+
+/// A page photo is at most this long, about 200 dpi on A4, so a few phone
+/// photos do not make a PDF too big to send.
+const PAGE_PHOTO_SIDE: u32 = 2400;
 
 /// How Pisah PDF splits each PDF.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,12 +121,13 @@ impl ToolOptions {
             Self::GabungPdf { .. } => ToolId::GabungPdf,
             Self::PisahPdf(_) => ToolId::PisahPdf,
             Self::AturHalamanPdf(_) => ToolId::AturHalamanPdf,
+            Self::JpgKePdf(_) => ToolId::JpgKePdf,
         }
     }
 
     /// Whether every Original goes into one Result, as in Gabung PDF.
     pub fn merges(&self) -> bool {
-        matches!(self, Self::GabungPdf { .. })
+        matches!(self, Self::GabungPdf { .. } | Self::JpgKePdf(_))
     }
 
     /// The English word in the Result name: `ijazah (compressed).pdf`.
@@ -119,6 +140,7 @@ impl ToolOptions {
             Self::GabungPdf { .. } => "merged",
             Self::PisahPdf(_) => "pages",
             Self::AturHalamanPdf(_) => "edited",
+            Self::JpgKePdf(_) => "scan",
         }
     }
 }
@@ -282,7 +304,9 @@ fn run_file(
                 cancel,
             )
         }
-        ToolOptions::GabungPdf { .. } => unreachable!("run_task merges every Original at once"),
+        ToolOptions::GabungPdf { .. } | ToolOptions::JpgKePdf(_) => {
+            unreachable!("run_task merges every Original at once")
+        }
         ToolOptions::PisahPdf(split) => {
             let pdf = PdfDocument::open(original)?;
             let count = pdf.page_count();
@@ -352,10 +376,17 @@ fn run_file(
     }
 }
 
-/// Gabung PDF: every Original, in order, into one PDF. A file that cannot be
-/// read ends the Task before anything is written; it gets its own error and
-/// every other file `Cancelled`. Each file's outcome is the one Result, with
-/// that file's own size as its Original's, so History and the totals add up.
+/// The pieces a merging Tool reads from each Original before it writes.
+enum Parts {
+    Pdfs(Vec<PdfDocument>),
+    Photos(Vec<PagePhoto>),
+}
+
+/// Gabung PDF, JPG ke PDF: every Original, in order, into one PDF. A file
+/// that cannot be read ends the Task before anything is written; it gets
+/// its own error and every other file `Cancelled`. Each file's outcome is
+/// the one Result, with that file's own size as its Original's, so History
+/// and the totals add up.
 fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken) -> Vec<FileOutcome> {
     let count = task.originals.len();
     let fail = |file: usize, kind: ErrorKind| -> Vec<FileOutcome> {
@@ -363,12 +394,13 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
             .map(|at| Err(if at == file { kind.clone() } else { ErrorKind::Cancelled }))
             .collect()
     };
-    let ToolOptions::GabungPdf { date } = &task.tool else {
-        return fail(0, ErrorKind::UnsupportedFormat);
+    let (date, mut parts) = match &task.tool {
+        ToolOptions::GabungPdf { date } => (date, Parts::Pdfs(Vec::with_capacity(count))),
+        ToolOptions::JpgKePdf(opts) => (&opts.date, Parts::Photos(Vec::with_capacity(count))),
+        _ => return fail(0, ErrorKind::UnsupportedFormat),
     };
 
     let mut sizes = Vec::with_capacity(count);
-    let mut parts = Vec::with_capacity(count);
     for (file, original) in task.originals.iter().enumerate() {
         if cancel.is_cancelled() {
             return fail(count, ErrorKind::Cancelled);
@@ -377,14 +409,27 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
             file,
             progress: Progress::Fraction(0.0),
         });
-        let opened = fs::metadata(original)
+        let read = fs::metadata(original)
             .map_err(|e| ErrorKind::reading(&e))
-            .and_then(|meta| Ok((meta.len(), PdfDocument::open(original)?)));
-        match opened {
-            Ok((size, pdf)) => {
-                sizes.push(size);
-                parts.push(pdf);
-            }
+            .and_then(|meta| {
+                match (&mut parts, &task.tool) {
+                    (Parts::Pdfs(pdfs), _) => pdfs.push(PdfDocument::open(original)?),
+                    (Parts::Photos(photos), ToolOptions::JpgKePdf(opts)) => {
+                        let edit = opts.edits.get(file).copied().unwrap_or_default();
+                        let page = rantakit_image::page_photo(&read_original(original)?, &edit, PAGE_PHOTO_SIDE)?;
+                        photos.push(PagePhoto {
+                            jpeg: page.jpeg,
+                            width: page.width,
+                            height: page.height,
+                            gray: page.gray,
+                        });
+                    }
+                    (Parts::Photos(_), _) => return Err(ErrorKind::UnsupportedFormat),
+                }
+                Ok(meta.len())
+            });
+        match read {
+            Ok(size) => sizes.push(size),
             Err(kind) => return fail(file, kind),
         }
         on_event(TaskEvent::Progress {
@@ -398,10 +443,15 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
         Some(folder) => folder.as_path(),
         None => first.parent().unwrap_or(Path::new("")),
     };
-    let path = named_path(folder, &merged_stem(date), "pdf");
+    let path = named_path(folder, &dated_stem(task.tool.suffix(), date), "pdf");
     let mut quiet = |_| {};
     let mut tracker = Tracker::new(&mut quiet, cancel);
-    let saved = PdfDocument::merge(parts).and_then(|merged| {
+    let made = match (parts, &task.tool) {
+        (Parts::Pdfs(pdfs), _) => PdfDocument::merge(pdfs),
+        (Parts::Photos(photos), ToolOptions::JpgKePdf(opts)) => PdfDocument::from_photos(photos, opts.paper, opts.margin),
+        (Parts::Photos(_), _) => Err(ErrorKind::UnsupportedFormat),
+    };
+    let saved = made.and_then(|merged| {
         let pages = merged.page_count();
         Ok((pages, merged.save(&path, &mut tracker)?))
     });
@@ -426,16 +476,17 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
     }
 }
 
-/// `merged 2026-11-07`; just `merged` when the date is not one.
-fn merged_stem(date: &str) -> String {
+/// `merged 2026-11-07` or `scan 2026-11-07`; just the word when the date
+/// is not one.
+fn dated_stem(word: &str, date: &str) -> String {
     let is_date = date.len() == 10
         && date
             .chars()
             .enumerate()
             .all(|(at, c)| if at == 4 || at == 7 { c == '-' } else { c.is_ascii_digit() });
     match is_date {
-        true => format!("merged {date}"),
-        false => "merged".to_string(),
+        true => format!("{word} {date}"),
+        false => word.to_string(),
     }
 }
 

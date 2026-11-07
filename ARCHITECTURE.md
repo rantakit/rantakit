@@ -60,7 +60,8 @@ A Tool keeps the same promise on every platform (same Tool, same output format, 
 | Audio out (MP3 only) | LAME | LAME | LAME |
 | Video (H.264 in MP4 only, [ADR 0008](docs/adr/0008-h264-through-native-encoders-only.md)) | Media Foundation | System ffmpeg or GStreamer at runtime (to be proven by the v0.6 prototype) | MediaCodec and MediaMuxer through the NDK |
 | Word and Excel to PDF | `office2pdf` with Carlito and Liberation fonts, labeled best effort; must be slimmed to fit the size budget | same | same |
-| Scan Dokumen edge detection | | | `imageproc`, with draggable corners when detection misses |
+| Finding the paper in a photo, straightening it (JPG ke PDF, Scan Dokumen) | `imageproc`, with draggable corners when detection misses | same | same |
+| Photos into a PDF (JPG ke PDF) | `lopdf`, each JPG embedded as it is when it needs no change | same | same |
 
 Native Android backends are called from Rust through the NDK (`ndk` crate), so engine logic stays inside the engine crate. Kotlin is used only for app plumbing.
 

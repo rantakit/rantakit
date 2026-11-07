@@ -11,6 +11,7 @@ import { formatBytes } from "@/lib/format";
 import { useFileTile, type FileInfo } from "./fileInfo";
 import { NOUN_ICONS } from "./FilesColumn";
 import { moveBy, reorder } from "./order";
+import type { RowExtras } from "./toolDef";
 
 interface OrderedFilesProps {
   noun: "photo" | "pdf";
@@ -18,6 +19,8 @@ interface OrderedFilesProps {
   infos: Record<string, FileInfo | undefined>;
   onReorder: (paths: string[]) => void;
   onRemove: (path: string) => void;
+  /** What each row shows in place of the size, such as JPG ke PDF's crop (D1). */
+  useRow?: (path: string, paths: string[]) => RowExtras;
 }
 
 /**
@@ -25,7 +28,7 @@ interface OrderedFilesProps {
  * row has a drag handle, and its menu moves it up or down for a keyboard or a
  * screen reader. The order is the order the Result follows.
  */
-export function OrderedFiles({ noun, paths, infos, onReorder, onRemove }: OrderedFilesProps) {
+export function OrderedFiles({ noun, paths, infos, onReorder, onRemove, useRow }: OrderedFilesProps) {
   const { t } = useT();
   // Each move is said aloud; the count makes a repeated message new.
   const [moved, setMoved] = useState({ text: "", count: 0 });
@@ -58,13 +61,15 @@ export function OrderedFiles({ noun, paths, infos, onReorder, onRemove }: Ordere
         aria-label={t("files.list")}
         items={paths.map((path) => ({ id: path }))}
         dragAndDropHooks={dragAndDropHooks}
-        className="flex flex-col rounded-2xl border border-border bg-surface"
+        className="@container flex flex-col rounded-2xl border border-border bg-surface"
       >
         {({ id }) => (
           <OrderedRow
             path={id}
             noun={noun}
             info={infos[id]}
+            paths={paths}
+            useRow={useRow}
             isFirst={id === paths[0]}
             isLast={id === paths[paths.length - 1]}
             onMove={(by) => move(id, by)}
@@ -81,6 +86,8 @@ export function OrderedFiles({ noun, paths, infos, onReorder, onRemove }: Ordere
 
 interface OrderedRowProps {
   path: string;
+  paths: string[];
+  useRow?: (path: string, paths: string[]) => RowExtras | null;
   noun: "photo" | "pdf";
   info?: FileInfo;
   isFirst: boolean;
@@ -89,16 +96,18 @@ interface OrderedRowProps {
   onRemove: () => void;
 }
 
-function OrderedRow({ path, noun, info, isFirst, isLast, onMove, onRemove }: OrderedRowProps) {
+function OrderedRow({ path, paths, useRow = noExtras, noun, info, isFirst, isLast, onMove, onRemove }: OrderedRowProps) {
   const { t, count, locale } = useT();
   const tile = useFileTile(path, noun, 96);
+  const extras = useRow(path, paths);
   const name = fileName(path);
-  const note = [
+  const sizes = [
     info?.pages != null ? count("pages", info.pages) : null,
     info?.size != null ? formatBytes(info.size, locale) : null,
   ]
     .filter(Boolean)
     .join(" · ");
+  const note = extras ? extras.note : sizes;
 
   return (
     <GridListItem
@@ -118,13 +127,24 @@ function OrderedRow({ path, noun, info, isFirst, isLast, onMove, onRemove }: Ord
       >
         <GripVertical aria-hidden className="size-5" />
       </Button>
-      <FileTile icon={NOUN_ICONS[noun]} {...tile} />
+      <span aria-hidden className="hidden w-5 shrink-0 text-center text-small font-bold text-text-muted @md:block">
+        {paths.indexOf(path) + 1}
+      </span>
+      <FileTile
+        icon={NOUN_ICONS[noun]}
+        {...(extras?.thumbnail ? { thumbnail: extras.thumbnail, thumbnailKind: "page" as const } : tile)}
+      />
       <span className="ms-1.5 flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate text-label" title={path}>
           {name}
         </span>
-        <span className="truncate text-small text-text-muted">{note}</span>
+        <span
+          className={`flex min-w-0 items-center gap-1.5 text-small ${extras?.warn ? "font-semibold text-warn" : "text-text-muted"}`}
+        >
+          {note}
+        </span>
       </span>
+      {extras?.action}
       <MenuTrigger placement="bottom end">
         <Button variant="icon" aria-label={t("files.menu", { name })}>
           <MoreVertical aria-hidden className="size-5" />
@@ -141,3 +161,5 @@ function OrderedRow({ path, noun, info, isFirst, isLast, onMove, onRemove }: Ord
     </GridListItem>
   );
 }
+
+const noExtras = (): RowExtras | null => null;

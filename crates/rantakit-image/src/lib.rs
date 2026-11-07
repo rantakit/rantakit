@@ -1,4 +1,5 @@
 mod encode;
+pub mod paper;
 pub mod options;
 mod preview;
 mod resize;
@@ -12,6 +13,7 @@ use rantakit_core::{Tracker, read_original, write_result};
 
 pub use options::{Compressed, ImageFormat, ImageOptions, OutputFormat, Target, WHITE};
 pub use preview::{PhotoInfo, photo_info, photo_info_of, thumbnail};
+pub use paper::{Corners, PagePhoto, PhotoEdit, edited_preview, find_paper, find_paper_in, page_photo};
 pub use rantakit_core::{CancelToken, ErrorKind, Progress, Result};
 
 /// Progress once the Original is read, decoded, resized, and encoded.

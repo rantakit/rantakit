@@ -61,6 +61,8 @@
   --color-page: #ffffff;
   --color-page-border: #d1d5db;
   --color-page-number: #6b7280;
+  /* Behind the photo in the crop editor (D1), dark in both themes. */
+  --color-editor: #1f2937;
 
   /*
    * The six text styles (N2). Sizes follow the text size chosen in Settings
@@ -130,6 +132,7 @@
   --color-on-danger: #2a0a0a;
   --color-backdrop: rgb(0 0 0 / 0.6);
   --color-page-border: #525252;
+  --color-editor: #0a0a0a;
 }
 
 @layer base {

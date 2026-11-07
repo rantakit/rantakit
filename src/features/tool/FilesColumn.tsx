@@ -9,6 +9,7 @@ import { formatBytes } from "@/lib/format";
 import { isAndroidApp } from "@/lib/platform";
 import { useFileInfo, useFileTile, type FileInfo } from "./fileInfo";
 import { OrderedFiles } from "./OrderedFiles";
+import type { RowExtras } from "./toolDef";
 import { unchangedNote } from "./unchanged";
 
 export const NOUN_ICONS = { photo: Image, pdf: File };
@@ -24,13 +25,15 @@ interface FilesColumnProps {
   onRemove: (path: string) => void;
   /** Tools that make one Result from several files: the user sets the order (X2). */
   onReorder?: (paths: string[]) => void;
+  /** What an ordered row shows in place of the size (D1). */
+  useRow?: (path: string, paths: string[]) => RowExtras;
 }
 
 /**
  * The Files step: one drop zone while empty, then a row per file and "Tambah
  * foto". On desktop the count and "Tambah foto" stay put while the list scrolls.
  */
-export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove, onReorder }: FilesColumnProps) {
+export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove, onReorder, useRow }: FilesColumnProps) {
   const tr = useT();
   const { t, count, locale } = tr;
   const infos = useFileInfo(paths);
@@ -63,7 +66,14 @@ export function FilesColumn({ noun, paths, items, skipNote, onPick, onRemove, on
 
       <div className="px-5 md:min-h-0 md:flex-1 md:overflow-y-auto">
         {onReorder && !items ? (
-          <OrderedFiles noun={noun} paths={paths} infos={infos} onReorder={onReorder} onRemove={onRemove} />
+          <OrderedFiles
+            noun={noun}
+            paths={paths}
+            infos={infos}
+            onReorder={onReorder}
+            onRemove={onRemove}
+            useRow={useRow}
+          />
         ) : (
           <ul
             aria-label={t("files.list")}

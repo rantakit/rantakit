@@ -20,6 +20,7 @@ const TOOLS: ToolInfo[] = [
   { id: "gabung-pdf", job: "atur-pdf", comingSoon: false },
   { id: "pisah-pdf", job: "atur-pdf", comingSoon: false },
   { id: "atur-halaman-pdf", job: "atur-pdf", comingSoon: false },
+  { id: "jpg-ke-pdf", job: "scan", comingSoon: false },
   ...(
     [
       ["kompres-dokumen", "kecilkan-ubah"],
@@ -28,7 +29,6 @@ const TOOLS: ToolInfo[] = [
       ["kompres-video", "kecilkan-ubah"],
       ["word-ke-pdf", "kecilkan-ubah"],
       ["excel-ke-pdf", "kecilkan-ubah"],
-      ["jpg-ke-pdf", "scan"],
       ["pdf-ke-jpg", "atur-pdf"],
       ["beri-watermark", "bagikan-aman"],
       ["hapus-info-lokasi", "bagikan-aman"],
@@ -59,17 +59,69 @@ const SIDES: Record<string, number> = { large: 1920, medium: 1280, small: 800 };
 const kindOf = (path: string) => (isPdf(path) ? "pdf" : path.toLowerCase().endsWith(".png") ? "png" : "jpg");
 
 /** A soft gradient as a JPG, in place of a real thumbnail. */
+/** Where the paper is in a made-up photo; none in a PNG, which stands for a screenshot. */
+const paperIn = (path: string): [number, number][] | null =>
+  kindOf(path) === "png"
+    ? null
+    : [
+        [0.17, 0.16],
+        [0.8, 0.11],
+        [0.86, 0.9],
+        [0.13, 0.94],
+      ];
+
 async function fakeThumbnail(path: string, size: number) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = Math.round(size * 0.75);
   const context = canvas.getContext("2d")!;
+  const paper = paperIn(path);
+  if (paper) {
+    // A sheet of paper on a wooden table, a little crooked.
+    context.fillStyle = "#9c7b5b";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#f8fafc";
+    context.beginPath();
+    paper.forEach(([x, y]) => context.lineTo(x * canvas.width, y * canvas.height));
+    context.fill();
+    context.fillStyle = "#cbd5e1";
+    for (let line = 0; line < 8; line++) {
+      const y = 0.25 + line * 0.075;
+      context.fillRect(0.25 * canvas.width, (y - 0.01 * (1 - line / 8)) * canvas.height, 0.5 * canvas.width, 0.02 * canvas.height);
+    }
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg"));
+    return blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
+  }
   const hue = sizeOf(path) % 360;
   const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
   gradient.addColorStop(0, `hsl(${hue} 60% 75%)`);
   gradient.addColorStop(1, `hsl(${(hue + 60) % 360} 50% 45%)`);
   context.fillStyle = gradient;
   context.fillRect(0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg"));
+  return blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
+}
+
+/** The paper inside `corners` of a made-up 4:3 photo, straightened: white with grey lines. */
+async function fakeCrop(corners: [number, number][], turns: number, size: number) {
+  const length = (a: [number, number], b: [number, number]) => Math.hypot((a[0] - b[0]) * 4, (a[1] - b[1]) * 3);
+  const across = Math.max(length(corners[0], corners[1]), length(corners[3], corners[2]));
+  const down = Math.max(length(corners[0], corners[3]), length(corners[1], corners[2]));
+  const scale = size / Math.max(across, down);
+  const [w, h] = turns % 2 === 1 ? [down * scale, across * scale] : [across * scale, down * scale];
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(w));
+  canvas.height = Math.max(1, Math.round(h));
+  const context = canvas.getContext("2d")!;
+  context.fillStyle = "#f8fafc";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#cbd5e1";
+  const vertical = turns % 2 === 1;
+  for (let line = 0; line < 8; line++) {
+    const at = 0.12 + line * 0.1;
+    if (vertical) context.fillRect(at * canvas.width, 0.12 * canvas.height, 0.03 * canvas.width, 0.76 * canvas.height);
+    else context.fillRect(0.12 * canvas.width, at * canvas.height, 0.76 * canvas.width, 0.03 * canvas.height);
+  }
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg"));
   return blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
 }
@@ -201,20 +253,22 @@ async function runPageTask(id: number, { options, paths }: TaskArgs["request"], 
   const failed = (file: number, code: string) =>
     send({ event: "fileDone", file, outcome: { status: "failed", error: { code } } });
 
-  if (options.tool === "gabung-pdf") {
+  if (options.tool === "gabung-pdf" || options.tool === "jpg-ke-pdf") {
     for (const file of paths.keys()) {
       if (!(await progress(file))) {
         paths.forEach((_, i) => failed(i, "cancelled"));
         return;
       }
-      // `?fail`: the second PDF is locked, so nothing is made.
+      // `?fail`: the second file can't be read, so nothing is made.
       if (has("fail") && file === 1) {
-        paths.forEach((_, i) => failed(i, i === 1 ? "password-protected" : "cancelled"));
+        const error = options.tool === "gabung-pdf" ? "password-protected" : "damaged";
+        paths.forEach((_, i) => failed(i, i === 1 ? error : "cancelled"));
         return;
       }
     }
-    const pages = paths.reduce((sum, path) => sum + pageCountOf(path), 0);
-    const outputPath = `${paths[0].slice(0, paths[0].lastIndexOf("\\") + 1)}merged ${options.date}.pdf`;
+    const photos = options.tool === "jpg-ke-pdf";
+    const pages = photos ? paths.length : paths.reduce((sum, path) => sum + pageCountOf(path), 0);
+    const outputPath = `${paths[0].slice(0, paths[0].lastIndexOf("\\") + 1)}${photos ? "scan" : "merged"} ${options.date}.pdf`;
     const bytes = paths.reduce((sum, path) => sum + sizeOf(path), 0);
     paths.forEach((path, file) =>
       done(file, { outputPath, originalBytes: sizeOf(path), compressedBytes: Math.round(bytes * 0.9), pages }),
@@ -291,7 +345,7 @@ function runTask({ request, onEvent }: TaskArgs) {
       ? "resized"
       : "compressed";
 
-  if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf"].includes(request.options.tool)) {
+  if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf", "jpg-ke-pdf"].includes(request.options.tool)) {
     runPageTask(id, request, send).then(() => send({ event: "finished" }));
     return id;
   }
@@ -406,7 +460,7 @@ export function installDevMocks() {
             tools: paths.length > 1 ? ["kompres-pdf", "gabung-pdf", "pisah-pdf"] : ["kompres-pdf", "pisah-pdf", "atur-halaman-pdf"],
           };
         if (paths.some(isPdf)) return { status: "mixed" };
-        return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-format-foto", "ubah-ukuran-foto"] };
+        return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-format-foto", "ubah-ukuran-foto", "jpg-ke-pdf"] };
       }
       case "file_info":
         return (args as { paths: string[] }).paths.map((path) => ({
@@ -418,6 +472,18 @@ export function installDevMocks() {
       case "thumbnail": {
         const { path, size } = args as { path: string; size: number };
         return isPdf(path) ? new ArrayBuffer(0) : fakeThumbnail(path, size);
+      }
+      case "find_paper": {
+        const { path } = args as { path: string };
+        return new Promise((resolve) => setTimeout(() => resolve(paperIn(path)), 400));
+      }
+      case "edited_preview": {
+        const { path, edit, size } = args as {
+          path: string;
+          edit: { corners: [number, number][] | null; turns: number };
+          size: number;
+        };
+        return edit.corners ? fakeCrop(edit.corners, edit.turns, size) : fakeThumbnail(path, size);
       }
       case "page_thumbnail": {
         const { path, page, size } = args as { path: string; page: number; size: number };

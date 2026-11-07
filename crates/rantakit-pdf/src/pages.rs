@@ -64,6 +64,11 @@ impl PdfDocument {
         Ok(Self { doc })
     }
 
+    /// A PDF built here, already in the shape every page edit expects.
+    pub(crate) fn from_document(doc: Document) -> Self {
+        Self { doc }
+    }
+
     pub fn page_count(&self) -> usize {
         self.doc.get_pages().len()
     }

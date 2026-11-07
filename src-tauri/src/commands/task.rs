@@ -5,9 +5,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use rantakit_tasks::{
     CancelToken, Compression, Details, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
-    PageEdit, PhotoSize, Progress, RecentLimits, RecentTools, SettingsStore, Split, Task, TaskEvent,
-    ToolOptions, WHITE, dpi_to_side, run_task,
+    PageEdit, PaperSize, PhotoEdit, PhotoSize, PhotosToPdf, Progress, RecentLimits, RecentTools, SettingsStore,
+    Split, Task, TaskEvent, ToolOptions, WHITE, dpi_to_side, run_task,
 };
+
+use super::photos::EditRequest;
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
@@ -93,6 +95,34 @@ pub enum OptionsRequest {
         /// The Result's pages in order.
         pages: Vec<PageRequest>,
     },
+    JpgKePdf {
+        /// The user's today, for `scan 2026-11-07.pdf`.
+        date: String,
+        #[serde(default)]
+        paper: PaperRequest,
+        /// False for "Tanpa margin" in Advanced options.
+        #[serde(default = "default_margin")]
+        margin: bool,
+        /// One per photo, in the order of `paths`; a missing one keeps the
+        /// photo whole.
+        #[serde(default)]
+        edits: Vec<EditRequest>,
+    },
+}
+
+/// "Ukuran kertas" for JPG ke PDF.
+#[derive(Debug, Default, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PaperRequest {
+    #[default]
+    A4,
+    F4,
+    /// "Ikuti ukuran foto".
+    Photo,
+}
+
+fn default_margin() -> bool {
+    true
 }
 
 /// One page of Atur Halaman PDF's Result.
@@ -243,6 +273,21 @@ impl From<OptionsRequest> for ToolOptions {
                     })
                     .collect(),
             ),
+            OptionsRequest::JpgKePdf {
+                date,
+                paper,
+                margin,
+                edits,
+            } => Self::JpgKePdf(PhotosToPdf {
+                date,
+                paper: match paper {
+                    PaperRequest::A4 => PaperSize::A4,
+                    PaperRequest::F4 => PaperSize::F4,
+                    PaperRequest::Photo => PaperSize::Photo,
+                },
+                margin,
+                edits: edits.into_iter().map(PhotoEdit::from).collect(),
+            }),
         }
     }
 }

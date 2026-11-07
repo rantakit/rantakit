@@ -153,7 +153,10 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
   const toOne = entry.files.length > 1 && entry.files.every((file) => file.resultPath === first.resultPath);
   const results = toOne ? [first] : entry.files;
   const names = toOne
-    ? t("history.mergedFrom", { files: count("files.pdf", entry.files.length), name: fileName(first.resultPath) })
+    ? t("history.mergedFrom", {
+        files: count(entry.tool === "jpg-ke-pdf" ? "files.photo" : "files.pdf", entry.files.length),
+        name: fileName(first.resultPath),
+      })
     : fromOne
     ? t("history.madeFrom", { name: fileName(first.originalPath), files: count("files.any", entry.files.length) })
     : entry.files.length === 1

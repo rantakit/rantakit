@@ -212,7 +212,7 @@ pub const CATALOGUE: &[Tool] = &[
     ),
     tool(ToolId::WordKePdf, KecilkanUbah, &[Word], ALL, ComingSoon),
     tool(ToolId::ExcelKePdf, KecilkanUbah, &[Excel], ALL, ComingSoon),
-    tool(ToolId::JpgKePdf, Scan, PHOTOS, ALL, ComingSoon),
+    tool(ToolId::JpgKePdf, Scan, PHOTOS, ALL, Shipped),
     tool(
         ToolId::ScanDokumen,
         Scan,
@@ -379,7 +379,8 @@ mod tests {
             [
                 ToolId::KompresFoto,
                 ToolId::UbahFormatFoto,
-                ToolId::UbahUkuranFoto
+                ToolId::UbahUkuranFoto,
+                ToolId::JpgKePdf
             ]
         );
         assert_eq!(
@@ -409,7 +410,8 @@ mod tests {
                 tools: vec![
                     ToolId::KompresFoto,
                     ToolId::UbahFormatFoto,
-                    ToolId::UbahUkuranFoto
+                    ToolId::UbahUkuranFoto,
+                    ToolId::JpgKePdf
                 ]
             }
         );

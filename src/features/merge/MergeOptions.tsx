@@ -4,19 +4,13 @@ import type { TaskResult } from "@/features/compress/taskApi";
 import type { FileInfo } from "@/features/tool/fileInfo";
 import { defineTool, type OptionsProps } from "@/features/tool/toolDef";
 import { useT, type Translator } from "@/i18n";
+import { today } from "@/lib/format";
 
 /** Gabung PDF has no options. */
 type MergeSettings = Record<string, never>;
 
 const NO_SETTINGS: MergeSettings = {};
 const useMergeSettings = () => [NO_SETTINGS, () => {}] as const;
-
-/** The user's today as "2026-11-07", for `merged 2026-11-07.pdf`. */
-function today() {
-  const now = new Date();
-  const two = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
-}
 
 /** Every page of the chosen PDFs, once each has been read. */
 function totalPages(files: FileInfo[], count: number) {

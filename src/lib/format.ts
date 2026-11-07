@@ -18,3 +18,10 @@ export function formatChange(before: number, after: number) {
   if (percent === 0) return "0%";
   return percent < 0 ? `−${-percent}%` : `+${percent}%`;
 }
+
+/** The user's today as "2026-11-07", for Result names like `merged 2026-11-07.pdf`. */
+export function today() {
+  const now = new Date();
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
+}

@@ -57,6 +57,17 @@ export type ToolOptions =
       tool: "atur-halaman-pdf";
       /** The Result's pages in order: a page of the Original from 0, and quarter turns clockwise. */
       pages: { page: number; turns: number }[];
+    }
+  | {
+      tool: "jpg-ke-pdf";
+      /** The user's today, for `scan 2026-11-07.pdf`. */
+      date: string;
+      /** "Ukuran kertas"; "photo" is "Ikuti ukuran foto". */
+      paper: "a4" | "f4" | "photo";
+      /** False for "Tanpa margin". */
+      margin: boolean;
+      /** One per photo, in order: the paper's corners (fractions, clockwise from the top left) and quarter turns. */
+      edits: { corners: [number, number][] | null; turns: number }[];
     };
 
 /** The Size limit in bytes these options aim for, if any. */

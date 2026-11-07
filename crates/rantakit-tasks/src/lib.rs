@@ -30,10 +30,12 @@ pub use recent::{RECENT_LIMITS, RECENT_TOOLS, Recent, RecentLimits, RecentTools}
 pub use settings::{Settings, SettingsStore};
 pub use store::{JsonFile, StoreError};
 pub use task::{
-    Details, FileOutcome, FolderFile, PhotoSize, ResultFile, Split, Task, TaskEvent, ToolOptions,
+    Details, FileOutcome, FolderFile, PhotoSize, PhotosToPdf, ResultFile, Split, Task, TaskEvent, ToolOptions,
     run_task,
 };
 
 pub use rantakit_core::{CancelToken, ErrorKind, Progress};
-pub use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, Target, WHITE, thumbnail};
-pub use rantakit_pdf::{PageEdit, PdfDocument, PdfOptions, PdfPages};
+pub use rantakit_image::{
+    Corners, ImageFormat, ImageOptions, OutputFormat, PhotoEdit, Target, WHITE, edited_preview, find_paper, thumbnail,
+};
+pub use rantakit_pdf::{PageEdit, PaperSize, PdfDocument, PdfOptions, PdfPages};

@@ -29,7 +29,14 @@ export interface ToolDef<S extends object> {
   Advanced?: ComponentType<OptionsProps<S>>;
   /** Whether "Pilihan lanjutan" applies to the current choice; always, when left out. */
   showAdvanced?: (settings: S, files: FileInfo[]) => boolean;
-  toRequest: (settings: S, files: FileInfo[]) => ToolOptions;
+  /** The options for a Task on `paths`, every chosen file in order. */
+  toRequest: (settings: S, files: FileInfo[], paths: string[]) => ToolOptions;
+  /**
+   * What an ordered Tool's file row shows in place of the size, such as JPG
+   * ke PDF's cropped picture, "Dipotong otomatis" and "Atur potongan" (D1).
+   * A hook: it runs in every row.
+   */
+  useRow?: (path: string, paths: string[]) => RowExtras;
   /**
    * Whether `options` would leave this file as it is, like a JPG for "Ubah ke
    * JPG". Its row says so before the Task starts.
@@ -55,6 +62,17 @@ export interface ToolDef<S extends object> {
    * on one file per Task.
    */
   Workspace?: ComponentType<WorkspaceProps>;
+}
+
+export interface RowExtras {
+  /** The picture in the row's tile, shown whole; the file's own while null. */
+  thumbnail: string | null;
+  /** The line under the name. */
+  note: ReactNode;
+  /** A warning, such as "Tepi kertas tidak ketemu": the note is shown in the warning color. */
+  warn?: boolean;
+  /** A button before the row's menu. */
+  action?: ReactNode;
 }
 
 export interface WorkspaceProps {

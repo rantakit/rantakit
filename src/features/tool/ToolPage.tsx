@@ -69,7 +69,7 @@ export function ToolPage({
   const appSettings = useAppSettings();
   const infos = useFileInfo(paths);
   const files = paths.flatMap((path) => (infos[path] ? [infos[path]] : []));
-  const request = def.toRequest(settings, files);
+  const request = def.toRequest(settings, files, paths);
   const skipNote =
     def.leavesUnchanged || def.fileNote
       ? (info: FileInfo) =>
@@ -140,6 +140,7 @@ export function ToolPage({
             onPick={onPick}
             onRemove={onRemove}
             onReorder={def.ordered ? onReorder : undefined}
+            useRow={def.useRow}
           />
         )}
       </section>
@@ -199,7 +200,8 @@ export function ToolPage({
                 <BookmarkPlus aria-hidden className="size-5" /> {t("preset.save")}
               </Button>
             )}
-            <Button isDisabled={blocked !== null} onPress={() => onStart(request)}>
+            {/* Made again on press: a row may have changed what goes in, such as a crop. */}
+            <Button isDisabled={blocked !== null} onPress={() => onStart(def.toRequest(settings, files, paths))}>
               {t(`main.${tool}`)}
             </Button>
             {blocked && <p className="text-center text-small text-text-muted">{blocked}</p>}

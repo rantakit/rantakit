@@ -6,7 +6,7 @@ use ::image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
 use lopdf::{Document, Object, Stream, dictionary};
 use rantakit_tasks::{
     Availability, CATALOGUE, CancelToken, Details, ErrorKind, FileOutcome, ImageFormat,
-    ImageOptions, OutputFormat, PageEdit, PdfOptions, Platform, Split, Target, Task, TaskEvent,
+    ImageOptions, OutputFormat, PageEdit, PaperSize, PdfOptions, PhotoEdit, PhotosToPdf, Platform, Split, Target, Task, TaskEvent,
     ToolId, ToolOptions, WHITE, detect_kind, file_info, file_info_of, run_task, tools_for_files,
 };
 
@@ -94,7 +94,7 @@ fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
         ToolOptions::GabungPdf { .. } | ToolOptions::PisahPdf(_) | ToolOptions::AturHalamanPdf(_) => {
             ("ijazah.pdf", pages_pdf(3))
         }
-        ToolOptions::UbahFormatFoto(_) | ToolOptions::UbahUkuranFoto(_) => {
+        ToolOptions::UbahFormatFoto(_) | ToolOptions::UbahUkuranFoto(_) | ToolOptions::JpgKePdf(_) => {
             ("foto.jpg", photo_jpg())
         }
     }
@@ -124,6 +124,14 @@ fn every_tool() -> Vec<ToolOptions> {
             },
             PageEdit::keep(0),
         ]),
+        jpg_ke_pdf(PaperSize::A4, vec![]),
+        jpg_ke_pdf(
+            PaperSize::Photo,
+            vec![PhotoEdit {
+                corners: Some([[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]]),
+                quarter_turns: 1,
+            }],
+        ),
     ]
 }
 
@@ -131,6 +139,15 @@ fn gabung_pdf() -> ToolOptions {
     ToolOptions::GabungPdf {
         date: "2026-11-07".into(),
     }
+}
+
+fn jpg_ke_pdf(paper: PaperSize, edits: Vec<PhotoEdit>) -> ToolOptions {
+    ToolOptions::JpgKePdf(PhotosToPdf {
+        date: "2026-11-07".into(),
+        paper,
+        margin: true,
+        edits,
+    })
 }
 
 /// A PDF of `count` plain pages.
@@ -389,7 +406,8 @@ fn dropped_files_fit_tools_by_content_not_extension() {
         [
             ToolId::KompresFoto,
             ToolId::UbahFormatFoto,
-            ToolId::UbahUkuranFoto
+            ToolId::UbahUkuranFoto,
+            ToolId::JpgKePdf
         ]
     );
     assert_eq!(
@@ -519,6 +537,54 @@ fn a_file_that_cannot_be_read_stops_a_merge_before_anything_is_written() {
         ]
     );
     assert_eq!(file_names(&dir), ["cv.pdf", "ijazah.pdf", "rusak.pdf"]);
+}
+
+#[test]
+fn photos_become_one_pdf_a_page_each_in_order() {
+    let dir = scratch("photos_to_pdf");
+    let ktp = write(&dir, "ktp.jpg", &photo_jpg());
+    let kk = write(&dir, "kk.jpg", &photo_jpg());
+    let edits = vec![
+        PhotoEdit::default(),
+        PhotoEdit {
+            corners: Some([[0.3, 0.1], [0.7, 0.1], [0.7, 0.9], [0.3, 0.9]]),
+            quarter_turns: 0,
+        },
+    ];
+
+    let outcomes = run(&task(jpg_ke_pdf(PaperSize::A4, edits), vec![ktp.clone(), kk.clone()]));
+
+    let scan = dir.join("scan 2026-11-07.pdf");
+    for (outcome, original) in outcomes.iter().zip([&ktp, &kk]) {
+        let result = outcome.as_ref().unwrap();
+        assert_eq!(result.path, scan, "one Result for every photo");
+        assert_eq!(result.original_size, fs::metadata(original).unwrap().len());
+        assert_eq!(result.details, Details::Pages { pages: 2, skipped: vec![] });
+    }
+    let doc = Document::load(&scan).unwrap();
+    let pages: Vec<_> = doc.get_pages().into_values().collect();
+    let media_box = |id| -> Vec<f32> {
+        let page = doc.get_dictionary(id).unwrap();
+        page.get(b"MediaBox").unwrap().as_array().unwrap().iter().map(|n| n.as_float().unwrap()).collect()
+    };
+    assert!(media_box(pages[0])[2] > media_box(pages[0])[3], "the wide photo lies sideways");
+    assert!(media_box(pages[1])[3] > media_box(pages[1])[2], "its tall crop stands upright");
+    assert_eq!(file_names(&dir), ["kk.jpg", "ktp.jpg", "scan 2026-11-07.pdf"]);
+}
+
+#[test]
+fn a_photo_that_cannot_be_read_stops_the_pdf_before_anything_is_written() {
+    let dir = scratch("photos_to_pdf_stops");
+    let ktp = write(&dir, "ktp.jpg", &photo_jpg());
+    let broken = write(&dir, "rusak.jpg", b"bukan foto");
+
+    let outcomes = run(&task(jpg_ke_pdf(PaperSize::F4, vec![]), vec![ktp, broken]));
+
+    assert_eq!(
+        outcomes.into_iter().map(Result::err).collect::<Vec<_>>(),
+        [Some(ErrorKind::Cancelled), Some(ErrorKind::UnsupportedFormat)]
+    );
+    assert_eq!(file_names(&dir), ["ktp.jpg", "rusak.jpg"]);
 }
 
 #[test]

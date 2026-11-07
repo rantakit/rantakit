@@ -79,10 +79,12 @@ export function ResultSummary({ job, noun, summary, merges, resultsFolder }: Res
   // A merge that stopped names the file that stopped it; nothing else was made.
   const stopper = merges ? items.find((item) => item.status === "failed") : undefined;
 
+  // A merge makes one PDF, whatever went into it.
+  const one = count("files.pdf", 1);
   const title = {
-    done: many ? count("result.made", made) : t("result.done", { files: merges ? count(`files.${noun}`, 1) : files }),
+    done: many ? count("result.made", made) : t("result.done", { files: merges ? one : files }),
     partial: t("result.partial", { done: finished, files }),
-    cancelled: t("result.cancelled", { done: merges ? 0 : finished, files: merges ? count(`files.${noun}`, 1) : files }),
+    cancelled: t("result.cancelled", { done: merges ? 0 : finished, files: merges ? one : files }),
   }[tone];
   // Android always saves to Download/Rantakit/, whatever the desktop setting says.
   const folder = isAndroidApp ? "Download/Rantakit" : resultsFolder;
@@ -93,7 +95,7 @@ export function ResultSummary({ job, noun, summary, merges, resultsFolder }: Res
       <div className={card({ tone: "partial" })}>
         <TriangleAlert aria-hidden className={cardIcon({ tone: "partial" })} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h2 className="font-display text-section">{t("merge.failed")}</h2>
+          <h2 className="font-display text-section">{t(noun === "photo" ? "photoPdf.failed" : "merge.failed")}</h2>
           <p className="text-text-muted">{t("merge.failed.body", { name: stopper.name, error })}</p>
         </div>
       </div>
@@ -167,7 +169,8 @@ export function ResultList({ job, noun, comparesSizes, merges }: ResultListProps
         {folder ? (
           <FolderResults parts={resultFiles(folder)} />
         ) : one ? (
-          <OneResult item={one} noun={noun} comparesSizes={comparesSizes} />
+          // A merge's one Result is a PDF, even from photos.
+          <OneResult item={one} noun={merges ? "pdf" : noun} comparesSizes={comparesSizes} />
         ) : (
           <ul
             aria-label={t("result.list")}

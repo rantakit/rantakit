@@ -2,6 +2,7 @@ pub mod files;
 pub mod history;
 pub mod language;
 pub mod pages;
+pub mod photos;
 pub mod presets;
 pub mod recent;
 pub mod settings;
