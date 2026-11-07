@@ -102,16 +102,19 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 
 **Goal:** people can put PDFs together the way a portal asks for them (Job 3), turn paper documents into one clean PDF (Job 2), share ID copies and photos without them being misused (Job 5), and convert and compress the other formats they receive (Job 1).
 
+**Stories:** [docs/stories/v0.4.md](docs/stories/v0.4.md)
+
 **Epics:**
 
-- **Arrange PDF (Job 3):** Gabung PDF (merge); Pisah PDF (split); Atur Halaman PDF (arrange pages: reorder, rotate, delete, extract).
+- **Shared pieces** (first, before the other epics): PDF page thumbnails rendered with `hayro`, starting by measuring `hayro` without its embedded CJK character maps and checking real Indonesian PDFs; files in a chosen order; several Results from one file.
+- **Arrange PDF (Job 3):** Gabung PDF (merge); Pisah PDF (split, and extract pages); Atur Halaman PDF (arrange pages: reorder, rotate, delete).
 - **Paper → PDF (Job 2):**
   - **JPG ke PDF** (JPG to PDF) with crop and straighten, on all platforms.
   - **Scan Dokumen** (scan document) on Android: camera, automatic edge detection, crop, straighten, clean up, several pages into one PDF.
 - **Share safely (Job 5):** Beri Watermark (add a watermark to photos and PDFs); Hapus Info Lokasi (remove location and camera info from photos).
 - **More formats (Job 1):**
   - **More photo conversion:** HEIC and WebP → JPG or PNG.
-  - **PDF ke JPG** (PDF to JPG), rendered with `hayro`. The epic starts by measuring `hayro` without its embedded CJK character maps and checking real Indonesian PDFs.
+  - **PDF ke JPG** (PDF to JPG), rendered with `hayro`.
   - **Compress office documents:** Word, Excel, and PowerPoint files.
 
 **Done when:**
@@ -121,7 +124,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 - "Put 'Hanya untuk verifikasi Bank X' (Only for Bank X verification) on this KTP (ID card) photo" works unaided.
 - Each new format is within the size budget. A format that does not fit leaves v0.4 by the size gate instead of holding the release back.
 
-**Open decisions:** Advanced options for each Tool; how clean-up works on low-end phones; the PDF to JPG fallback if `hayro` fails real documents (Android's `PdfRenderer` plus a fix to `hayro`).
+**Open decisions:** Advanced options for each Tool; how clean-up works on low-end phones; the page rendering fallback if `hayro` fails real documents (Android's `PdfRenderer` plus a fix to `hayro`); whether Kompres Dokumen accepts the older `.doc`, `.xls`, and `.ppt`. The UI and UX were settled while writing the stories (2026-11-07).
 
 ## v0.5 Audio
 
