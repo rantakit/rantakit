@@ -40,6 +40,23 @@ export type ToolOptions =
       size?: "large" | "medium" | "small";
       /** "Sisi terpanjang (px)"; wins over `size`. */
       maxSide?: number;
+    }
+  | {
+      tool: "gabung-pdf";
+      /** The user's today, "2026-11-07", for `merged 2026-11-07.pdf`. */
+      date: string;
+    }
+  | {
+      tool: "pisah-pdf";
+      /** "Ambil halaman": pages counted from 1, in order. */
+      pages?: number[];
+      /** "Pisah semua halaman" (1) or "Setiap N halaman"; used when `pages` is left out. */
+      every?: number;
+    }
+  | {
+      tool: "atur-halaman-pdf";
+      /** The Result's pages in order: a page of the Original from 0, and quarter turns clockwise. */
+      pages: { page: number; turns: number }[];
     };
 
 /** The Size limit in bytes these options aim for, if any. */
@@ -62,6 +79,10 @@ export interface TaskResult {
   compressedBytes: number;
   /** When one Original made several Results: each, in order, inside `outputPath`. */
   files?: ResultPart[];
+  /** Pages in a PDF made of pages: merged, taken out, or arranged. */
+  pages?: number;
+  /** Pages asked for that the Original doesn't have, counted from 1. */
+  skippedPages?: number[];
 }
 
 /** Mirrors `PartMessage`: one of several Results from one Original. */

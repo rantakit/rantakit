@@ -10,6 +10,7 @@ type ErrorCode =
   | "not-enough-space"
   | "cannot-write"
   | "original-missing"
+  | "no-such-pages"
   | "cancelled"
   | "unchanged"
   | "history-from-newer-version"
@@ -23,6 +24,7 @@ const CODES: ErrorCode[] = [
   "not-enough-space",
   "cannot-write",
   "original-missing",
+  "no-such-pages",
   "cancelled",
   "unchanged",
   "history-from-newer-version",

@@ -8,7 +8,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use rantakit_tasks::{
-    Details, ErrorKind, FileInfo, FileKind, FolderFile, ResultFile, result_folder_name, result_name,
+    Details, ErrorKind, FileInfo, FileKind, FolderFile, ResultFile, numbered,
 };
 use tauri::{AppHandle, Manager};
 use tauri_plugin_android_fs::{AndroidFsExt, FsUri, ImageFormat, PublicGeneralPurposeDir, Size};
@@ -212,30 +212,23 @@ impl Drop for Workspace {
 }
 
 /// Saves `result` as a new file in `Download/Rantakit/` and removes its copy
-/// in the cache. The name follows the same rule as on desktop, counted
+/// in the cache. It keeps the name the Task gave it in the cache, numbered
 /// against the Results this app saved there before; MediaStore numbers any
 /// other taken name itself, so no file is ever replaced. Several Results
 /// from one Original (X3) go into a new folder there, such as
 /// `Download/Rantakit/ijazah (pages)/`.
-pub fn save(
-    app: &AppHandle,
-    original: &Path,
-    suffix: &str,
-    result: ResultFile,
-) -> Result<ResultFile, ErrorKind> {
-    if let Details::Folder { files } = &result.details {
-        return save_folder(app, original, suffix, files.clone(), result);
-    }
-    let extension = result
+pub fn save(app: &AppHandle, result: ResultFile) -> Result<ResultFile, ErrorKind> {
+    let made = result
         .path
-        .extension()
+        .file_name()
         .unwrap_or_default()
         .to_string_lossy()
         .into_owned();
+    if let Details::Folder { files } = &result.details {
+        return save_folder(app, &made, files.clone(), result);
+    }
     let results = results_folder(app);
-    let name = free_name(results.as_deref(), |n| {
-        result_name(original, suffix, &extension, n)
-    });
+    let name = free_name(results.as_deref(), |n| numbered(&made, n));
     let path = write_new(app, &Path::new(RESULTS_FOLDER).join(&name), &result.path)?;
     Ok(ResultFile { path, ..result })
 }
@@ -245,15 +238,12 @@ pub fn save(
 /// stops halfway.
 fn save_folder(
     app: &AppHandle,
-    original: &Path,
-    suffix: &str,
+    made: &str,
     files: Vec<FolderFile>,
     result: ResultFile,
 ) -> Result<ResultFile, ErrorKind> {
     let results = results_folder(app);
-    let folder = free_name(results.as_deref(), |n| {
-        result_folder_name(original, suffix, n)
-    });
+    let folder = free_name(results.as_deref(), |n| numbered(made, n));
     let relative = Path::new(RESULTS_FOLDER).join(&folder);
     let mut saved = Vec::with_capacity(files.len());
     for file in files {

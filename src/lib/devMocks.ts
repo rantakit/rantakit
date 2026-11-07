@@ -17,6 +17,9 @@ const TOOLS: ToolInfo[] = [
   { id: "kompres-pdf", job: "kecilkan-ubah", comingSoon: false },
   { id: "ubah-format-foto", job: "kecilkan-ubah", comingSoon: false },
   { id: "ubah-ukuran-foto", job: "kecilkan-ubah", comingSoon: false },
+  { id: "gabung-pdf", job: "atur-pdf", comingSoon: false },
+  { id: "pisah-pdf", job: "atur-pdf", comingSoon: false },
+  { id: "atur-halaman-pdf", job: "atur-pdf", comingSoon: false },
   ...(
     [
       ["kompres-dokumen", "kecilkan-ubah"],
@@ -26,9 +29,6 @@ const TOOLS: ToolInfo[] = [
       ["word-ke-pdf", "kecilkan-ubah"],
       ["excel-ke-pdf", "kecilkan-ubah"],
       ["jpg-ke-pdf", "scan"],
-      ["gabung-pdf", "atur-pdf"],
-      ["pisah-pdf", "atur-pdf"],
-      ["atur-halaman-pdf", "atur-pdf"],
       ["pdf-ke-jpg", "atur-pdf"],
       ["beri-watermark", "bagikan-aman"],
       ["hapus-info-lokasi", "bagikan-aman"],
@@ -129,6 +129,18 @@ function sampleHistory() {
         exists: true,
       })),
     },
+    {
+      id: "5",
+      tool: "gabung-pdf",
+      createdAt: now - 3 * 60 * 60 * 1000,
+      files: ["Ijazah.pdf", "Transkrip nilai.pdf"].map((name) => ({
+        originalPath: FOLDER + name,
+        resultPath: `${FOLDER}merged 2026-11-07.pdf`,
+        originalBytes: sizeOf(FOLDER + name),
+        resultBytes: 3_100_000,
+        exists: true,
+      })),
+    },
     { id: "2", tool: "kompres-pdf", createdAt: now - day, files: [file("Ijazah.pdf", "compressed")] },
     { id: "1", tool: "ubah-format-foto", createdAt: now - 9 * day, files: [file("Logo.jpg", "converted", false)] },
   ];
@@ -141,8 +153,118 @@ const presets: { id: string; tool: string; name: string; options: object }[] = [
 let nextTask = 1;
 
 interface TaskArgs {
-  request: { options: { tool: string; to?: string; size?: string; maxSide?: number; limit?: number }; paths: string[] };
+  request: {
+    options: {
+      tool: string;
+      to?: string;
+      size?: string;
+      maxSide?: number;
+      limit?: number;
+      date?: string;
+      pages?: number[] | { page: number; turns: number }[];
+      every?: number;
+    };
+    paths: string[];
+  };
   onEvent: { onmessage: (message: unknown) => void };
+}
+
+/** How many pages a made-up PDF has: 2 to 12. */
+const pageCountOf = (path: string) => 2 + (sizeOf(path) % 11);
+
+/** "pages 1-3, 5", as `pages_suffix` in crates/rantakit-tasks/src/names.rs. */
+function pagesSuffix(pages: number[]) {
+  const runs: string[] = [];
+  for (let i = 0; i < pages.length; ) {
+    let j = i;
+    while (j + 1 < pages.length && pages[j + 1] === pages[j] + 1) j++;
+    runs.push(j > i ? `${pages[i]}-${pages[j]}` : `${pages[i]}`);
+    i = j + 1;
+  }
+  return `${pages.length === 1 ? "page" : "pages"} ${runs.join(", ")}`;
+}
+
+/** Gabung PDF, Pisah PDF and Atur Halaman PDF, which work on pages. */
+async function runPageTask(id: number, { options, paths }: TaskArgs["request"], send: (message: unknown) => void) {
+  const step = has("slow") ? 400 : 120;
+  const stem = (path: string) => path.slice(0, path.lastIndexOf("."));
+  const progress = async (file: number) => {
+    for (let fraction = 0; fraction < 1; fraction += 0.2) {
+      if (cancelled.has(id)) return false;
+      send({ event: "progress", file, fraction });
+      await new Promise((resolve) => setTimeout(resolve, step));
+    }
+    return !cancelled.has(id);
+  };
+  const done = (file: number, result: object) =>
+    send({ event: "fileDone", file, outcome: { status: "done", result: { inputPath: paths[file], ...result } } });
+  const failed = (file: number, code: string) =>
+    send({ event: "fileDone", file, outcome: { status: "failed", error: { code } } });
+
+  if (options.tool === "gabung-pdf") {
+    for (const file of paths.keys()) {
+      if (!(await progress(file))) {
+        paths.forEach((_, i) => failed(i, "cancelled"));
+        return;
+      }
+      // `?fail`: the second PDF is locked, so nothing is made.
+      if (has("fail") && file === 1) {
+        paths.forEach((_, i) => failed(i, i === 1 ? "password-protected" : "cancelled"));
+        return;
+      }
+    }
+    const pages = paths.reduce((sum, path) => sum + pageCountOf(path), 0);
+    const outputPath = `${paths[0].slice(0, paths[0].lastIndexOf("\\") + 1)}merged ${options.date}.pdf`;
+    const bytes = paths.reduce((sum, path) => sum + sizeOf(path), 0);
+    paths.forEach((path, file) =>
+      done(file, { outputPath, originalBytes: sizeOf(path), compressedBytes: Math.round(bytes * 0.9), pages }),
+    );
+    return;
+  }
+
+  for (const [file, path] of paths.entries()) {
+    if (!(await progress(file))) {
+      failed(file, "cancelled");
+      continue;
+    }
+    const count = pageCountOf(path);
+    const size = sizeOf(path);
+    if (options.tool === "atur-halaman-pdf") {
+      const pages = (options.pages ?? []) as { page: number; turns: number }[];
+      done(file, { outputPath: `${stem(path)} (edited).pdf`, originalBytes: size, compressedBytes: size, pages: pages.length });
+    } else if (options.pages) {
+      const asked = options.pages as number[];
+      const kept = asked.filter((page) => page <= count);
+      const skippedPages = asked.filter((page) => page > count);
+      if (kept.length === 0) failed(file, "no-such-pages");
+      else
+        done(file, {
+          outputPath: `${stem(path)} (${pagesSuffix(kept)}).pdf`,
+          originalBytes: size,
+          compressedBytes: Math.round((size * kept.length) / count),
+          pages: kept.length,
+          skippedPages,
+        });
+    } else {
+      const every = options.every ?? 1;
+      if (every >= count) {
+        failed(file, "unchanged");
+        continue;
+      }
+      const folder = `${stem(path)} (pages)`;
+      const name = folder.slice(folder.lastIndexOf("\\") + 1, -" (pages)".length);
+      const files = Array.from({ length: Math.ceil(count / every) }, (_, part) => {
+        const pages = Array.from({ length: Math.min(every, count - part * every) }, (_, i) => part * every + i + 1);
+        return { path: `${folder}\\${name} (${pagesSuffix(pages)}).pdf`, bytes: Math.round((size * pages.length) / count) };
+      });
+      done(file, {
+        outputPath: folder,
+        originalBytes: size,
+        compressedBytes: files.reduce((sum, part) => sum + part.bytes, 0),
+        files,
+      });
+    }
+  }
 }
 
 /** One PDF split into 12 pages, in a new folder named after it. */
@@ -168,6 +290,11 @@ function runTask({ request, onEvent }: TaskArgs) {
     : request.options.tool.startsWith("ubah-ukuran")
       ? "resized"
       : "compressed";
+
+  if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf"].includes(request.options.tool)) {
+    runPageTask(id, request, send).then(() => send({ event: "finished" }));
+    return id;
+  }
 
   (async () => {
     for (const [file, path] of request.paths.entries()) {
@@ -272,7 +399,12 @@ export function installDevMocks() {
         return has("recent") ? ["kompres-pdf", "kompres-foto"] : [];
       case "match_files": {
         const paths = (args as { paths: string[] }).paths;
-        if (paths.every(isPdf)) return { status: "fits", kinds: ["pdf"], tools: ["kompres-pdf"] };
+        if (paths.every(isPdf))
+          return {
+            status: "fits",
+            kinds: ["pdf"],
+            tools: paths.length > 1 ? ["kompres-pdf", "gabung-pdf", "pisah-pdf"] : ["kompres-pdf", "pisah-pdf", "atur-halaman-pdf"],
+          };
         if (paths.some(isPdf)) return { status: "mixed" };
         return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-format-foto", "ubah-ukuran-foto"] };
       }
@@ -280,7 +412,7 @@ export function installDevMocks() {
         return (args as { paths: string[] }).paths.map((path) => ({
           size: sizeOf(path),
           kind: kindOf(path),
-          pages: isPdf(path) ? 1 + (sizeOf(path) % 5) : null,
+          pages: isPdf(path) ? pageCountOf(path) : null,
           longestSide: isPdf(path) ? null : longestSideOf(path),
         }));
       case "thumbnail": {

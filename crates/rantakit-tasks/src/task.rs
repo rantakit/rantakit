@@ -1,12 +1,12 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rantakit_core::{CancelToken, ErrorKind, Progress};
+use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker};
 use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, Target, WHITE};
-use rantakit_pdf::PdfOptions;
+use rantakit_pdf::{PageEdit, PdfDocument, PdfOptions};
 
 use crate::catalogue::ToolId;
-use crate::names::result_path;
+use crate::names::{named_path, pages_suffix, result_folder, result_path};
 
 /// One run of a Tool on one or more Originals.
 #[derive(Debug, Clone)]
@@ -27,6 +27,23 @@ pub enum ToolOptions {
     UbahFormatFoto(ImageOptions),
     /// Always has `max_dimension`; build it with `ToolOptions::resize`.
     UbahUkuranFoto(ImageOptions),
+    /// Every Original, in order, into one PDF named after `date`, the user's
+    /// today such as "2026-11-07": `merged 2026-11-07.pdf`.
+    GabungPdf { date: String },
+    PisahPdf(Split),
+    /// The one Original's pages as they will be, in order.
+    AturHalamanPdf(Vec<PageEdit>),
+}
+
+/// How Pisah PDF splits each PDF.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Split {
+    /// "Ambil halaman": these pages, counted from 1, in this order, as one
+    /// PDF. A page a PDF does not have is skipped.
+    Take(Vec<usize>),
+    /// "Pisah semua halaman" (1), or "Setiap N halaman": a PDF for every `n`
+    /// pages, in a new folder.
+    Every(usize),
 }
 
 /// Ubah Ukuran Foto's plain choices for the longest side.
@@ -81,15 +98,27 @@ impl ToolOptions {
             Self::KompresPdf(_) => ToolId::KompresPdf,
             Self::UbahFormatFoto(_) => ToolId::UbahFormatFoto,
             Self::UbahUkuranFoto(_) => ToolId::UbahUkuranFoto,
+            Self::GabungPdf { .. } => ToolId::GabungPdf,
+            Self::PisahPdf(_) => ToolId::PisahPdf,
+            Self::AturHalamanPdf(_) => ToolId::AturHalamanPdf,
         }
     }
 
+    /// Whether every Original goes into one Result, as in Gabung PDF.
+    pub fn merges(&self) -> bool {
+        matches!(self, Self::GabungPdf { .. })
+    }
+
     /// The English word in the Result name: `ijazah (compressed).pdf`.
+    /// Pisah PDF names each Result after its pages instead.
     pub fn suffix(&self) -> &'static str {
         match self {
             Self::KompresFoto(_) | Self::KompresPdf(_) => "compressed",
             Self::UbahFormatFoto(_) => "converted",
             Self::UbahUkuranFoto(_) => "resized",
+            Self::GabungPdf { .. } => "merged",
+            Self::PisahPdf(_) => "pages",
+            Self::AturHalamanPdf(_) => "edited",
         }
     }
 }
@@ -120,6 +149,10 @@ pub enum Details {
         images: usize,
         images_recompressed: usize,
     },
+    /// A PDF made of pages of other PDFs: merged, taken out, or arranged.
+    /// `skipped` are the pages asked for that the Original does not have,
+    /// counted from 1.
+    Pages { pages: usize, skipped: Vec<usize> },
     /// One Original made several Results (X3), such as Pisah PDF's pages:
     /// `ResultFile::path` is the new folder they are in, such as
     /// `ijazah (pages)/`, and `ResultFile::size` is their total.
@@ -168,6 +201,14 @@ pub fn run_task(
     on_event: &mut dyn FnMut(TaskEvent),
     cancel: &CancelToken,
 ) -> Vec<FileOutcome> {
+    if task.tool.merges() {
+        let outcomes = merge(task, on_event, cancel);
+        for (file, outcome) in outcomes.iter().enumerate() {
+            on_event(TaskEvent::FileDone { file, outcome });
+        }
+        return outcomes;
+    }
+
     let mut outcomes = Vec::with_capacity(task.originals.len());
 
     for (file, original) in task.originals.iter().enumerate() {
@@ -241,6 +282,60 @@ fn run_file(
                 cancel,
             )
         }
+        ToolOptions::GabungPdf { .. } => unreachable!("run_task merges every Original at once"),
+        ToolOptions::PisahPdf(split) => {
+            let pdf = PdfDocument::open(original)?;
+            let count = pdf.page_count();
+            let mut tracker = Tracker::new(progress, cancel);
+            match split {
+                Split::Take(pages) => {
+                    let (kept, skipped): (Vec<usize>, Vec<usize>) =
+                        pages.iter().partition(|&&page| (1..=count).contains(&page));
+                    if kept.is_empty() {
+                        return Err(ErrorKind::NoSuchPages);
+                    }
+                    if kept.iter().copied().eq(1..=count) {
+                        return Err(ErrorKind::Unchanged);
+                    }
+                    let edits: Vec<PageEdit> = kept.iter().map(|&page| PageEdit::keep(page - 1)).collect();
+                    let path = result_path(original, folder, &pages_suffix(&kept), "pdf");
+                    let size = pdf.arrange(&edits)?.save(&path, &mut tracker)?;
+                    Ok(ResultFile {
+                        path,
+                        original_size,
+                        size,
+                        details: Details::Pages {
+                            pages: kept.len(),
+                            skipped,
+                        },
+                    })
+                }
+                Split::Every(every) => split_every(original, original_size, folder, &pdf, *every, &mut tracker),
+            }
+        }
+        ToolOptions::AturHalamanPdf(edits) => {
+            let pdf = PdfDocument::open(original)?;
+            let unchanged = edits.len() == pdf.page_count()
+                && edits
+                    .iter()
+                    .enumerate()
+                    .all(|(at, edit)| edit.page == at && edit.quarter_turns % 4 == 0);
+            if unchanged {
+                return Err(ErrorKind::Unchanged);
+            }
+            let path = result_path(original, folder, suffix, "pdf");
+            let mut tracker = Tracker::new(progress, cancel);
+            let size = pdf.arrange(edits)?.save(&path, &mut tracker)?;
+            Ok(ResultFile {
+                path,
+                original_size,
+                size,
+                details: Details::Pages {
+                    pages: edits.len(),
+                    skipped: Vec::new(),
+                },
+            })
+        }
         ToolOptions::KompresPdf(opts) => {
             let path = result_path(original, folder, suffix, "pdf");
             let out = rantakit_pdf::compress_pdf(original, &path, opts, progress, cancel)?;
@@ -255,6 +350,142 @@ fn run_file(
             })
         }
     }
+}
+
+/// Gabung PDF: every Original, in order, into one PDF. A file that cannot be
+/// read ends the Task before anything is written; it gets its own error and
+/// every other file `Cancelled`. Each file's outcome is the one Result, with
+/// that file's own size as its Original's, so History and the totals add up.
+fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken) -> Vec<FileOutcome> {
+    let count = task.originals.len();
+    let fail = |file: usize, kind: ErrorKind| -> Vec<FileOutcome> {
+        (0..count)
+            .map(|at| Err(if at == file { kind.clone() } else { ErrorKind::Cancelled }))
+            .collect()
+    };
+    let ToolOptions::GabungPdf { date } = &task.tool else {
+        return fail(0, ErrorKind::UnsupportedFormat);
+    };
+
+    let mut sizes = Vec::with_capacity(count);
+    let mut parts = Vec::with_capacity(count);
+    for (file, original) in task.originals.iter().enumerate() {
+        if cancel.is_cancelled() {
+            return fail(count, ErrorKind::Cancelled);
+        }
+        on_event(TaskEvent::Progress {
+            file,
+            progress: Progress::Fraction(0.0),
+        });
+        let opened = fs::metadata(original)
+            .map_err(|e| ErrorKind::reading(&e))
+            .and_then(|meta| Ok((meta.len(), PdfDocument::open(original)?)));
+        match opened {
+            Ok((size, pdf)) => {
+                sizes.push(size);
+                parts.push(pdf);
+            }
+            Err(kind) => return fail(file, kind),
+        }
+        on_event(TaskEvent::Progress {
+            file,
+            progress: Progress::Fraction(1.0),
+        });
+    }
+
+    let first = &task.originals[0];
+    let folder = match &task.results_folder {
+        Some(folder) => folder.as_path(),
+        None => first.parent().unwrap_or(Path::new("")),
+    };
+    let path = named_path(folder, &merged_stem(date), "pdf");
+    let mut quiet = |_| {};
+    let mut tracker = Tracker::new(&mut quiet, cancel);
+    let saved = PdfDocument::merge(parts).and_then(|merged| {
+        let pages = merged.page_count();
+        Ok((pages, merged.save(&path, &mut tracker)?))
+    });
+    match saved {
+        Ok((pages, size)) => sizes
+            .into_iter()
+            .map(|original_size| {
+                Ok(ResultFile {
+                    path: path.clone(),
+                    original_size,
+                    size,
+                    details: Details::Pages {
+                        pages,
+                        skipped: Vec::new(),
+                    },
+                })
+            })
+            .collect(),
+        // Writing failed for the Task as a whole; the first file carries why.
+        Err(ErrorKind::Cancelled) => fail(count, ErrorKind::Cancelled),
+        Err(kind) => fail(0, kind),
+    }
+}
+
+/// `merged 2026-11-07`; just `merged` when the date is not one.
+fn merged_stem(date: &str) -> String {
+    let is_date = date.len() == 10
+        && date
+            .chars()
+            .enumerate()
+            .all(|(at, c)| if at == 4 || at == 7 { c == '-' } else { c.is_ascii_digit() });
+    match is_date {
+        true => format!("merged {date}"),
+        false => "merged".to_string(),
+    }
+}
+
+/// Pisah PDF's "Pisah semua halaman" and "Setiap N halaman": a PDF for every
+/// `every` pages, in a new folder named after the Original. A stop or a
+/// failure halfway removes the folder, so it leaves nothing behind.
+fn split_every(
+    original: &Path,
+    original_size: u64,
+    folder: &Path,
+    pdf: &PdfDocument,
+    every: usize,
+    tracker: &mut Tracker<'_>,
+) -> FileOutcome {
+    let count = pdf.page_count();
+    let every = every.max(1);
+    if every >= count {
+        return Err(ErrorKind::Unchanged);
+    }
+    let into = result_folder(original, folder, "pages").map_err(|e| ErrorKind::writing(&e))?;
+    let parts: Vec<Vec<usize>> = (1..=count)
+        .collect::<Vec<_>>()
+        .chunks(every)
+        .map(<[usize]>::to_vec)
+        .collect();
+    let mut files = Vec::with_capacity(parts.len());
+    for (at, pages) in parts.iter().enumerate() {
+        let written = tracker.check().and_then(|()| {
+            let edits: Vec<PageEdit> = pages.iter().map(|&page| PageEdit::keep(page - 1)).collect();
+            let path = result_path(original, &into, &pages_suffix(pages), "pdf");
+            // Each part reports nothing itself; the folder's progress is by part.
+            let mut quiet = |_| {};
+            let cancel = CancelToken::new();
+            let size = pdf.arrange(&edits)?.save(&path, &mut Tracker::new(&mut quiet, &cancel))?;
+            Ok(FolderFile { path, size })
+        });
+        match written.and_then(|file| tracker.step((at + 1) as f32 / parts.len() as f32).map(|()| file)) {
+            Ok(file) => files.push(file),
+            Err(kind) => {
+                let _ = fs::remove_dir_all(&into);
+                return Err(kind);
+            }
+        }
+    }
+    Ok(ResultFile {
+        path: into,
+        original_size,
+        size: files.iter().map(|file| file.size).sum(),
+        details: Details::Folder { files },
+    })
 }
 
 /// Runs the photo engine on one Original and describes its Result.

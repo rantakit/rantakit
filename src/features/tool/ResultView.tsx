@@ -31,6 +31,8 @@ interface ResultSummaryProps {
   noun: "photo" | "pdf";
   /** The Tool's own line for what happened (X4); left out by the compress Tools. */
   summary?: (results: TaskResult[], tr: Translator) => string;
+  /** Whether every file went into one Result, as in Gabung PDF. */
+  merges: boolean;
   /** Where Results were saved; null next to each Original. */
   resultsFolder: string | null;
 }
@@ -58,7 +60,7 @@ const TONE_ICONS: Record<"done" | "partial" | "cancelled", ComponentType<IconPro
 };
 
 /** How a Task went, in the Tool page's side panel; "Proses lagi" sits below it. */
-export function ResultSummary({ job, noun, summary, resultsFolder }: ResultSummaryProps) {
+export function ResultSummary({ job, noun, summary, merges, resultsFolder }: ResultSummaryProps) {
   const tr = useT();
   const { t, count, locale } = tr;
   const { items } = job;
@@ -74,14 +76,29 @@ export function ResultSummary({ job, noun, summary, resultsFolder }: ResultSumma
   const made = done.flatMap((item) => resultFiles(item.result)).length;
   const many = done.some((item) => item.result.files);
 
+  // A merge that stopped names the file that stopped it; nothing else was made.
+  const stopper = merges ? items.find((item) => item.status === "failed") : undefined;
+
   const title = {
-    done: many ? count("result.made", made) : t("result.done", { files }),
+    done: many ? count("result.made", made) : t("result.done", { files: merges ? count(`files.${noun}`, 1) : files }),
     partial: t("result.partial", { done: finished, files }),
-    cancelled: t("result.cancelled", { done: finished, files }),
+    cancelled: t("result.cancelled", { done: merges ? 0 : finished, files: merges ? count(`files.${noun}`, 1) : files }),
   }[tone];
   // Android always saves to Download/Rantakit/, whatever the desktop setting says.
   const folder = isAndroidApp ? "Download/Rantakit" : resultsFolder;
   const saved = folder ? t("result.savedIn", { folder }) : t("result.savedNext");
+  if (stopper?.status === "failed") {
+    const error = errorMessage(tr, stopper.error, { accepted: t(`formats.${noun}`), canShrink: false });
+    return (
+      <div className={card({ tone: "partial" })}>
+        <TriangleAlert aria-hidden className={cardIcon({ tone: "partial" })} />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h2 className="font-display text-section">{t("merge.failed")}</h2>
+          <p className="text-text-muted">{t("merge.failed.body", { name: stopper.name, error })}</p>
+        </div>
+      </div>
+    );
+  }
   const body = {
     done:
       done.length === 0
@@ -113,17 +130,21 @@ interface ResultListProps {
   noun: "photo" | "pdf";
   /** Whether sizes show as before → after; false when the Tool is not about size (X4). */
   comparesSizes: boolean;
+  /** Whether every file went into one Result, as in Gabung PDF: it shows once. */
+  merges: boolean;
 }
 
 /** Each Result with its sizes and actions, in the Tool page's main column; scrolls on its own on desktop. */
-export function ResultList({ job, noun, comparesSizes }: ResultListProps) {
+export function ResultList({ job, noun, comparesSizes, merges }: ResultListProps) {
   const tr = useT();
   const { t } = tr;
-  const { items } = job;
-  const done = items.flatMap((item) => (item.status === "done" ? [item] : []));
-  const made = done.flatMap((item) => resultFiles(item.result));
+  const done = job.items.flatMap((item) => (item.status === "done" ? [item] : []));
+  // A merge made one Result from all of them, or nothing: then the file that stopped it.
+  const items = merges ? (done.length > 0 ? done.slice(0, 1) : job.items.filter((item) => item.status === "failed")) : job.items;
+  const made = merges ? done.slice(0, 1).flatMap((item) => resultFiles(item.result)) : done.flatMap((item) => resultFiles(item.result));
   // One Original that made several Results: list the files in its new folder (X3).
-  const folder = items.length === 1 && done.length === 1 && done[0].result.files ? done[0].result : null;
+  const one = items.length === 1 && items[0].status === "done" ? items[0] : null;
+  const folder = one?.result.files ? one.result : null;
 
   return (
     <div className="flex flex-1 flex-col md:min-h-0">
@@ -145,8 +166,8 @@ export function ResultList({ job, noun, comparesSizes }: ResultListProps) {
       <div className="px-5 pb-5 md:min-h-0 md:flex-1 md:overflow-y-auto">
         {folder ? (
           <FolderResults parts={resultFiles(folder)} />
-        ) : items.length === 1 && done.length === 1 ? (
-          <OneResult item={done[0]} noun={noun} comparesSizes={comparesSizes} />
+        ) : one ? (
+          <OneResult item={one} noun={noun} comparesSizes={comparesSizes} />
         ) : (
           <ul
             aria-label={t("result.list")}
@@ -159,7 +180,7 @@ export function ResultList({ job, noun, comparesSizes }: ResultListProps) {
                 item={item}
                 noun={noun}
                 comparesSizes={comparesSizes}
-                canRetry={!job.isRunning}
+                canRetry={!job.isRunning && !merges}
                 onRetry={(options) => job.retry(index, options)}
               />
             ))}

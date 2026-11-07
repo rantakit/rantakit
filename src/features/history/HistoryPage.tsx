@@ -149,13 +149,18 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
   const first = entry.files[0];
   // Several Results from one Original, such as its pages, sit in one folder (X3).
   const fromOne = entry.files.length > 1 && entry.files.every((file) => file.originalPath === first.originalPath);
-  const names = fromOne
+  // Several Originals merged into one Result, as in Gabung PDF: it shows as one.
+  const toOne = entry.files.length > 1 && entry.files.every((file) => file.resultPath === first.resultPath);
+  const results = toOne ? [first] : entry.files;
+  const names = toOne
+    ? t("history.mergedFrom", { files: count("files.pdf", entry.files.length), name: fileName(first.resultPath) })
+    : fromOne
     ? t("history.madeFrom", { name: fileName(first.originalPath), files: count("files.any", entry.files.length) })
     : entry.files.length === 1
       ? fileName(first.resultPath)
       : t("history.andMore", { name: fileName(first.resultPath), count: entry.files.length - 1 });
   const before = fromOne ? first.originalBytes : entry.files.reduce((sum, file) => sum + file.originalBytes, 0);
-  const after = entry.files.reduce((sum, file) => sum + file.resultBytes, 0);
+  const after = results.reduce((sum, file) => sum + file.resultBytes, 0);
   const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(entry.createdAt);
   const missing = existing.length === 0;
 
@@ -181,7 +186,7 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
           <span className="text-small text-text-muted">
             {missing ? (
               t("history.missing")
-            ) : fromOne ? (
+            ) : fromOne || toOne ? (
               formatBytes(after, locale)
             ) : (
               <>
@@ -193,7 +198,7 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
         {!missing && (
           // On a phone the buttons go on their own line, under the file names.
           <div className="flex w-full shrink-0 flex-wrap items-center gap-2 ps-16 md:w-auto md:ps-0">
-            {entry.files.length === 1 && <OpenButton file={first} />}
+            {results.length === 1 && <OpenButton file={first} />}
             {canShowInFolder &&
               (fromOne ? (
                 <Button variant="secondary" size="row" onPress={() => openPath(parentOf(existing[0].resultPath))}>
@@ -208,13 +213,13 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
               <Button
                 variant="secondary"
                 size="row"
-                onPress={() => shareFiles(existing.map((file) => file.resultPath))}
+                onPress={() => shareFiles(toOne ? [first.resultPath] : existing.map((file) => file.resultPath))}
               >
                 <Share2 aria-hidden className="size-[18px]" />{" "}
-                {t(entry.files.length === 1 ? "result.share" : "result.shareAll")}
+                {t(results.length === 1 ? "result.share" : "result.shareAll")}
               </Button>
             )}
-            {entry.files.length > 1 && (
+            {results.length > 1 && (
               <Button variant="secondary" size="row" aria-expanded={expanded} onPress={() => setExpanded(!expanded)}>
                 {t("history.seeFiles", { count: entry.files.length })}
                 <ChevronRight

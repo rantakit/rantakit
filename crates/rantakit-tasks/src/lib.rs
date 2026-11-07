@@ -22,15 +22,18 @@ pub use compression::{Compression, Level, dpi_to_side};
 pub use history::{Entry, EntryFile, History, HistoryError};
 pub use info::{FileInfo, file_info, file_info_of};
 pub use kinds::{FileKind, detect_kind, read_kind};
-pub use names::{result_folder, result_folder_name, result_name, result_path};
+pub use names::{
+    named_path, numbered, pages_suffix, result_folder, result_folder_name, result_name, result_path,
+};
 pub use presets::{Preset, Presets};
 pub use recent::{RECENT_LIMITS, RECENT_TOOLS, Recent, RecentLimits, RecentTools};
 pub use settings::{Settings, SettingsStore};
 pub use store::{JsonFile, StoreError};
 pub use task::{
-    Details, FileOutcome, FolderFile, PhotoSize, ResultFile, Task, TaskEvent, ToolOptions, run_task,
+    Details, FileOutcome, FolderFile, PhotoSize, ResultFile, Split, Task, TaskEvent, ToolOptions,
+    run_task,
 };
 
 pub use rantakit_core::{CancelToken, ErrorKind, Progress};
 pub use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, Target, WHITE, thumbnail};
-pub use rantakit_pdf::{PdfOptions, PdfPages};
+pub use rantakit_pdf::{PageEdit, PdfDocument, PdfOptions, PdfPages};

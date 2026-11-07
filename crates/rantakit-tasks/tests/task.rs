@@ -6,8 +6,8 @@ use ::image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
 use lopdf::{Document, Object, Stream, dictionary};
 use rantakit_tasks::{
     Availability, CATALOGUE, CancelToken, Details, ErrorKind, FileOutcome, ImageFormat,
-    ImageOptions, OutputFormat, PdfOptions, Platform, Target, Task, TaskEvent, ToolId, ToolOptions,
-    WHITE, detect_kind, file_info, file_info_of, run_task, tools_for_files,
+    ImageOptions, OutputFormat, PageEdit, PdfOptions, Platform, Split, Target, Task, TaskEvent,
+    ToolId, ToolOptions, WHITE, detect_kind, file_info, file_info_of, run_task, tools_for_files,
 };
 
 /// A noisy 600x400 photo, so compressing it really makes it smaller.
@@ -91,6 +91,9 @@ fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
     match tool {
         ToolOptions::KompresFoto(_) => ("foto.jpg", photo_jpg()),
         ToolOptions::KompresPdf(_) => ("ijazah.pdf", scan_pdf()),
+        ToolOptions::GabungPdf { .. } | ToolOptions::PisahPdf(_) | ToolOptions::AturHalamanPdf(_) => {
+            ("ijazah.pdf", pages_pdf(3))
+        }
         ToolOptions::UbahFormatFoto(_) | ToolOptions::UbahUkuranFoto(_) => {
             ("foto.jpg", photo_jpg())
         }
@@ -111,7 +114,60 @@ fn every_tool() -> Vec<ToolOptions> {
         kompres_pdf(),
         ToolOptions::convert(ImageFormat::Png, 90, WHITE),
         ToolOptions::resize(300),
+        gabung_pdf(),
+        ToolOptions::PisahPdf(Split::Take(vec![1, 3])),
+        ToolOptions::PisahPdf(Split::Every(1)),
+        ToolOptions::AturHalamanPdf(vec![
+            PageEdit {
+                page: 2,
+                quarter_turns: 1,
+            },
+            PageEdit::keep(0),
+        ]),
     ]
+}
+
+fn gabung_pdf() -> ToolOptions {
+    ToolOptions::GabungPdf {
+        date: "2026-11-07".into(),
+    }
+}
+
+/// A PDF of `count` plain pages.
+fn pages_pdf(count: usize) -> Vec<u8> {
+    let mut doc = Document::with_version("1.5");
+    let pages_id = doc.new_object_id();
+    let kids: Vec<Object> = (1..=count)
+        .map(|n| {
+            let content = format!("BT (halaman {n}) Tj ET").into_bytes();
+            let content_id = doc.add_object(Stream::new(dictionary! {}, content));
+            doc.add_object(dictionary! {
+                "Type" => "Page",
+                "Parent" => pages_id,
+                "MediaBox" => vec![0.into(), 0.into(), 595.into(), 842.into()],
+                "Contents" => content_id,
+            })
+            .into()
+        })
+        .collect();
+    doc.objects.insert(
+        pages_id,
+        Object::Dictionary(dictionary! {
+            "Type" => "Pages",
+            "Kids" => kids,
+            "Count" => count as i64,
+        }),
+    );
+    let catalog_id = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+    doc.trailer.set("Root", catalog_id);
+    let mut bytes = Vec::new();
+    doc.save_to(&mut bytes).unwrap();
+    bytes
+}
+
+/// How many pages the PDF at `path` has.
+fn pages_in(path: &Path) -> usize {
+    Document::load(path).unwrap().get_pages().len()
 }
 
 /// A fresh, empty folder for one test.
@@ -336,7 +392,10 @@ fn dropped_files_fit_tools_by_content_not_extension() {
             ToolId::UbahUkuranFoto
         ]
     );
-    assert_eq!(tools_for_files(&[&pdf], on), [ToolId::KompresPdf]);
+    assert_eq!(
+        tools_for_files(&[&pdf], on),
+        [ToolId::KompresPdf, ToolId::PisahPdf, ToolId::AturHalamanPdf]
+    );
     assert!(tools_for_files(&[&photo_named_pdf, &pdf], on).is_empty());
     assert!(tools_for_files(&[&pdf, &text], on).is_empty());
     assert!(tools_for_files(&[dir.join("hilang.jpg")], on).is_empty());
@@ -409,4 +468,151 @@ fn an_open_file_tells_as_much_as_its_path() {
         assert_eq!(info, file_info(&path), "{name}");
         assert!(info.pages.is_some() || info.longest_side.is_some(), "{name}");
     }
+}
+
+fn write(dir: &Path, name: &str, bytes: &[u8]) -> PathBuf {
+    let path = dir.join(name);
+    fs::write(&path, bytes).unwrap();
+    path
+}
+
+#[test]
+fn merging_makes_one_result_from_every_file_in_order() {
+    let dir = scratch("merge_in_order");
+    let cv = write(&dir, "cv.pdf", &pages_pdf(2));
+    let ijazah = write(&dir, "ijazah.pdf", &pages_pdf(3));
+
+    let outcomes = run(&task(gabung_pdf(), vec![cv.clone(), ijazah.clone()]));
+
+    let merged = dir.join("merged 2026-11-07.pdf");
+    for (outcome, original) in outcomes.iter().zip([&cv, &ijazah]) {
+        let result = outcome.as_ref().unwrap();
+        assert_eq!(result.path, merged, "one Result for every file");
+        assert_eq!(result.original_size, fs::metadata(original).unwrap().len());
+        assert_eq!(
+            result.details,
+            Details::Pages {
+                pages: 5,
+                skipped: vec![]
+            }
+        );
+    }
+    assert_eq!(pages_in(&merged), 5);
+    assert_eq!(file_names(&dir), ["cv.pdf", "ijazah.pdf", "merged 2026-11-07.pdf"]);
+}
+
+#[test]
+fn a_file_that_cannot_be_read_stops_a_merge_before_anything_is_written() {
+    let dir = scratch("merge_stops");
+    let cv = write(&dir, "cv.pdf", &pages_pdf(2));
+    let broken = write(&dir, "rusak.pdf", b"%PDF-1.5 bukan isi pdf");
+    let ijazah = write(&dir, "ijazah.pdf", &pages_pdf(1));
+
+    let outcomes = run(&task(gabung_pdf(), vec![cv, broken, ijazah]));
+
+    assert_eq!(
+        outcomes.into_iter().map(Result::err).collect::<Vec<_>>(),
+        [
+            Some(ErrorKind::Cancelled),
+            Some(ErrorKind::Damaged),
+            Some(ErrorKind::Cancelled)
+        ]
+    );
+    assert_eq!(file_names(&dir), ["cv.pdf", "ijazah.pdf", "rusak.pdf"]);
+}
+
+#[test]
+fn taking_pages_skips_the_ones_a_pdf_does_not_have() {
+    let dir = scratch("take_pages");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
+    let take = |pages: Vec<usize>| {
+        run(&task(ToolOptions::PisahPdf(Split::Take(pages)), vec![original.clone()])).remove(0)
+    };
+
+    let result = take(vec![2, 5]).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (page 2).pdf"));
+    assert_eq!(
+        result.details,
+        Details::Pages {
+            pages: 1,
+            skipped: vec![5]
+        }
+    );
+    assert_eq!(pages_in(&result.path), 1);
+
+    let result = take(vec![1, 2, 3, 2]).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (pages 1-3, 2).pdf"));
+    assert_eq!(pages_in(&result.path), 4);
+
+    assert_eq!(take(vec![7, 8]).err(), Some(ErrorKind::NoSuchPages));
+    assert_eq!(take(vec![1, 2, 3]).err(), Some(ErrorKind::Unchanged));
+}
+
+#[test]
+fn splitting_makes_a_folder_of_parts() {
+    let dir = scratch("split_every");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
+    let split = |every| {
+        run(&task(ToolOptions::PisahPdf(Split::Every(every)), vec![original.clone()])).remove(0)
+    };
+
+    let result = split(1).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (pages)"));
+    assert_eq!(
+        file_names(&result.path),
+        ["ijazah (page 1).pdf", "ijazah (page 2).pdf", "ijazah (page 3).pdf"]
+    );
+    let Details::Folder { files } = &result.details else {
+        panic!("a folder Result");
+    };
+    assert_eq!(result.size, files.iter().map(|file| file.size).sum::<u64>());
+
+    let result = split(2).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (pages) (2)"));
+    assert_eq!(
+        file_names(&result.path),
+        ["ijazah (page 3).pdf", "ijazah (pages 1-2).pdf"]
+    );
+
+    assert_eq!(split(3).err(), Some(ErrorKind::Unchanged));
+}
+
+#[test]
+fn a_cancelled_split_leaves_no_folder() {
+    let dir = scratch("split_cancelled");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
+    let cancel = CancelToken::new();
+    let stopper = cancel.clone();
+    let mut parts = 0;
+    let outcomes = run_task(
+        &task(ToolOptions::PisahPdf(Split::Every(1)), vec![original]),
+        &mut |event| {
+            if let TaskEvent::Progress { .. } = event {
+                parts += 1;
+                if parts == 2 {
+                    stopper.cancel();
+                }
+            }
+        },
+        &cancel,
+    );
+
+    assert_eq!(outcomes[0].as_ref().err(), Some(&ErrorKind::Cancelled));
+    assert_eq!(file_names(&dir), ["ijazah.pdf"]);
+}
+
+#[test]
+fn arranging_pages_makes_an_edited_copy() {
+    let dir = scratch("arrange_pages");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
+    let arrange = |edits: Vec<PageEdit>| {
+        run(&task(ToolOptions::AturHalamanPdf(edits), vec![original.clone()])).remove(0)
+    };
+
+    let result = arrange(vec![PageEdit::keep(2), PageEdit::keep(0)]).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (edited).pdf"));
+    assert_eq!(pages_in(&result.path), 2);
+
+    let as_it_is = (0..3).map(PageEdit::keep).collect();
+    assert_eq!(arrange(as_it_is).err(), Some(ErrorKind::Unchanged));
 }

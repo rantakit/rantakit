@@ -3,6 +3,9 @@ import { kompresFoto } from "@/features/compress/ImageOptions";
 import { kompresPdf } from "@/features/compress/PdfOptions";
 import { ubahFormatFoto } from "@/features/convert/ConvertOptions";
 import { ubahUkuranFoto } from "@/features/resize/ResizeOptions";
+import { aturHalamanPdf } from "@/features/arrange/ArrangeOptions";
+import { gabungPdf } from "@/features/merge/MergeOptions";
+import { pisahPdf } from "@/features/split/SplitOptions";
 import type { ToolDef } from "./toolDef";
 
 // Each Tool keeps its own settings type; the page only passes them through.
@@ -15,6 +18,9 @@ export const TOOL_DEFS = {
   "kompres-pdf": kompresPdf,
   "ubah-format-foto": ubahFormatFoto,
   "ubah-ukuran-foto": ubahUkuranFoto,
+  "gabung-pdf": gabungPdf,
+  "pisah-pdf": pisahPdf,
+  "atur-halaman-pdf": aturHalamanPdf,
 } satisfies Partial<Record<ToolId, AnyToolDef>>;
 
 export type ShippedTool = keyof typeof TOOL_DEFS;

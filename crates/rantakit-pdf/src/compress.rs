@@ -67,19 +67,8 @@ pub fn compress_pdf(
     let mut tracker = Tracker::new(progress, cancel);
 
     let original = read_original(input)?;
-    if !is_pdf(&original) {
-        return Err(ErrorKind::UnsupportedFormat);
-    }
-    let load = LoadOptions {
-        max_decompressed_size: Some(MAX_DECOMPRESSED_BYTES),
-        ..Default::default()
-    };
-    let doc = Document::load_mem_with_options(&original, load).map_err(load_error)?;
+    let doc = load_document(&original)?;
     drop(original);
-
-    if doc.was_encrypted() || doc.is_encrypted() {
-        return Err(ErrorKind::PasswordProtected);
-    }
     tracker.step(LOADED)?;
 
     let images = doc
@@ -267,15 +256,7 @@ fn pack(
         recompressed += 1;
     }
 
-    doc.prune_objects();
-    doc.compress();
-    let save = SaveOptions::builder()
-        .use_object_streams(true)
-        .use_xref_streams(true)
-        .build();
-    let mut bytes = Vec::new();
-    doc.save_with_options(&mut bytes, save)
-        .map_err(|_| ErrorKind::Damaged)?;
+    let bytes = save_document(doc)?;
     Ok(Packed {
         bytes,
         recompressed,
@@ -340,6 +321,36 @@ fn fit_limit(
         return Ok(found);
     }
     Err(ErrorKind::SizeLimitUnreachable { best })
+}
+
+/// Reads a PDF for changing: it must be a PDF and must not be locked.
+pub(crate) fn load_document(original: &[u8]) -> Result<Document> {
+    if !is_pdf(original) {
+        return Err(ErrorKind::UnsupportedFormat);
+    }
+    let load = LoadOptions {
+        max_decompressed_size: Some(MAX_DECOMPRESSED_BYTES),
+        ..Default::default()
+    };
+    let doc = Document::load_mem_with_options(original, load).map_err(load_error)?;
+    if doc.was_encrypted() || doc.is_encrypted() {
+        return Err(ErrorKind::PasswordProtected);
+    }
+    Ok(doc)
+}
+
+/// The PDF as bytes, without objects nothing refers to, using object streams.
+pub(crate) fn save_document(mut doc: Document) -> Result<Vec<u8>> {
+    doc.prune_objects();
+    doc.compress();
+    let save = SaveOptions::builder()
+        .use_object_streams(true)
+        .use_xref_streams(true)
+        .build();
+    let mut bytes = Vec::new();
+    doc.save_with_options(&mut bytes, save)
+        .map_err(|_| ErrorKind::Damaged)?;
+    Ok(bytes)
 }
 
 /// PDF readers accept the `%PDF-` header anywhere in the first 1024 bytes.

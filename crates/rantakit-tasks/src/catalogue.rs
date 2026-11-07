@@ -220,9 +220,9 @@ pub const CATALOGUE: &[Tool] = &[
         &[Platform::Android],
         ComingSoon,
     ),
-    tool(ToolId::GabungPdf, AturPdf, &[Pdf], ALL, ComingSoon).taking(FileCount::AtLeastTwo),
-    tool(ToolId::PisahPdf, AturPdf, &[Pdf], ALL, ComingSoon),
-    tool(ToolId::AturHalamanPdf, AturPdf, &[Pdf], ALL, ComingSoon).taking(FileCount::One),
+    tool(ToolId::GabungPdf, AturPdf, &[Pdf], ALL, Shipped).taking(FileCount::AtLeastTwo),
+    tool(ToolId::PisahPdf, AturPdf, &[Pdf], ALL, Shipped),
+    tool(ToolId::AturHalamanPdf, AturPdf, &[Pdf], ALL, Shipped).taking(FileCount::One),
     tool(ToolId::PdfKeJpg, AturPdf, &[Pdf], ALL, ComingSoon),
     tool(
         ToolId::BeriWatermark,
@@ -372,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn photos_fit_the_photo_tools_and_pdfs_fit_kompres_pdf() {
+    fn photos_fit_the_photo_tools_and_pdfs_fit_the_shipped_pdf_tools() {
         let on = Platform::Windows;
         assert_eq!(
             tools_for_kinds(&[Jpg, Png], on),
@@ -382,7 +382,10 @@ mod tests {
                 ToolId::UbahUkuranFoto
             ]
         );
-        assert_eq!(tools_for_kinds(&[Pdf, Pdf], on), [ToolId::KompresPdf]);
+        assert_eq!(
+            tools_for_kinds(&[Pdf, Pdf], on),
+            [ToolId::KompresPdf, ToolId::GabungPdf, ToolId::PisahPdf]
+        );
     }
 
     #[test]

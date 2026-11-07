@@ -21,6 +21,7 @@ import { HomePage } from "@/features/home/HomePage";
 import type { ToolId } from "@/features/home/tools";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { SettingsDialog, SettingsPage, type SettingsTab } from "@/features/settings/SettingsDialog";
+import { fileName } from "@/features/compress/imageApi";
 import { LeaveDialog } from "@/features/tool/LeaveDialog";
 import { ToolPage } from "@/features/tool/ToolPage";
 import { UpdateNotice } from "@/features/update/UpdateNotice";
@@ -75,9 +76,15 @@ function App() {
     job.reset();
   };
 
+  /** A Tool with its own work area (Atur Halaman PDF) has changes that leaving would lose. */
+  const [unsaved, setUnsaved] = useState(false);
+  /** Another file chosen for such a Tool, waiting for "Ganti PDF?" to be answered. */
+  const [replacing, setReplacing] = useState<string | null>(null);
+
   /** Run `action`, which leaves the Tool page, after asking if files would be lost. */
   const leaveTool = (action: () => void) => {
-    const hasFiles = paths.length > 0 && job.items.length === 0;
+    // A work area loses nothing until it is changed.
+    const hasFiles = paths.length > 0 && job.items.length === 0 && (!tool || !toolDef(tool).Workspace || unsaved);
     if (tool && (hasFiles || job.isRunning)) setLeaving({ action, working: job.isRunning });
     else action();
   };
@@ -102,6 +109,15 @@ function App() {
   /** Add Originals to the open Tool page, from the picker or a drop. */
   const addFiles = (added: string[]) => {
     if (job.isRunning || added.length === 0) return;
+    // A Tool with its own work area takes one file per Task; another one replaces it.
+    if (tool && toolDef(tool).Workspace) {
+      const next = added[0];
+      if (next === paths[0] && job.items.length === 0) return;
+      if (unsaved && job.items.length === 0) return setReplacing(next);
+      job.reset();
+      setPaths([next]);
+      return;
+    }
     // After a Result, new files start over.
     if (job.items.length > 0) {
       job.reset();
@@ -321,6 +337,7 @@ function App() {
             onReorder={setPaths}
             onBack={() => leaveTool(closeTool)}
             onStart={startJob}
+            onUnsavedChange={setUnsaved}
             onProcessAnother={() => {
               job.reset();
               setPaths([]);
@@ -408,7 +425,10 @@ function App() {
               }
             : {
                 title: t("leave.title"),
-                body: t(`leave.body.${noun}`),
+                body:
+                  tool && toolDef(tool).Workspace && paths[0]
+                    ? t("arrange.replace.body", { name: fileName(paths[0]) })
+                    : t(`leave.body.${noun}`),
                 leaveLabel: t("leave.leave"),
                 stayLabel: t("leave.stay"),
               })}
@@ -416,6 +436,20 @@ function App() {
           onLeave={() => {
             setLeaving(null);
             leaving.action();
+          }}
+        />
+      )}
+      {replacing && paths[0] && (
+        <LeaveDialog
+          title={t("arrange.replace.title")}
+          body={t("arrange.replace.body", { name: fileName(paths[0]) })}
+          leaveLabel={t("arrange.replace")}
+          stayLabel={t("arrange.replace.cancel")}
+          onStay={() => setReplacing(null)}
+          onLeave={() => {
+            setReplacing(null);
+            job.reset();
+            setPaths([replacing]);
           }}
         />
       )}
