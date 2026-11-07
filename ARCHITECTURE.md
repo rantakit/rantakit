@@ -58,7 +58,7 @@ A Tool keeps the same promise on every platform (same Tool, same output format, 
 | Compress office documents | `zip` plus `rantakit-image` | same | same |
 | Audio in (.opus, .ogg, .m4a, .mp3, .wav) | `symphonia`, libopus for Opus | same | same |
 | Audio out (MP3 only) | LAME | LAME | LAME |
-| Video (H.264 in MP4 only, [ADR 0008](docs/adr/0008-h264-through-native-encoders-only.md)) | Media Foundation | System ffmpeg or GStreamer at runtime (to be proven by the v0.9 prototype) | MediaCodec and MediaMuxer through the NDK |
+| Video (H.264 in MP4 only, [ADR 0008](docs/adr/0008-h264-through-native-encoders-only.md)) | Media Foundation | System ffmpeg or GStreamer at runtime (to be proven by the v0.6 prototype) | MediaCodec and MediaMuxer through the NDK |
 | Word and Excel to PDF | `office2pdf` with Carlito and Liberation fonts, labeled best effort; must be slimmed to fit the size budget | same | same |
 | Scan Dokumen edge detection | | | `imageproc`, with draggable corners when detection misses |
 

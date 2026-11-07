@@ -72,13 +72,15 @@ Fitur yang sudah ada dan yang direncanakan, menurut rilis. Rilis tidak punya tan
 | v0.4             | Ambil halaman PDF              | Simpan halaman pilihan sebagai PDF baru                                |
 | v0.4             | Putar halaman PDF              | Putar halaman supaya tidak terbalik                                    |
 | v0.4             | Urutkan ulang halaman PDF      | Ubah urutan halaman                                                    |
-| v0.5             | Gambar ke PDF                  | Jadikan foto satu PDF, dengan potong dan luruskan                      |
-| v0.5             | Pindai dokumen                 | Pindai kertas dengan kamera jadi PDF yang rapi (Android)               |
-| v0.7             | Konversi format gambar         | Ubah foto HEIC dan WebP ke JPG atau PNG                                |
-| v0.7             | PDF ke gambar                  | Ubah halaman PDF jadi gambar JPG                                       |
-| v0.7             | Kompres dokumen Office         | Perkecil berkas Word, Excel, dan PowerPoint                            |
-| v0.8             | Kompres audio                  | Perkecil berkas audio, misalnya pesan suara                            |
-| v0.9             | Kompres video                  | Perkecil video supaya bisa dikirim atau diunggah                       |
+| v0.4             | Gambar ke PDF                  | Jadikan foto satu PDF, dengan potong dan luruskan                      |
+| v0.4             | Pindai dokumen                 | Pindai kertas dengan kamera jadi PDF yang rapi (Android)               |
+| v0.4             | Beri watermark                 | Tandai salinan KTP hanya untuk satu keperluan, di foto dan PDF         |
+| v0.4             | Hapus info lokasi              | Hapus info lokasi dan kamera dari foto sebelum dibagikan               |
+| v0.4             | Konversi format gambar         | Ubah foto HEIC dan WebP ke JPG atau PNG                                |
+| v0.4             | PDF ke gambar                  | Ubah halaman PDF jadi gambar JPG                                       |
+| v0.4             | Kompres dokumen Office         | Perkecil berkas Word, Excel, dan PowerPoint                            |
+| v0.5             | Kompres audio                  | Perkecil berkas audio, misalnya pesan suara                            |
+| v0.6             | Kompres video                  | Perkecil video supaya bisa dikirim atau diunggah                       |
 | Setelah 1.0      | Ambil teks dari gambar         | Ambil teks dari gambar dan PDF, dalam bahasa Indonesia dan Inggris     |
 | Belum dijadwalkan | Kompres GIF                   | Belum masuk rencana pengembangan                                       |
 | Belum dijadwalkan | Dukungan macOS dan iOS        | Belum masuk rencana pengembangan                                       |
