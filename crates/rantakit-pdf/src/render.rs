@@ -1,5 +1,5 @@
 //! PDF pages as pictures, rendered with `hayro`: the page thumbnails every
-//! PDF Tool shows, and later PDF ke JPG.
+//! PDF Tool shows, and PDF ke JPG's photos (O2).
 
 use std::fs;
 use std::path::Path;
@@ -16,6 +16,11 @@ use rantakit_core::{ErrorKind, Result};
 const THUMBNAIL_QUALITY: u8 = 80;
 /// No page is drawn larger than this on its longest side, whatever is asked.
 const MAX_SIDE: u32 = 4096;
+/// A page for PDF ke JPG may be bigger, for printing, but no more than this,
+/// so a poster at 600 dpi can't ask a phone for gigabytes.
+const MAX_PHOTO_SIDE: u32 = 8000;
+/// PDF sizes are in points, 72 to the inch.
+const POINTS_PER_INCH: f32 = 72.0;
 
 /// An open PDF whose pages can be drawn one at a time. Opening reads the
 /// whole file once; drawing a page reads only what that page needs, so a
@@ -45,6 +50,22 @@ impl PdfPages {
     /// longest side, on white: a page keeps its own white in light and dark
     /// themes. Rotated and cropped pages are drawn the way a reader shows them.
     pub fn render(&self, index: usize, max_side: u32) -> Result<RgbImage> {
+        self.render_scaled(index, |longest| max_side.clamp(1, MAX_SIDE) as f32 / longest)
+    }
+
+    /// Page `index`, counting from 0, at `dpi` dots per inch of the paper, for
+    /// PDF ke JPG: 150 dpi makes an A4 page 1240 × 1754 pixels. A page that
+    /// would be larger than 8000 pixels is drawn smaller to fit.
+    pub fn render_at(&self, index: usize, dpi: u32) -> Result<RgbImage> {
+        self.render_scaled(index, |longest| {
+            let scale = dpi.max(1) as f32 / POINTS_PER_INCH;
+            scale.min(MAX_PHOTO_SIDE as f32 / longest)
+        })
+    }
+
+    /// Page `index` drawn at the scale `scale_for` picks from its longest side
+    /// in points.
+    fn render_scaled(&self, index: usize, scale_for: impl Fn(f32) -> f32) -> Result<RgbImage> {
         let pages = self.pdf.pages();
         let page = pages.get(index).ok_or(ErrorKind::Damaged)?;
         let (width, height) = page.render_dimensions();
@@ -52,7 +73,7 @@ impl PdfPages {
         if !longest.is_finite() || longest < 1.0 {
             return Err(ErrorKind::Damaged);
         }
-        let scale = max_side.clamp(1, MAX_SIDE) as f32 / longest;
+        let scale = scale_for(longest);
         let pixmap = hayro::render(
             page,
             &RenderCache::new(),
@@ -77,12 +98,17 @@ impl PdfPages {
     /// [`render`](Self::render) as a small JPG, for the page thumbnails.
     pub fn thumbnail(&self, index: usize, max_side: u32) -> Result<Vec<u8>> {
         let page = self.render(index, max_side)?;
-        let mut jpg = Vec::new();
-        JpegEncoder::new_with_quality(&mut jpg, THUMBNAIL_QUALITY)
-            .encode(page.as_raw(), page.width(), page.height(), ExtendedColorType::Rgb8)
-            .map_err(|_| ErrorKind::Damaged)?;
-        Ok(jpg)
+        page_jpeg(&page, THUMBNAIL_QUALITY)
     }
+}
+
+/// A page drawn as a JPG at `quality`.
+pub fn page_jpeg(page: &RgbImage, quality: u8) -> Result<Vec<u8>> {
+    let mut jpg = Vec::new();
+    JpegEncoder::new_with_quality(&mut jpg, quality)
+        .encode(page.as_raw(), page.width(), page.height(), ExtendedColorType::Rgb8)
+        .map_err(|_| ErrorKind::Damaged)?;
+    Ok(jpg)
 }
 
 #[cfg(test)]

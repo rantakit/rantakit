@@ -6,8 +6,8 @@ use ::image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
 use lopdf::{Document, Object, Stream, dictionary};
 use rantakit_tasks::{
     Availability, CATALOGUE, CancelToken, Details, ErrorKind, FileOutcome, ImageFormat,
-    ImageOptions, MarkColor, MarkOpacity, MarkSize, OutputFormat, PageEdit, PaperSize, PdfOptions, PdfPages, PhotoEdit,
-    PhotosToPdf, Placement, Platform, Split, Target, Task, TaskEvent, ToolId, ToolOptions, WHITE, WatermarkOptions,
+    ImageOptions, MarkColor, MarkOpacity, MarkSize, OutputFormat, PageEdit, PaperSize, PdfOptions, PdfPages, PdfToJpg, PhotoEdit,
+    FileKind, PhotosToPdf, Placement, Platform, Split, Target, Task, TaskEvent, ToolId, ToolOptions, WHITE, WatermarkOptions,
     detect_kind, file_info, file_info_of, run_task, tools_for_files,
 };
 
@@ -112,7 +112,8 @@ fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
     match tool {
         ToolOptions::KompresFoto(_) => ("foto.jpg", photo_jpg()),
         ToolOptions::KompresPdf(_) => ("ijazah.pdf", scan_pdf()),
-        ToolOptions::GabungPdf { .. } | ToolOptions::PisahPdf(_) | ToolOptions::AturHalamanPdf(_) => {
+        ToolOptions::GabungPdf { .. } | ToolOptions::PisahPdf(_) | ToolOptions::AturHalamanPdf(_)
+        | ToolOptions::PdfKeJpg(_) => {
             ("ijazah.pdf", pages_pdf(3))
         }
         ToolOptions::UbahFormatFoto(_) | ToolOptions::UbahUkuranFoto(_) | ToolOptions::JpgKePdf(_)
@@ -173,6 +174,8 @@ fn every_tool() -> Vec<ToolOptions> {
         ToolOptions::HapusInfoLokasi,
         beri_watermark("Hanya untuk verifikasi Bank X"),
         beri_watermark("Salinan PDF untuk lamaran"),
+        pdf_ke_jpg(Some(vec![2])),
+        pdf_ke_jpg(None),
     ]
 }
 
@@ -468,7 +471,7 @@ fn dropped_files_fit_tools_by_content_not_extension() {
     );
     assert_eq!(
         tools_for_files(&[&pdf], on),
-        [ToolId::KompresPdf, ToolId::PisahPdf, ToolId::AturHalamanPdf, ToolId::BeriWatermark]
+        [ToolId::KompresPdf, ToolId::PisahPdf, ToolId::AturHalamanPdf, ToolId::PdfKeJpg, ToolId::BeriWatermark]
     );
     assert!(tools_for_files(&[&photo_named_pdf, &pdf], on).is_empty());
     assert!(tools_for_files(&[&pdf, &text], on).is_empty());
@@ -819,6 +822,96 @@ fn a_cancelled_split_leaves_no_folder() {
             if let TaskEvent::Progress { .. } = event {
                 parts += 1;
                 if parts == 2 {
+                    stopper.cancel();
+                }
+            }
+        },
+        &cancel,
+    );
+
+    assert_eq!(outcomes[0].as_ref().err(), Some(&ErrorKind::Cancelled));
+    assert_eq!(file_names(&dir), ["ijazah.pdf"]);
+}
+
+fn pdf_ke_jpg(pages: Option<Vec<usize>>) -> ToolOptions {
+    ToolOptions::PdfKeJpg(PdfToJpg { pages, dpi: 150 })
+}
+
+#[test]
+fn one_page_becomes_one_jpg_next_to_the_pdf() {
+    let dir = scratch("pdf_to_jpg_one");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
+    let take = |pages| run(&task(pdf_ke_jpg(pages), vec![original.clone()])).remove(0);
+
+    let result = take(Some(vec![2, 5])).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (page 2).jpg"));
+    // A 595 x 842 pt page at 150 dpi, whole pixels rounded down.
+    assert_eq!(
+        result.details,
+        Details::Photo {
+            format: ImageFormat::Jpeg,
+            width: 1239,
+            height: 1754,
+            quality: Some(90)
+        }
+    );
+    assert_eq!(detect_kind(&result.path).unwrap(), FileKind::Jpg);
+
+    assert_eq!(take(Some(vec![7, 8])).err(), Some(ErrorKind::NoSuchPages));
+}
+
+#[test]
+fn several_pages_become_a_folder_of_jpgs() {
+    let dir = scratch("pdf_to_jpg_folder");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
+    let take = |pages| run(&task(pdf_ke_jpg(pages), vec![original.clone()])).remove(0);
+
+    let result = take(None).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (pages)"));
+    assert_eq!(
+        file_names(&result.path),
+        ["ijazah (page 1).jpg", "ijazah (page 2).jpg", "ijazah (page 3).jpg"]
+    );
+    let Details::Folder { files } = &result.details else {
+        panic!("a folder Result");
+    };
+    assert_eq!(result.size, files.iter().map(|file| file.size).sum::<u64>());
+
+    let result = take(Some(vec![3, 1, 9])).unwrap();
+    assert_eq!(result.path, dir.join("ijazah (pages) (2)"));
+    assert_eq!(file_names(&result.path), ["ijazah (page 1).jpg", "ijazah (page 3).jpg"]);
+}
+
+#[test]
+fn sharper_pages_are_bigger_but_never_past_8000_pixels() {
+    let dir = scratch("pdf_to_jpg_dpi");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(1));
+    let size_at = |dpi| {
+        let tool = ToolOptions::PdfKeJpg(PdfToJpg { pages: None, dpi });
+        match run(&task(tool, vec![original.clone()])).remove(0).unwrap().details {
+            Details::Photo { width, height, .. } => (width, height),
+            other => panic!("a photo Result, not {other:?}"),
+        }
+    };
+    assert_eq!(size_at(300), (2479, 3508));
+    let (width, height) = size_at(1200);
+    assert!((7990..=8000).contains(&height), "{height}");
+    assert!(width < height);
+}
+
+#[test]
+fn a_cancelled_pdf_to_jpg_leaves_no_folder() {
+    let dir = scratch("pdf_to_jpg_cancelled");
+    let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
+    let cancel = CancelToken::new();
+    let stopper = cancel.clone();
+    let mut steps = 0;
+    let outcomes = run_task(
+        &task(pdf_ke_jpg(None), vec![original]),
+        &mut |event| {
+            if let TaskEvent::Progress { .. } = event {
+                steps += 1;
+                if steps == 2 {
                     stopper.cancel();
                 }
             }

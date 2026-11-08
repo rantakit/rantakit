@@ -223,7 +223,7 @@ pub const CATALOGUE: &[Tool] = &[
     tool(ToolId::GabungPdf, AturPdf, &[Pdf], ALL, Shipped).taking(FileCount::AtLeastTwo),
     tool(ToolId::PisahPdf, AturPdf, &[Pdf], ALL, Shipped),
     tool(ToolId::AturHalamanPdf, AturPdf, &[Pdf], ALL, Shipped).taking(FileCount::One),
-    tool(ToolId::PdfKeJpg, AturPdf, &[Pdf], ALL, ComingSoon),
+    tool(ToolId::PdfKeJpg, AturPdf, &[Pdf], ALL, Shipped),
     tool(
         ToolId::BeriWatermark,
         BagikanAman,
@@ -387,7 +387,7 @@ mod tests {
         );
         assert_eq!(
             tools_for_kinds(&[Pdf, Pdf], on),
-            [ToolId::KompresPdf, ToolId::GabungPdf, ToolId::PisahPdf, ToolId::BeriWatermark]
+            [ToolId::KompresPdf, ToolId::GabungPdf, ToolId::PisahPdf, ToolId::PdfKeJpg, ToolId::BeriWatermark]
         );
     }
 

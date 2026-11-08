@@ -10,6 +10,7 @@ import { scanDokumen } from "@/features/scan/ScanOptions";
 import { pisahPdf } from "@/features/split/SplitOptions";
 import { hapusInfoLokasi } from "@/features/clean-info/CleanInfoOptions";
 import { beriWatermark } from "@/features/watermark/WatermarkOptions";
+import { pdfKeJpg } from "@/features/pdf-to-jpg/PdfToJpgOptions";
 import type { ToolDef } from "./toolDef";
 
 // Each Tool keeps its own settings type; the page only passes them through.
@@ -29,6 +30,7 @@ export const TOOL_DEFS = {
   "scan-dokumen": scanDokumen,
   "hapus-info-lokasi": hapusInfoLokasi,
   "beri-watermark": beriWatermark,
+  "pdf-ke-jpg": pdfKeJpg,
 } satisfies Partial<Record<ToolId, AnyToolDef>>;
 
 export type ShippedTool = keyof typeof TOOL_DEFS;

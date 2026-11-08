@@ -55,6 +55,7 @@ A Tool keeps the same promise on every platform (same Tool, same output format, 
 | HEIC input ([ADR 0007](docs/adr/0007-accept-hevc-patent-risk-for-heic-decoding.md)) | `heic` | `heic` | `heic` (the system decoder is the reserve if `heic` is too big) |
 | WebP input (no WebP output) | `image-webp` | `image-webp` | `image-webp` |
 | PDF to JPG | `hayro` | `hayro` | `hayro` (Android's `PdfRenderer` is the fallback if `hayro` fails real documents) |
+| Page sharpness (PDF ke JPG) | `rantakit-pdf` draws each page at the chosen dots per inch of its paper: 150 for "Standar", 300 for "Tajam", 72-600 from Advanced options, with the longest side capped at 8000 px so a poster-sized page can't run out of memory. Pages are saved as JPG at quality 90 on white, without a color profile | same | same |
 | Compress office documents | `zip` plus `rantakit-image` | same | same |
 | Audio in (.opus, .ogg, .m4a, .mp3, .wav) | `symphonia`, libopus for Opus | same | same |
 | Audio out (MP3 only) | LAME | LAME | LAME |

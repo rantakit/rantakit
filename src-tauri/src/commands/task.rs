@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use rantakit_tasks::{
     CancelToken, Compression, Details, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
-    PageEdit, PaperSize, PhotoEdit, PhotoSize, PhotosToPdf, Progress, RecentLimits, RecentTools, SettingsStore,
+    PageEdit, PaperSize, PdfToJpg, PhotoEdit, PhotoSize, PhotosToPdf, Progress, RecentLimits, RecentTools, SettingsStore,
     Split, Task, TaskEvent, ToolOptions, WHITE, dpi_to_side, run_task, MarkColor, MarkOpacity, MarkSize, Placement,
     WatermarkOptions,
 };
@@ -125,6 +125,14 @@ pub enum OptionsRequest {
     /// No options: every piece of photo info goes but the orientation.
     HapusInfoLokasi,
     BeriWatermark(WatermarkRequest),
+    PdfKeJpg {
+        /// "Pilih halaman": pages counted from 1; left out for "Semua halaman".
+        #[serde(default)]
+        pages: Option<Vec<usize>>,
+        /// 150 for "Standar", 300 for "Tajam", or "Resolusi (DPI)" from Advanced
+        /// options, kept within 72-600.
+        dpi: u32,
+    },
 }
 
 /// Beri Watermark's choices; also what its live preview draws.
@@ -415,6 +423,10 @@ impl From<OptionsRequest> for ToolOptions {
             } => Self::ScanDokumen(photos_to_pdf(date, paper, margin, edits, look == LookRequest::Clean)),
             OptionsRequest::HapusInfoLokasi => Self::HapusInfoLokasi,
             OptionsRequest::BeriWatermark(request) => Self::BeriWatermark(request.into()),
+            OptionsRequest::PdfKeJpg { pages, dpi } => Self::PdfKeJpg(PdfToJpg {
+                pages,
+                dpi: dpi.clamp(72, 600),
+            }),
         }
     }
 }
@@ -823,6 +835,25 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn pdf_to_jpg_keeps_its_dpi_within_reach() {
+        let options = |dpi: u32| -> ToolOptions {
+            serde_json::from_value::<OptionsRequest>(json!({ "tool": "pdf-ke-jpg", "pages": [2], "dpi": dpi }))
+                .unwrap()
+                .into()
+        };
+        let dpi = |dpi| match options(dpi) {
+            ToolOptions::PdfKeJpg(PdfToJpg { pages, dpi }) => {
+                assert_eq!(pages, Some(vec![2]));
+                dpi
+            }
+            other => panic!("PDF ke JPG, not {other:?}"),
+        };
+        assert_eq!(dpi(150), 150);
+        assert_eq!(dpi(10), 72);
+        assert_eq!(dpi(5000), 600);
     }
 
     #[test]

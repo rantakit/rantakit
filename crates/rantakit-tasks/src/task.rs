@@ -1,9 +1,12 @@
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker, read_original};
+use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker, read_original, write_result};
 use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, PhotoEdit, PhotoKind, Placement, Target, WHITE, Watermark};
-use rantakit_pdf::{PageEdit, PagePhoto, PaperSize, PdfDocument, PdfOptions, StampFont, StampLine, StampStyle};
+use rantakit_pdf::{
+    PageEdit, PagePhoto, PaperSize, PdfDocument, PdfOptions, PdfPages, StampFont, StampLine, StampStyle, page_jpeg,
+};
 
 use crate::catalogue::ToolId;
 use crate::kinds::{FileKind, detect_kind};
@@ -43,6 +46,8 @@ pub enum ToolOptions {
     HapusInfoLokasi,
     /// Text over every photo, and every page of every PDF.
     BeriWatermark(WatermarkOptions),
+    /// Pages of every PDF as JPG photos.
+    PdfKeJpg(PdfToJpg),
 }
 
 /// Beri Watermark's choices, in the user's words.
@@ -126,6 +131,17 @@ impl WatermarkOptions {
 /// or of a PDF's first page, with the watermark on it.
 pub fn watermark_preview(picture: &[u8], opts: &WatermarkOptions) -> Result<Vec<u8>, ErrorKind> {
     rantakit_image::watermark_preview(picture, &opts.watermark())
+}
+
+/// PDF ke JPG's choices (O2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PdfToJpg {
+    /// "Pilih halaman": the pages to take, counting from 1. `None` is
+    /// "Semua halaman".
+    pub pages: Option<Vec<usize>>,
+    /// "Ketajaman", in dots per inch of the paper: 150 for "Standar", 300
+    /// for "Tajam", or the number from Advanced options.
+    pub dpi: u32,
 }
 
 /// JPG ke PDF's and Scan Dokumen's choices.
@@ -219,6 +235,7 @@ impl ToolOptions {
             Self::ScanDokumen(_) => ToolId::ScanDokumen,
             Self::HapusInfoLokasi => ToolId::HapusInfoLokasi,
             Self::BeriWatermark(_) => ToolId::BeriWatermark,
+            Self::PdfKeJpg(_) => ToolId::PdfKeJpg,
         }
     }
 
@@ -248,6 +265,7 @@ impl ToolOptions {
             Self::JpgKePdf(_) | Self::ScanDokumen(_) => "scan",
             Self::HapusInfoLokasi => "cleaned",
             Self::BeriWatermark(_) => "watermarked",
+            Self::PdfKeJpg(_) => "pages",
         }
     }
 }
@@ -507,6 +525,7 @@ fn run_file(
                 },
             })
         }
+        ToolOptions::PdfKeJpg(opts) => pdf_to_jpg(original, original_size, folder, opts, progress, cancel),
         ToolOptions::KompresPdf(opts) => {
             let path = result_path(original, folder, suffix, "pdf");
             let out = rantakit_pdf::compress_pdf(original, &path, opts, progress, cancel)?;
@@ -674,6 +693,81 @@ fn split_every(
             Ok(FolderFile { path, size })
         });
         match written.and_then(|file| tracker.step((at + 1) as f32 / parts.len() as f32).map(|()| file)) {
+            Ok(file) => files.push(file),
+            Err(kind) => {
+                let _ = fs::remove_dir_all(&into);
+                return Err(kind);
+            }
+        }
+    }
+    Ok(ResultFile {
+        path: into,
+        original_size,
+        size: files.iter().map(|file| file.size).sum(),
+        details: Details::Folder { files },
+    })
+}
+
+/// JPG quality for PDF ke JPG's photos: sharp text, still small enough to send.
+const PAGE_PHOTO_QUALITY: u8 = 90;
+
+/// PDF ke JPG: each page taken as a JPG. One page is one file next to the
+/// Original, `ijazah (page 1).jpg`; several go into a new folder, `ijazah
+/// (pages)/`, which a stop or a failure halfway removes.
+fn pdf_to_jpg(
+    original: &Path,
+    original_size: u64,
+    folder: &Path,
+    opts: &PdfToJpg,
+    progress: &mut dyn FnMut(Progress),
+    cancel: &CancelToken,
+) -> FileOutcome {
+    let mut tracker = Tracker::new(progress, cancel);
+    let pdf = PdfPages::open(original)?;
+    let count = pdf.count();
+    let kept: Vec<usize> = match &opts.pages {
+        None => (1..=count).collect(),
+        Some(pages) => pages.iter().copied().filter(|page| (1..=count).contains(page)).collect(),
+    };
+    if kept.is_empty() {
+        return Err(ErrorKind::NoSuchPages);
+    }
+    let photo = |page: usize| -> Result<(Vec<u8>, u32, u32), ErrorKind> {
+        let img = pdf.render_at(page - 1, opts.dpi)?;
+        Ok((page_jpeg(&img, PAGE_PHOTO_QUALITY)?, img.width(), img.height()))
+    };
+
+    if let [page] = kept[..] {
+        let (jpg, width, height) = photo(page)?;
+        tracker.step(0.9)?;
+        let path = result_path(original, folder, &pages_suffix(&[page]), "jpg");
+        let size = write_result(&path, &mut tracker, |file| file.write_all(&jpg))?;
+        return Ok(ResultFile {
+            path,
+            original_size,
+            size,
+            details: Details::Photo {
+                format: ImageFormat::Jpeg,
+                width,
+                height,
+                quality: Some(PAGE_PHOTO_QUALITY),
+            },
+        });
+    }
+
+    let into = result_folder(original, folder, "pages").map_err(|e| ErrorKind::writing(&e))?;
+    let mut files = Vec::with_capacity(kept.len());
+    for (at, &page) in kept.iter().enumerate() {
+        let written = tracker.check().and_then(|()| {
+            let (jpg, _, _) = photo(page)?;
+            let path = result_path(original, &into, &pages_suffix(&[page]), "jpg");
+            // Each photo reports nothing itself; the folder's progress is by page.
+            let mut quiet = |_| {};
+            let cancel = CancelToken::new();
+            let size = write_result(&path, &mut Tracker::new(&mut quiet, &cancel), |file| file.write_all(&jpg))?;
+            Ok(FolderFile { path, size })
+        });
+        match written.and_then(|file| tracker.step((at + 1) as f32 / kept.len() as f32).map(|()| file)) {
             Ok(file) => files.push(file),
             Err(kind) => {
                 let _ = fs::remove_dir_all(&into);

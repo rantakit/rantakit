@@ -79,7 +79,14 @@ export type ToolOptions =
       look: "clean" | "original";
     }
   | { tool: "hapus-info-lokasi" }
-  | ({ tool: "beri-watermark" } & WatermarkRequest);
+  | ({ tool: "beri-watermark" } & WatermarkRequest)
+  | {
+      tool: "pdf-ke-jpg";
+      /** "Pilih halaman": pages counted from 1; left out for "Semua halaman". */
+      pages?: number[];
+      /** 150 for "Standar", 300 for "Tajam", or "Resolusi (DPI)" from Advanced options. */
+      dpi: number;
+    };
 
 /** Beri Watermark's text and look (`WatermarkRequest` in `src-tauri/src/commands/task.rs`). */
 export interface WatermarkRequest {
