@@ -2,7 +2,7 @@
 
 This is the code map for Rantakit: which part owns what, the contract every engine follows, and which library or platform backend does each job. The product rules it serves live in [RANTAKIT.md](RANTAKIT.md), the order of work in [ROADMAP.md](ROADMAP.md), and the reasons behind the hard-to-reverse choices in the ADRs linked below.
 
-Some of this is the target, not today's code. Today only `rantakit-core`, `rantakit-image`, `rantakit-pdf`, and `rantakit-tasks` exist, and the shell runs every Task through `rantakit-tasks`. The v0.2 "Engine foundation" epic moves the code to the layout below; other engine crates are created when their release starts.
+Some of this is the target, not today's code. Today only `rantakit-core`, `rantakit-image`, `rantakit-pdf`, `rantakit-office`, and `rantakit-tasks` exist, and the shell runs every Task through `rantakit-tasks`. The v0.2 "Engine foundation" epic moves the code to the layout below; other engine crates are created when their release starts.
 
 ## Parts
 
@@ -56,7 +56,7 @@ A Tool keeps the same promise on every platform (same Tool, same output format, 
 | WebP input (no WebP output) | `image-webp` | `image-webp` | `image-webp` |
 | PDF to JPG | `hayro` | `hayro` | `hayro` (Android's `PdfRenderer` is the fallback if `hayro` fails real documents) |
 | Page sharpness (PDF ke JPG) | `rantakit-pdf` draws each page at the chosen dots per inch of its paper: 150 for "Standar", 300 for "Tajam", 72-600 from Advanced options, with the longest side capped at 8000 px so a poster-sized page can't run out of memory. Pages are saved as JPG at quality 90 on white, without a color profile | same | same |
-| Compress office documents | `zip` plus `rantakit-image` | same | same |
+| Compress office documents (Kompres Dokumen) | `rantakit-office` opens the `.docx`, `.xlsx`, or `.pptx` with `zip` and saves its JPG and PNG pictures again with `image`, at Kompres PDF's qualities and A4 sizes. An opaque PNG becomes a JPG, with its relationships and content types following the new name, only when that halves it, so screenshots stay sharp. JPGs turned by EXIF, CMYK JPGs, and every other part (other pictures, video, fonts, macros) are copied as they are; the XML parts are deflated again at the strongest level when that is smaller. A Size limit tries each quality on every picture once per size step and packs the document only once a quality fits. The older `.doc`, `.xls`, and `.ppt` are refused when dropped; a document saved with a password is recognized by its `EncryptedPackage` | same | same |
 | Audio in (.opus, .ogg, .m4a, .mp3, .wav) | `symphonia`, libopus for Opus | same | same |
 | Audio out (MP3 only) | LAME | LAME | LAME |
 | Video (H.264 in MP4 only, [ADR 0008](docs/adr/0008-h264-through-native-encoders-only.md)) | Media Foundation | System ffmpeg or GStreamer at runtime (to be proven by the v0.6 prototype) | MediaCodec and MediaMuxer through the NDK |

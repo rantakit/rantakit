@@ -27,6 +27,16 @@ export type ToolOptions =
       maxDpi?: number;
     }
   | {
+      tool: "kompres-dokumen";
+      /** The Size limit in bytes; omit to compress by `level`. */
+      limit?: number;
+      level?: "smallest" | "balanced" | "clearest";
+      /** Exact picture quality 1–100 from Advanced options; wins over the limit. */
+      quality?: number;
+      /** "Resolusi gambar maksimum", in dpi on an A4 page. */
+      maxDpi?: number;
+    }
+  | {
       tool: "ubah-format-foto";
       to: "jpeg" | "png";
       /** JPG quality 1–100; defaults to 90 on the Rust side. */

@@ -41,5 +41,7 @@ export function dropHint({ t, count }: Translator, { busy, openTool, match, coun
       return { canDrop: false, title: t("drop.mixed"), detail: t(chosen ? "drop.mixed.choose" : "drop.mixed.hint") };
     case "unsupported":
       return { canDrop: false, title: t("drop.unsupported"), detail: t("drop.accepted") };
+    case "oldOffice":
+      return { canDrop: false, title: t("drop.oldOffice"), detail: t("drop.oldOffice.detail") };
   }
 }

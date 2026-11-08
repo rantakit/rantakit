@@ -10,13 +10,16 @@ export interface FileInfo {
   longestSide: number | null;
   /** Photos only: the info Hapus Info Lokasi would remove. */
   found: { location: boolean; camera: boolean; other: boolean } | null;
+  /** Word, Excel, and PowerPoint only: their JPG and PNG pictures. */
+  pictures: number | null;
 }
 
 /**
- * How a page names its files: "3 foto", "2 PDF". "file" is Beri Watermark's
- * empty page, which takes photos or PDFs; once it has files, they say which.
+ * How a page names its files: "3 foto", "2 PDF", "3 dokumen". "file" is Beri
+ * Watermark's empty page, which takes photos or PDFs; once it has files, they
+ * say which. "document" is a Word, Excel, or PowerPoint file.
  */
-export type Noun = "photo" | "pdf" | "file";
+export type Noun = "photo" | "pdf" | "file" | "document";
 
 /** Whether a file shows as a photo or a PDF: PDF ke JPG makes photos from a PDF. */
 export function nounOf(path: string): "photo" | "pdf" {

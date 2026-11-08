@@ -10,6 +10,8 @@ export function unchangedNote(t: Translator["t"], options: ToolOptions): string 
       return t("unchanged.size");
     case "hapus-info-lokasi":
       return t("unchanged.clean");
+    case "kompres-dokumen":
+      return t("unchanged.size");
     default:
       return t("error.unchanged");
   }

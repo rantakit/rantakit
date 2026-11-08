@@ -19,6 +19,8 @@ pub struct FileInfo {
     pub longest_side: Option<u32>,
     /// Photos only: the info Hapus Info Lokasi would remove.
     pub found: Option<FoundRequest>,
+    /// Word, Excel, and PowerPoint only: their JPG and PNG pictures.
+    pub pictures: Option<usize>,
 }
 
 /// `FoundInfo` for the frontend.
@@ -47,6 +49,7 @@ pub async fn file_info(app: AppHandle, paths: Vec<PathBuf>) -> Vec<FileInfo> {
                     camera: found.camera,
                     other: found.other,
                 }),
+                pictures: info.pictures,
             }
         })
         .collect()

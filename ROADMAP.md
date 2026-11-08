@@ -124,7 +124,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 - "Put 'Hanya untuk verifikasi Bank X' (Only for Bank X verification) on this KTP (ID card) photo" works unaided.
 - Each new format is within the size budget. A format that does not fit leaves v0.4 by the size gate instead of holding the release back.
 
-**Open decisions:** Advanced options for each Tool; how clean-up works on low-end phones; the page rendering fallback if `hayro` fails real documents (Android's `PdfRenderer` plus a fix to `hayro`); whether Kompres Dokumen accepts the older `.doc`, `.xls`, and `.ppt`. The UI and UX were settled while writing the stories (2026-11-07).
+**Open decisions:** Advanced options for each Tool; how clean-up works on low-end phones; the page rendering fallback if `hayro` fails real documents (Android's `PdfRenderer` plus a fix to `hayro`). Kompres Dokumen refuses the older `.doc`, `.xls`, and `.ppt` (decided 2026-11-08). The UI and UX were settled while writing the stories (2026-11-07).
 
 ## v0.5 Audio
 

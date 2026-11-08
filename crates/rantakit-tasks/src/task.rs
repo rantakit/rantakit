@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker, read_original, write_result};
 use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, PhotoEdit, PhotoKind, Placement, Target, WHITE, Watermark};
+use rantakit_office::OfficeOptions;
 use rantakit_pdf::{
     PageEdit, PagePhoto, PaperSize, PdfDocument, PdfOptions, PdfPages, StampFont, StampLine, StampStyle, page_jpeg,
 };
@@ -27,6 +28,8 @@ pub struct Task {
 pub enum ToolOptions {
     KompresFoto(ImageOptions),
     KompresPdf(PdfOptions),
+    /// Word, Excel, and PowerPoint files with their pictures made smaller.
+    KompresDokumen(OfficeOptions),
     /// Always `OutputFormat::To`; build it with `ToolOptions::convert`.
     UbahFormatFoto(ImageOptions),
     /// Always has `max_dimension`; build it with `ToolOptions::resize`.
@@ -226,6 +229,7 @@ impl ToolOptions {
         match self {
             Self::KompresFoto(_) => ToolId::KompresFoto,
             Self::KompresPdf(_) => ToolId::KompresPdf,
+            Self::KompresDokumen(_) => ToolId::KompresDokumen,
             Self::UbahFormatFoto(_) => ToolId::UbahFormatFoto,
             Self::UbahUkuranFoto(_) => ToolId::UbahUkuranFoto,
             Self::GabungPdf { .. } => ToolId::GabungPdf,
@@ -256,7 +260,7 @@ impl ToolOptions {
     /// Pisah PDF names each Result after its pages instead.
     pub fn suffix(&self) -> &'static str {
         match self {
-            Self::KompresFoto(_) | Self::KompresPdf(_) => "compressed",
+            Self::KompresFoto(_) | Self::KompresPdf(_) | Self::KompresDokumen(_) => "compressed",
             Self::UbahFormatFoto(_) => "converted",
             Self::UbahUkuranFoto(_) => "resized",
             Self::GabungPdf { .. } => "merged",
@@ -295,6 +299,12 @@ pub enum Details {
     Pdf {
         images: usize,
         images_recompressed: usize,
+    },
+    /// A Word, Excel, or PowerPoint file: its JPG and PNG pictures, and how
+    /// many of them were made smaller.
+    Document {
+        pictures: usize,
+        pictures_recompressed: usize,
     },
     /// A PDF made of pages of other PDFs: merged, taken out, or arranged.
     /// `skipped` are the pages asked for that the Original does not have,
@@ -526,6 +536,25 @@ fn run_file(
             })
         }
         ToolOptions::PdfKeJpg(opts) => pdf_to_jpg(original, original_size, folder, opts, progress, cancel),
+        ToolOptions::KompresDokumen(opts) => {
+            // The Result keeps the Original's extension, so a `.docm` keeps its macros working.
+            let extension = original
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .map(str::to_ascii_lowercase)
+                .unwrap_or_else(|| document_extension(original).into());
+            let path = result_path(original, folder, suffix, &extension);
+            let out = rantakit_office::compress_document(original, &path, opts, progress, cancel)?;
+            Ok(ResultFile {
+                path,
+                original_size,
+                size: out.size,
+                details: Details::Document {
+                    pictures: out.pictures,
+                    pictures_recompressed: out.pictures_recompressed,
+                },
+            })
+        }
         ToolOptions::KompresPdf(opts) => {
             let path = result_path(original, folder, suffix, "pdf");
             let out = rantakit_pdf::compress_pdf(original, &path, opts, progress, cancel)?;
@@ -539,6 +568,15 @@ fn run_file(
                 },
             })
         }
+    }
+}
+
+/// The usual extension of an Office document that has none.
+fn document_extension(original: &Path) -> &'static str {
+    match detect_kind(original) {
+        Some(FileKind::Excel) => "xlsx",
+        Some(FileKind::PowerPoint) => "pptx",
+        _ => "docx",
     }
 }
 

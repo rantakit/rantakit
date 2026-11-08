@@ -156,6 +156,7 @@ cargo clippy --workspace --all-targets
 crates/rantakit-core/    engine contract: error kinds, progress, cancel
 crates/rantakit-image/   image engine (JPG and PNG), no Tauri dependency
 crates/rantakit-pdf/     PDF engine, no Tauri dependency
+crates/rantakit-office/  Word, Excel, and PowerPoint engine, no Tauri dependency
 crates/rantakit-tasks/   Tasks, Result names, Tool catalogue, History, no Tauri dependency
 src-tauri/               desktop app: commands, native menu
 src/                     React frontend
