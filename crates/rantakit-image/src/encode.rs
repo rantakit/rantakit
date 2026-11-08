@@ -9,14 +9,16 @@ pub(crate) fn clamp_quality(quality: u8) -> u8 {
     quality.clamp(1, 100)
 }
 
-pub(crate) fn encode(img: &DynamicImage, format: ImageFormat, quality: u8) -> Result<Vec<u8>> {
+/// The photo as a JPG or PNG, with `icc`, the Original's color profile, in
+/// it when there is one.
+pub(crate) fn encode(img: &DynamicImage, format: ImageFormat, quality: u8, icc: Option<&[u8]>) -> Result<Vec<u8>> {
     match format {
-        ImageFormat::Jpeg => encode_jpeg(img, clamp_quality(quality)),
-        ImageFormat::Png => encode_png(img),
+        ImageFormat::Jpeg => encode_jpeg(img, clamp_quality(quality), icc),
+        ImageFormat::Png => encode_png(img, icc),
     }
 }
 
-fn encode_jpeg(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
+fn encode_jpeg(img: &DynamicImage, quality: u8, icc: Option<&[u8]>) -> Result<Vec<u8>> {
     let rgb = if img.color().has_alpha() {
         flatten_on(img, WHITE)
     } else {
@@ -24,7 +26,9 @@ fn encode_jpeg(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
     };
 
     let mut buf = Vec::new();
-    JpegEncoder::new_with_quality(&mut buf, quality)
+    let mut encoder = JpegEncoder::new_with_quality(&mut buf, quality);
+    with_profile(&mut encoder, icc);
+    encoder
         .write_image(
             rgb.as_raw(),
             rgb.width(),
@@ -36,15 +40,23 @@ fn encode_jpeg(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
-fn encode_png(img: &DynamicImage) -> Result<Vec<u8>> {
+fn encode_png(img: &DynamicImage, icc: Option<&[u8]>) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
-    let encoder =
+    let mut encoder =
         PngEncoder::new_with_quality(&mut buf, CompressionType::Best, PngFilter::Adaptive);
+    with_profile(&mut encoder, icc);
 
     img.write_with_encoder(encoder)
         .map_err(|_| ErrorKind::Damaged)?;
 
     Ok(buf)
+}
+
+/// Puts the color profile in, when there is one; both encoders take it.
+fn with_profile(encoder: &mut impl ImageEncoder, icc: Option<&[u8]>) {
+    if let Some(icc) = icc {
+        let _ = encoder.set_icc_profile(icc.to_vec());
+    }
 }
 
 /// The image over a solid `background`, without transparency.

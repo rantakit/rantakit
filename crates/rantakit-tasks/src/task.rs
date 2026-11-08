@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker, read_original};
-use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, PhotoEdit, Placement, Target, WHITE, Watermark};
+use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, PhotoEdit, PhotoKind, Placement, Target, WHITE, Watermark};
 use rantakit_pdf::{PageEdit, PagePhoto, PaperSize, PdfDocument, PdfOptions, StampFont, StampLine, StampStyle};
 
 use crate::catalogue::ToolId;
@@ -383,7 +383,7 @@ fn run_file(
             cancel,
         ),
         ToolOptions::UbahFormatFoto(opts) => {
-            if OutputFormat::To(rantakit_image::detect_format(original)?) == opts.format {
+            if is_already(rantakit_image::detect_kind(original)?, opts.format) {
                 return Err(ErrorKind::Unchanged);
             }
             photo_result(
@@ -468,7 +468,7 @@ fn run_file(
             })
         }
         ToolOptions::HapusInfoLokasi => {
-            let format = rantakit_image::detect_format(original)?;
+            let format = rantakit_image::detect_kind(original)?.saved_as();
             let info = rantakit_image::photo_info(original)?;
             let path = result_path(original, folder, suffix, photo_extension(format));
             let out = rantakit_image::remove_info(original, &path, progress, cancel)?;
@@ -492,7 +492,7 @@ fn run_file(
             if detect_kind(original) == Some(FileKind::Pdf) {
                 return watermark_pdf(original, original_size, folder, suffix, &watermark, progress, cancel);
             }
-            let format = rantakit_image::detect_format(original)?;
+            let format = rantakit_image::detect_kind(original)?.saved_as();
             let path = result_path(original, folder, suffix, photo_extension(format));
             let out = rantakit_image::watermark_image(original, &path, &watermark, progress, cancel)?;
             Ok(ResultFile {
@@ -745,6 +745,15 @@ fn watermark_pdf(
     })
 }
 
+/// Whether the Original is already in the `format` Ubah Format Foto turns it
+/// into: a JPG to JPG. A HEIC or WebP never is, since it is read only.
+fn is_already(kind: PhotoKind, format: OutputFormat) -> bool {
+    matches!(
+        (kind, format),
+        (PhotoKind::Jpeg, OutputFormat::To(ImageFormat::Jpeg)) | (PhotoKind::Png, OutputFormat::To(ImageFormat::Png))
+    )
+}
+
 /// Runs the photo engine on one Original and describes its Result.
 fn photo_result(
     original: &Path,
@@ -757,7 +766,7 @@ fn photo_result(
 ) -> FileOutcome {
     let format = match opts.format {
         OutputFormat::To(format) => format,
-        OutputFormat::Same => rantakit_image::detect_format(original)?,
+        OutputFormat::Same => rantakit_image::detect_kind(original)?.saved_as(),
     };
     let path = result_path(original, folder, suffix, photo_extension(format));
     let out = rantakit_image::compress_image(original, &path, opts, progress, cancel)?;

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use rantakit_image::{
     CancelToken, Compressed, ErrorKind, ImageFormat, ImageOptions, OutputFormat, Progress, Target,
-    WHITE, compress_image, detect_format,
+    PhotoKind, WHITE, compress_image, detect_kind,
 };
 
 const PHOTO: &[u8] = include_bytes!("fixtures/photo.jpg");
@@ -231,7 +231,7 @@ fn format_comes_from_content_not_extension() {
     let dir = scratch("detect_format");
     let path = dir.join("photo.png");
     fs::write(&path, PHOTO).unwrap();
-    assert_eq!(detect_format(&path), Ok(ImageFormat::Jpeg));
+    assert_eq!(detect_kind(&path), Ok(PhotoKind::Jpeg));
 }
 
 #[test]
@@ -441,7 +441,7 @@ fn photo_info_reads_the_header() {
     fs::write(&path, PHOTO).unwrap();
 
     let info = rantakit_image::photo_info(&path).unwrap();
-    assert_eq!(info.format, ImageFormat::Jpeg);
+    assert_eq!(info.kind, PhotoKind::Jpeg);
     assert!(info.width > 0 && info.height > 0);
 }
 

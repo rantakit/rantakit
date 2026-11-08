@@ -63,7 +63,7 @@ const WHITE: Rgb<u8> = Rgb([255, 255, 255]);
 /// The corners of the paper in the photo `original`, or None when no
 /// clear four-sided edge is found.
 pub fn find_paper(original: &[u8]) -> Result<Option<Corners>> {
-    let (img, _) = decode(original)?;
+    let img = decode(original)?.img;
     Ok(find_paper_in(&img))
 }
 
@@ -198,7 +198,7 @@ fn straighten(img: &RgbImage, corners: &Corners, max_side: u32) -> RgbImage {
 
 /// A small JPG of the photo `original` as `edit` makes it, for file rows.
 pub fn edited_preview(original: &[u8], edit: &PhotoEdit, max_side: u32) -> Result<Vec<u8>> {
-    let (img, _) = decode(original)?;
+    let img = decode(original)?.img;
     // Straightening from a smaller copy is enough for a preview, and quicker.
     let small = img.thumbnail(max_side * 2, max_side * 2);
     jpeg(&edited(&small, edit, max_side), 80)
@@ -213,7 +213,7 @@ pub fn page_photo(original: &[u8], edit: &PhotoEdit, max_side: u32) -> Result<Pa
     {
         return Ok(kept);
     }
-    let (img, _) = decode(original)?;
+    let img = decode(original)?.img;
     let page = edited(&img, edit, max_side);
     Ok(PagePhoto {
         jpeg: jpeg(&page, PAGE_QUALITY)?,

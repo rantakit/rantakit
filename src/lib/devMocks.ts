@@ -46,7 +46,7 @@ const FOLDER = "C:\\Users\\Rani\\Documents\\Lamaran CPNS\\";
 
 /** What the file pickers return in the browser. */
 export function devPick(noun: "photo" | "pdf"): Promise<string[]> {
-  const names = noun === "photo" ? ["KTP.jpg", "Pas foto.png", "Ijazah scan.jpg"] : ["Ijazah.pdf", "Transkrip nilai.pdf"];
+  const names = noun === "photo" ? ["KTP.jpg", "Pas foto.png", "Ijazah scan.jpg", "IMG_2041.HEIC"] : ["Ijazah.pdf", "Transkrip nilai.pdf"];
   return Promise.resolve(names.map((name) => FOLDER + name));
 }
 
@@ -76,7 +76,13 @@ const foundOf = (path: string) =>
       ? { location: true, camera: true, other: true }
       : { location: false, camera: false, other: true };
 const SIDES: Record<string, number> = { large: 1920, medium: 1280, small: 800 };
-const kindOf = (path: string) => (isPdf(path) ? "pdf" : path.toLowerCase().endsWith(".png") ? "png" : "jpg");
+const kindOf = (path: string) => {
+  const lower = path.toLowerCase();
+  if (isPdf(path)) return "pdf";
+  if (lower.endsWith(".png")) return "png";
+  if (lower.endsWith(".heic") || lower.endsWith(".heif")) return "heic";
+  return lower.endsWith(".webp") ? "webp" : "jpg";
+};
 
 /** A soft gradient as a JPG, in place of a real thumbnail. */
 /** Where the paper is in a made-up photo; none in a PNG, which stands for a screenshot. */
@@ -453,7 +459,14 @@ function runTask({ request, onEvent }: TaskArgs) {
         continue;
       }
       const dot = path.lastIndexOf(".");
-      const extension = to ? (to === "jpeg" ? ".jpg" : ".png") : path.slice(dot);
+      // HEIC and WebP are read only: their Results are JPG (O1).
+      const extension = to
+        ? to === "jpeg"
+          ? ".jpg"
+          : ".png"
+        : ["heic", "webp"].includes(kindOf(path))
+          ? ".jpg"
+          : path.slice(dot);
       send({
         event: "fileDone",
         file,

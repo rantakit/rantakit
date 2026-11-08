@@ -172,7 +172,7 @@ use FileKind::*;
 use Job::*;
 
 const ALL: &[Platform] = &[Platform::Windows, Platform::Linux, Platform::Android];
-const PHOTOS: &[FileKind] = &[Jpg, Png];
+const PHOTOS: &[FileKind] = &[Jpg, Png, Heic, Webp];
 const OFFICE: &[FileKind] = &[Word, Excel, PowerPoint];
 
 /// Every Tool planned before 1.0, in the order Home shows them within a Job.
@@ -227,7 +227,7 @@ pub const CATALOGUE: &[Tool] = &[
     tool(
         ToolId::BeriWatermark,
         BagikanAman,
-        &[Jpg, Png, Pdf],
+        &[Jpg, Png, Heic, Webp, Pdf],
         ALL,
         Shipped,
     ),
@@ -392,13 +392,18 @@ mod tests {
     }
 
     #[test]
+    fn heic_and_webp_go_where_jpg_goes() {
+        let on = Platform::Android;
+        assert_eq!(tools_for_kinds(&[Heic, Webp, Jpg], on), tools_for_kinds(&[Jpg], on));
+    }
+
+    #[test]
     fn photos_and_pdfs_together_fit_nothing_even_where_both_fit() {
         assert!(tools_for_kinds(&[Jpg, Pdf], Platform::Linux).is_empty());
     }
 
     #[test]
     fn coming_soon_tools_never_match() {
-        assert!(tools_for_kinds(&[Webp], Platform::Linux).is_empty());
         assert!(tools_for_kinds(&[Word], Platform::Linux).is_empty());
     }
 
@@ -420,7 +425,7 @@ mod tests {
             }
         );
         assert_eq!(match_kinds(&[Jpg, Pdf], on), FileMatch::Mixed);
-        assert_eq!(match_kinds(&[Jpg, Webp], on), FileMatch::Unsupported);
+        assert_eq!(match_kinds(&[Jpg, Audio], on), FileMatch::Unsupported);
         assert_eq!(match_kinds(&[Word], on), FileMatch::Unsupported);
         assert_eq!(match_kinds(&[], on), FileMatch::Unsupported);
     }

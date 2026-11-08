@@ -44,7 +44,7 @@ pub fn file_info_of(mut file: File) -> FileInfo {
                 .ok()
                 .and_then(|_| rantakit_pdf::page_count_of(&bytes).ok());
         }
-        Some(FileKind::Jpg | FileKind::Png) => {
+        Some(FileKind::Jpg | FileKind::Png | FileKind::Heic | FileKind::Webp) => {
             let mut file = BufReader::new(file);
             info.longest_side = rantakit_image::photo_info_of(&mut file)
                 .ok()

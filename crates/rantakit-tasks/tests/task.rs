@@ -576,6 +576,36 @@ fn a_photo_already_in_the_chosen_format_is_left_unchanged() {
     assert!(result.path.ends_with("foto (converted).png"));
 }
 
+/// `photo_jpg` as a lossless WebP, the way stickers and web photos come.
+fn photo_webp() -> Vec<u8> {
+    let img = ::image::load_from_memory(&photo_jpg()).unwrap().to_rgb8();
+    let mut bytes = Vec::new();
+    ::image::codecs::webp::WebPEncoder::new_lossless(&mut bytes)
+        .write_image(img.as_raw(), img.width(), img.height(), ExtendedColorType::Rgb8)
+        .unwrap();
+    bytes
+}
+
+#[test]
+fn webp_photos_go_through_every_photo_tool_as_jpgs() {
+    let dir = scratch("webp_tools");
+    let foto = write(&dir, "stiker.webp", &photo_webp());
+    let info = file_info(&foto);
+    assert_eq!(info.kind, Some(rantakit_tasks::FileKind::Webp));
+    assert_eq!(info.longest_side, Some(600));
+
+    let ends = |tool: ToolOptions| run(&task(tool, vec![foto.clone()])).remove(0).map(|r| r.path);
+    assert!(ends(kompres_foto(Target::Quality(70))).unwrap().ends_with("stiker (compressed).jpg"));
+    // Never "already JPG": a WebP is always converted.
+    assert!(ends(ToolOptions::convert(ImageFormat::Jpeg, 90, WHITE)).unwrap().ends_with("stiker (converted).jpg"));
+    assert!(ends(ToolOptions::resize(300)).unwrap().ends_with("stiker (resized).jpg"));
+    assert!(ends(beri_watermark("Hanya untuk verifikasi")).unwrap().ends_with("stiker (watermarked).jpg"));
+    // A WebP with no photo info has nothing to remove.
+    assert_eq!(ends(ToolOptions::HapusInfoLokasi), Err(ErrorKind::Unchanged));
+    let pdf = ends(jpg_ke_pdf(PaperSize::A4, vec![])).unwrap();
+    assert_eq!(pages_in(&pdf), 1);
+}
+
 #[test]
 fn photos_are_made_smaller_but_never_larger() {
     let dir = scratch("resize");
