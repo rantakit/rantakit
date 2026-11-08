@@ -221,7 +221,7 @@ export function ToolPage({
           onClose={() => setPresetDialog(null)}
           onSave={async (name) => {
             setPresetDialog(null);
-            const preset = await save(name, settings).catch(() => null);
+            const preset = await save(name, def.presetOptions?.(settings) ?? settings).catch(() => null);
             if (preset) setPresetId(preset.id);
           }}
         />

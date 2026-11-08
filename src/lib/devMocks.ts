@@ -22,6 +22,7 @@ const TOOLS: ToolInfo[] = [
   { id: "gabung-pdf", job: "atur-pdf", comingSoon: false },
   { id: "pisah-pdf", job: "atur-pdf", comingSoon: false },
   { id: "atur-halaman-pdf", job: "atur-pdf", comingSoon: false },
+  { id: "pdf-ke-jpg", job: "atur-pdf", comingSoon: false },
   { id: "jpg-ke-pdf", job: "scan", comingSoon: false },
   { id: "hapus-info-lokasi", job: "bagikan-aman", comingSoon: false },
   { id: "beri-watermark", job: "bagikan-aman", comingSoon: false },
@@ -37,7 +38,6 @@ const TOOLS: ToolInfo[] = [
       ["kompres-video", "kecilkan-ubah"],
       ["word-ke-pdf", "kecilkan-ubah"],
       ["excel-ke-pdf", "kecilkan-ubah"],
-      ["pdf-ke-jpg", "atur-pdf"],
     ] as const
   ).map(([id, job]) => ({ id, job, comingSoon: true })),
 ];
@@ -289,6 +289,7 @@ interface TaskArgs {
       date?: string;
       pages?: number[] | { page: number; turns: number }[];
       every?: number;
+      dpi?: number;
     };
     paths: string[];
   };
@@ -360,6 +361,20 @@ async function runPageTask(id: number, { options, paths }: TaskArgs["request"], 
     if (options.tool === "atur-halaman-pdf") {
       const pages = (options.pages ?? []) as { page: number; turns: number }[];
       done(file, { outputPath: `${stem(path)} (edited).pdf`, originalBytes: size, compressedBytes: size, pages: pages.length });
+    } else if (options.tool === "pdf-ke-jpg") {
+      const asked = (options.pages as number[] | undefined) ?? Array.from({ length: count }, (_, i) => i + 1);
+      const kept = asked.filter((page) => page <= count);
+      // A page photo grows with the square of its sharpness.
+      const bytes = Math.round(((options.dpi ?? 150) / 150) ** 2 * 380_000);
+      if (kept.length === 0) failed(file, "no-such-pages");
+      else if (kept.length === 1)
+        done(file, { outputPath: `${stem(path)} (page ${kept[0]}).jpg`, originalBytes: size, compressedBytes: bytes });
+      else {
+        const folder = `${stem(path)} (pages)`;
+        const name = folder.slice(folder.lastIndexOf("\\") + 1, -" (pages)".length);
+        const files = kept.map((page) => ({ path: `${folder}\\${name} (page ${page}).jpg`, bytes }));
+        done(file, { outputPath: folder, originalBytes: size, compressedBytes: bytes * files.length, files });
+      }
     } else if (options.pages) {
       const asked = options.pages as number[];
       const kept = asked.filter((page) => page <= count);
@@ -423,7 +438,7 @@ function runTask({ request, onEvent }: TaskArgs) {
           ? "watermarked"
           : "compressed";
 
-  if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf", "jpg-ke-pdf", "scan-dokumen"].includes(request.options.tool)) {
+  if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf", "pdf-ke-jpg", "jpg-ke-pdf", "scan-dokumen"].includes(request.options.tool)) {
     runPageTask(id, request, send).then(() => send({ event: "finished" }));
     return id;
   }
@@ -543,7 +558,7 @@ export function installDevMocks() {
           return {
             status: "fits",
             kinds: ["pdf"],
-            tools: paths.length > 1 ? ["kompres-pdf", "gabung-pdf", "pisah-pdf", "beri-watermark"] : ["kompres-pdf", "pisah-pdf", "atur-halaman-pdf", "beri-watermark"],
+            tools: paths.length > 1 ? ["kompres-pdf", "gabung-pdf", "pisah-pdf", "pdf-ke-jpg", "beri-watermark"] : ["kompres-pdf", "pisah-pdf", "atur-halaman-pdf", "pdf-ke-jpg", "beri-watermark"],
           };
         if (paths.some(isPdf)) return { status: "mixed" };
         return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-format-foto", "ubah-ukuran-foto", "jpg-ke-pdf", "beri-watermark", "hapus-info-lokasi"] };

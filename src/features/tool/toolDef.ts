@@ -20,6 +20,8 @@ export interface ToolDef<S extends object> {
   ordered?: boolean;
   /** False for a Tool with nothing worth saving as a Preset, such as Gabung PDF. */
   presets?: false;
+  /** What a Preset keeps of the settings, when not all of them, such as PDF ke JPG leaving out the pages. */
+  presetOptions?: (settings: S) => Partial<S>;
   /** Asks for files; `current` is what the page holds, for a "file" Tool that has some. */
   pick: (current: Noun) => Promise<string[]>;
   /** The Tool's options, remembered between visits. */

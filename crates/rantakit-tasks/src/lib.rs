@@ -30,7 +30,7 @@ pub use recent::{RECENT_LIMITS, RECENT_TOOLS, Recent, RecentLimits, RecentTools}
 pub use settings::{Settings, SettingsStore};
 pub use store::{JsonFile, StoreError};
 pub use task::{
-    Details, FileOutcome, FolderFile, MarkColor, MarkOpacity, MarkSize, PhotoSize, PhotosToPdf, ResultFile, Split, Task,
+    Details, FileOutcome, FolderFile, MarkColor, MarkOpacity, MarkSize, PdfToJpg, PhotoSize, PhotosToPdf, ResultFile, Split, Task,
     TaskEvent, ToolOptions, WatermarkOptions, run_task, watermark_preview,
 };
 
