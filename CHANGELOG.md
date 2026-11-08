@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-08
+
+Rantakit 0.4.0 adds ten Tools, on Windows, Linux, and Android, for putting PDFs together the way a portal asks, turning paper into one PDF, sharing ID copies safely, and handling more formats. Rantakit is in early development and is not stable yet.
+
+### Added
+
+- "Gabung PDF" (Merge PDF) joins several PDFs, in the order you set, into `merged <date>.pdf`. A locked or damaged PDF stops the Task before anything is written and is named in the Result
+- "Pisah PDF" (Split PDF) takes chosen pages, such as `1-3, 5`, into a new PDF, or splits every page, or every few pages, into separate PDFs. With one PDF, page thumbnails sit under the page field and stay in step with it
+- "Atur Halaman PDF" (Arrange PDF Pages) shows every page of a PDF: tick pages to turn or delete them, drag them (or press Alt and an arrow key) to change the order, undo with "Urungkan" or Ctrl+Z, and save it as `(edited).pdf`. Leaving with unsaved changes asks first
+- "JPG ke PDF" (JPG to PDF) turns photos into one PDF on A4, F4, or pages the shape of each photo. Rantakit finds the paper in each photo and offers to crop and straighten it, with a magnifier for touch; a photo that needs no change is put in as it is
+- "Scan Dokumen" (Scan Document) on Android: take photos of paper with the camera, or add some from the Gallery, crop and straighten them, and save them as one PDF. "Bersihkan" (Clean up) takes out the paper's shade and shadows and keeps the colors. Rantakit asks for the camera at the first scan, after saying why
+- "Beri Watermark" (Add Watermark) puts text, such as "Hanya untuk verifikasi Bank X" (Only for Bank X verification), and optionally today's date, on photos and PDFs: repeated across, in the middle, or in a corner, with a live preview. On a PDF it is real text over each page
+- "Hapus Info Lokasi" (Remove Location Info) takes location, camera, and other photo info out of JPG and PNG photos without touching the picture. Photos with nothing to remove are left as they are
+- HEIC and WebP photos, such as an iPhone's, open in every photo Tool. Their Results are JPG unless PNG is chosen
+- "PDF ke JPG" (PDF to JPG) turns pages of one or several PDFs into JPG photos, at "Standar" (Standard, 150 dpi), "Tajam" (Sharp, 300 dpi), or a resolution from Advanced options
+- "Kompres Dokumen" (Compress Document) makes Word, Excel, and PowerPoint files smaller by saving their pictures again, with the same Levels and Size limit as "Kompres PDF". `.docx`, `.xlsx`, `.pptx`, and their macro versions are accepted; the older `.doc`, `.xls`, and `.ppt` are refused, with how to save them in the new format
+- When one file becomes several Results, they go into a new folder named after it, such as `ijazah (pages)/`. The Result lists them with "Buka folder" (Open folder) and "Bagikan semua" (Share all), and History keeps the Task as one entry
+- Tools that join files, such as "Gabung PDF" and "JPG ke PDF", have an ordered file list with drag handles and a menu to move a file up or down; each move is announced to screen readers
+- Files chosen or dropped on Home show the Tools that fit them, recently used first, and search knows more words for each Tool
+- Office files and HEIC and WebP photos can be dropped on Home and shared to Rantakit from other Android apps
+
+### Changed
+
+- Every photo Result keeps the Original's color profile, such as an iPhone's Display P3, so colors don't fade after compressing or converting
+- The interface calls Tools "peralatan" instead of "alat": "Semua peralatan" (All tools), "Cari peralatan" (Search tools)
+
 ## [0.3.0] - 2026-11-07
 
 Rantakit 0.3.0 adds Android, with the same Tools as Windows and Linux, and opens files shared from other apps. Rantakit is in early development and is not stable yet.
@@ -116,7 +142,8 @@ First public release, for Windows and Linux. Rantakit is in early development an
 - Settings for theme (light, dark, system) and UI zoom
 - Interface in Indonesian
 
-[Unreleased]: https://github.com/moez-rd/rantakit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/moez-rd/rantakit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/moez-rd/rantakit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/moez-rd/rantakit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/moez-rd/rantakit/compare/v0.2.0-rc.2...v0.2.0
 [0.2.0-rc.2]: https://github.com/moez-rd/rantakit/compare/v0.2.0-rc.1...v0.2.0-rc.2

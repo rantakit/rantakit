@@ -1,6 +1,6 @@
 [package]
 name = "rantakit-image"
-version = "0.3.0"
+version = "0.4.0"
 description = "Image engine for Rantakit (JPG, PNG, HEIC and WebP), no Tauri dependency"
 authors = ["moez-rd"]
 license = "AGPL-3.0-or-later"

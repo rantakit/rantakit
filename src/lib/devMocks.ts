@@ -8,7 +8,7 @@ import type { ToolInfo } from "@/features/home/tools";
  *
  * URL switches: `?recent` fills Recent tools, `?fail` makes the second file
  * of every Task miss its Size limit, `?slow` makes Tasks take longer,
- * `?historyOff` starts with History turned off, `?update` finds version 0.3.0
+ * `?historyOff` starts with History turned off, `?update` finds version 0.5.0
  * (with `?updateDeb`, as a Linux .deb that can't install it), `?pages` makes
  * each PDF a folder of 12 page files, as Pisah PDF will (X3).
  * `?android` lists Scan Dokumen, whose camera is mocked: `?camera=ask` or
@@ -534,7 +534,7 @@ export function installDevMocks() {
         appSettings.checkUpdates = (args as { check: boolean }).check;
         return { ...appSettings };
       case "check_update":
-        return has("update") && appSettings.checkUpdates ? { version: "0.3.0", canInstall: !has("updateDeb") } : null;
+        return has("update") && appSettings.checkUpdates ? { version: "0.5.0", canInstall: !has("updateDeb") } : null;
       case "install_update":
         // Never restarts here; fails after a moment so the retry path shows.
         return new Promise((_, reject) => setTimeout(() => reject({ code: "update-failed" }), 1500));
