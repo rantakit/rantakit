@@ -1,6 +1,6 @@
 [package]
 name = "rantakit"
-version = "0.3.0"
+version = "0.4.0"
 description = "Free, open-source file toolkit that works offline"
 authors = ["moez-rd"]
 license = "AGPL-3.0-or-later"

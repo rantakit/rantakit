@@ -3628,7 +3628,7 @@ checksum = "a611d15b50743feb4c76b7d03edcb0e64f399c26961e4efe6975bc398be6aa3d"
 
 [[package]]
 name = "rantakit"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "rantakit-tasks",
  "semver",
@@ -3647,14 +3647,14 @@ dependencies = [
 
 [[package]]
 name = "rantakit-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "rantakit-image"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ab_glyph",
  "heic",
@@ -3665,7 +3665,7 @@ dependencies = [
 
 [[package]]
 name = "rantakit-office"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "flate2",
  "image",
@@ -3675,7 +3675,7 @@ dependencies = [
 
 [[package]]
 name = "rantakit-pdf"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "hayro",
  "image",
@@ -3685,7 +3685,7 @@ dependencies = [
 
 [[package]]
 name = "rantakit-tasks"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "image",
  "lopdf",
