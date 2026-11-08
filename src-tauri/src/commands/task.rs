@@ -6,7 +6,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use rantakit_tasks::{
     CancelToken, Compression, Details, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
     PageEdit, PaperSize, PhotoEdit, PhotoSize, PhotosToPdf, Progress, RecentLimits, RecentTools, SettingsStore,
-    Split, Task, TaskEvent, ToolOptions, WHITE, dpi_to_side, run_task,
+    Split, Task, TaskEvent, ToolOptions, WHITE, dpi_to_side, run_task, MarkColor, MarkOpacity, MarkSize, Placement,
+    WatermarkOptions,
 };
 
 use super::photos::EditRequest;
@@ -121,6 +122,94 @@ pub enum OptionsRequest {
         #[serde(default)]
         look: LookRequest,
     },
+    /// No options: every piece of photo info goes but the orientation.
+    HapusInfoLokasi,
+    BeriWatermark(WatermarkRequest),
+}
+
+/// Beri Watermark's choices; also what its live preview draws.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WatermarkRequest {
+    pub text: String,
+    /// "08/11/2026" when "Tambahkan tanggal hari ini" is on.
+    #[serde(default)]
+    pub date: Option<String>,
+    #[serde(default)]
+    pub placement: PlacementRequest,
+    #[serde(default)]
+    pub size: MarkSizeRequest,
+    #[serde(default)]
+    pub opacity: OpacityRequest,
+    #[serde(default)]
+    pub color: ColorRequest,
+}
+
+#[derive(Debug, Default, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PlacementRequest {
+    #[default]
+    Repeated,
+    Center,
+    Corner,
+}
+
+#[derive(Debug, Default, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MarkSizeRequest {
+    Small,
+    #[default]
+    Medium,
+    Large,
+}
+
+#[derive(Debug, Default, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OpacityRequest {
+    Faint,
+    #[default]
+    Medium,
+    Strong,
+}
+
+#[derive(Debug, Default, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ColorRequest {
+    #[default]
+    Gray,
+    Black,
+    White,
+    Red,
+}
+
+impl From<WatermarkRequest> for WatermarkOptions {
+    fn from(request: WatermarkRequest) -> Self {
+        Self {
+            text: request.text,
+            date: request.date.filter(|date| !date.trim().is_empty()),
+            placement: match request.placement {
+                PlacementRequest::Repeated => Placement::Repeated,
+                PlacementRequest::Center => Placement::Center,
+                PlacementRequest::Corner => Placement::Corner,
+            },
+            size: match request.size {
+                MarkSizeRequest::Small => MarkSize::Small,
+                MarkSizeRequest::Medium => MarkSize::Medium,
+                MarkSizeRequest::Large => MarkSize::Large,
+            },
+            opacity: match request.opacity {
+                OpacityRequest::Faint => MarkOpacity::Faint,
+                OpacityRequest::Medium => MarkOpacity::Medium,
+                OpacityRequest::Strong => MarkOpacity::Strong,
+            },
+            color: match request.color {
+                ColorRequest::Gray => MarkColor::Gray,
+                ColorRequest::Black => MarkColor::Black,
+                ColorRequest::White => MarkColor::White,
+                ColorRequest::Red => MarkColor::Red,
+            },
+        }
+    }
 }
 
 /// "Ukuran kertas" for JPG ke PDF and Scan Dokumen.
@@ -324,6 +413,8 @@ impl From<OptionsRequest> for ToolOptions {
                 edits,
                 look,
             } => Self::ScanDokumen(photos_to_pdf(date, paper, margin, edits, look == LookRequest::Clean)),
+            OptionsRequest::HapusInfoLokasi => Self::HapusInfoLokasi,
+            OptionsRequest::BeriWatermark(request) => Self::BeriWatermark(request.into()),
         }
     }
 }

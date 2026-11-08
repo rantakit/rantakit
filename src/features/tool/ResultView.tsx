@@ -22,13 +22,13 @@ import { openPath, shareFiles } from "@/lib/files";
 import { formatBytes } from "@/lib/format";
 import { canShare, canShowInFolder, isAndroidApp } from "@/lib/platform";
 import { tv } from "@/lib/react-aria-utils";
-import { useFileTile } from "./fileInfo";
+import { nounOf, useFileTile, type Noun } from "./fileInfo";
 import { NOUN_ICONS } from "./FilesColumn";
 import { unchangedNote } from "./unchanged";
 
 interface ResultSummaryProps {
   job: CompressJob;
-  noun: "photo" | "pdf";
+  noun: Noun;
   /** The Tool's own line for what happened (X4); left out by the compress Tools. */
   summary?: (results: TaskResult[], tr: Translator) => string;
   /** Whether every file went into one Result, as in Gabung PDF. */
@@ -129,7 +129,7 @@ export function ResultSummary({ job, noun, summary, merges, resultsFolder }: Res
 
 interface ResultListProps {
   job: CompressJob;
-  noun: "photo" | "pdf";
+  noun: Noun;
   /** Whether sizes show as before → after; false when the Tool is not about size (X4). */
   comparesSizes: boolean;
   /** Whether every file went into one Result, as in Gabung PDF: it shows once. */
@@ -263,12 +263,7 @@ function Sizes({ result, comparesSizes }: { result: TaskResult; comparesSizes: b
   );
 }
 
-/** The noun a made file is shown as: PDF ke JPG makes photos from a PDF. */
-function nounOf(path: string): "photo" | "pdf" {
-  return path.toLowerCase().endsWith(".pdf") ? "pdf" : "photo";
-}
-
-function ResultTile({ path, noun, size }: { path: string; noun: "photo" | "pdf"; size: number }) {
+function ResultTile({ path, noun, size }: { path: string; noun: Noun; size: number }) {
   const { thumbnail, thumbnailKind } = useFileTile(path, noun, size);
   const Icon = NOUN_ICONS[noun];
   return (
@@ -338,7 +333,7 @@ function FolderResults({ parts }: { parts: ResultPart[] }) {
 interface ResultRowProps {
   tr: Translator;
   item: JobItem;
-  noun: "photo" | "pdf";
+  noun: Noun;
   comparesSizes: boolean;
   canRetry: boolean;
   onRetry: (options?: JobItem["options"]) => void;
@@ -405,7 +400,7 @@ function ResultRow({ tr, item, noun, comparesSizes, canRetry, onRetry }: ResultR
 
 interface OneResultProps {
   item: DoneItem;
-  noun: "photo" | "pdf";
+  noun: Noun;
   comparesSizes: boolean;
 }
 

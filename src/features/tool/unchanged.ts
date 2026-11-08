@@ -8,6 +8,8 @@ export function unchangedNote(t: Translator["t"], options: ToolOptions): string 
       return t("unchanged.format", { format: options.to === "jpeg" ? "JPG" : "PNG" });
     case "ubah-ukuran-foto":
       return t("unchanged.size");
+    case "hapus-info-lokasi":
+      return t("unchanged.clean");
     default:
       return t("error.unchanged");
   }

@@ -31,6 +31,7 @@ pub fn run() {
             app.manage(Presets::new(data.join("presets.json")));
             app.manage(commands::task::RunningTasks::default());
             app.manage(commands::pages::OpenPdfs::default());
+            app.manage(commands::watermark::PreviewBase::default());
             app.manage(commands::update::PendingUpdate::default());
             app.manage(commands::language::Language::default());
             // Copies left by a Task that Android cut short.
@@ -84,6 +85,7 @@ pub fn run() {
             commands::pages::page_thumbnail,
             commands::photos::find_paper,
             commands::photos::edited_preview,
+            commands::watermark::watermark_preview,
             commands::camera::camera_permission,
             commands::camera::ask_camera_permission,
             commands::camera::open_app_settings,

@@ -23,6 +23,8 @@ const TOOLS: ToolInfo[] = [
   { id: "pisah-pdf", job: "atur-pdf", comingSoon: false },
   { id: "atur-halaman-pdf", job: "atur-pdf", comingSoon: false },
   { id: "jpg-ke-pdf", job: "scan", comingSoon: false },
+  { id: "hapus-info-lokasi", job: "bagikan-aman", comingSoon: false },
+  { id: "beri-watermark", job: "bagikan-aman", comingSoon: false },
   // Android only.
   ...(new URLSearchParams(location.search).has("android")
     ? [{ id: "scan-dokumen", job: "scan", comingSoon: false } as const]
@@ -36,8 +38,6 @@ const TOOLS: ToolInfo[] = [
       ["word-ke-pdf", "kecilkan-ubah"],
       ["excel-ke-pdf", "kecilkan-ubah"],
       ["pdf-ke-jpg", "atur-pdf"],
-      ["beri-watermark", "bagikan-aman"],
-      ["hapus-info-lokasi", "bagikan-aman"],
     ] as const
   ).map(([id, job]) => ({ id, job, comingSoon: true })),
 ];
@@ -68,6 +68,13 @@ function sizeOf(path: string) {
 
 const isPdf = (path: string) => path.toLowerCase().endsWith(".pdf");
 const longestSideOf = (path: string) => 600 + (sizeOf(path) % 3400);
+/** What Hapus Info Lokasi finds: "KTP.jpg" has a location and camera info, "Pas foto.png" nothing. */
+const foundOf = (path: string) =>
+  /pas foto/i.test(path)
+    ? { location: false, camera: false, other: false }
+    : /ktp/i.test(path)
+      ? { location: true, camera: true, other: true }
+      : { location: false, camera: false, other: true };
 const SIDES: Record<string, number> = { large: 1920, medium: 1280, small: 800 };
 const kindOf = (path: string) => (isPdf(path) ? "pdf" : path.toLowerCase().endsWith(".png") ? "png" : "jpg");
 
@@ -155,6 +162,54 @@ async function fakePage(path: string, page: number, size: number) {
   for (let line = 0; line < 14; line++) {
     const width = 16 - ((line * 7 + page) % 5);
     context.fillRect(2 * unit, (5.5 + line * 1.6) * unit, width * unit, 0.6 * unit);
+  }
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg"));
+  return blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
+}
+
+/** Beri Watermark's preview: the mocked picture with the text drawn over it, close to the real look. */
+async function fakeWatermark(
+  path: string,
+  watermark: { text: string; date?: string; placement: string; size: string; opacity: string; color: string },
+  size: number,
+) {
+  const base = isPdf(path) ? await fakePage(path, 0, size) : await fakeThumbnail(path, size);
+  const picture = await createImageBitmap(new Blob([base], { type: "image/jpeg" }));
+  const canvas = document.createElement("canvas");
+  canvas.width = picture.width;
+  canvas.height = picture.height;
+  const context = canvas.getContext("2d")!;
+  context.drawImage(picture, 0, 0);
+  const lines = [watermark.text, watermark.date].filter((line): line is string => !!line);
+  if (lines.length > 0) {
+    const short = Math.min(canvas.width, canvas.height);
+    const em = short * ({ small: 0.035, medium: 0.05, large: 0.07 }[watermark.size] ?? 0.05);
+    context.globalAlpha = { faint: 0.15, medium: 0.3, strong: 0.5 }[watermark.opacity] ?? 0.3;
+    context.fillStyle = { gray: "#808080", black: "#000", white: "#fff", red: "#d32f2f" }[watermark.color] ?? "#808080";
+    context.font = `bold ${em}px "Plus Jakarta Sans", sans-serif`;
+    context.textBaseline = "middle";
+    const block = (x: number, y: number, align: CanvasTextAlign, scale = 1) => {
+      context.textAlign = align;
+      lines.forEach((line, i) => {
+        const lineEm = em * scale * (i === 0 ? 1 : 0.8);
+        context.font = `bold ${lineEm}px "Plus Jakarta Sans", sans-serif`;
+        context.fillText(line, x, y + (i - (lines.length - 1) / 2) * em * scale * 1.3);
+      });
+    };
+    if (watermark.placement === "corner") {
+      block(canvas.width - em, canvas.height - em * lines.length, "right");
+    } else {
+      context.translate(canvas.width / 2, canvas.height / 2);
+      context.rotate((-30 * Math.PI) / 180);
+      if (watermark.placement === "center") block(0, 0, "center", 1.6);
+      else {
+        const width = context.measureText(lines[0]).width + em * 3;
+        const height = em * 1.3 * lines.length + em * 2.5;
+        const reach = Math.hypot(canvas.width, canvas.height);
+        for (let y = -reach; y < reach; y += height)
+          for (let x = -reach; x < reach; x += width) block(x + ((y / height) % 2 ? width / 2 : 0), y, "center");
+      }
+    }
   }
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg"));
   return blob ? await blob.arrayBuffer() : new ArrayBuffer(0);
@@ -356,7 +411,11 @@ function runTask({ request, onEvent }: TaskArgs) {
     ? "converted"
     : request.options.tool.startsWith("ubah-ukuran")
       ? "resized"
-      : "compressed";
+      : request.options.tool === "hapus-info-lokasi"
+        ? "cleaned"
+        : request.options.tool === "beri-watermark"
+          ? "watermarked"
+          : "compressed";
 
   if (["gabung-pdf", "pisah-pdf", "atur-halaman-pdf", "jpg-ke-pdf", "scan-dokumen"].includes(request.options.tool)) {
     runPageTask(id, request, send).then(() => send({ event: "finished" }));
@@ -379,7 +438,8 @@ function runTask({ request, onEvent }: TaskArgs) {
       const side = maxSide ?? SIDES[photoSize ?? "medium"];
       if (
         (to && kindOf(path) === (to === "jpeg" ? "jpg" : "png")) ||
-        (tool === "ubah-ukuran-foto" && longestSideOf(path) <= side)
+        (tool === "ubah-ukuran-foto" && longestSideOf(path) <= side) ||
+        (tool === "hapus-info-lokasi" && !Object.values(foundOf(path)).some(Boolean))
       ) {
         send({ event: "fileDone", file, outcome: { status: "failed", error: { code: "unchanged" } } });
         continue;
@@ -470,10 +530,10 @@ export function installDevMocks() {
           return {
             status: "fits",
             kinds: ["pdf"],
-            tools: paths.length > 1 ? ["kompres-pdf", "gabung-pdf", "pisah-pdf"] : ["kompres-pdf", "pisah-pdf", "atur-halaman-pdf"],
+            tools: paths.length > 1 ? ["kompres-pdf", "gabung-pdf", "pisah-pdf", "beri-watermark"] : ["kompres-pdf", "pisah-pdf", "atur-halaman-pdf", "beri-watermark"],
           };
         if (paths.some(isPdf)) return { status: "mixed" };
-        return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-format-foto", "ubah-ukuran-foto", "jpg-ke-pdf"] };
+        return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-format-foto", "ubah-ukuran-foto", "jpg-ke-pdf", "beri-watermark", "hapus-info-lokasi"] };
       }
       case "file_info":
         return (args as { paths: string[] }).paths.map((path) => ({
@@ -481,6 +541,7 @@ export function installDevMocks() {
           kind: kindOf(path),
           pages: isPdf(path) ? pageCountOf(path) : null,
           longestSide: isPdf(path) ? null : longestSideOf(path),
+          found: isPdf(path) ? null : foundOf(path),
         }));
       case "thumbnail": {
         const { path, size } = args as { path: string; size: number };
@@ -497,6 +558,10 @@ export function installDevMocks() {
           size: number;
         };
         return edit.corners ? fakeCrop(edit.corners, edit.turns, size) : fakeThumbnail(path, size);
+      }
+      case "watermark_preview": {
+        const { path, watermark, size } = args as { path: string; watermark: Parameters<typeof fakeWatermark>[1]; size: number };
+        return fakeWatermark(path, watermark, size);
       }
       case "page_thumbnail": {
         const { path, page, size } = args as { path: string; page: number; size: number };

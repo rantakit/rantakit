@@ -13,7 +13,7 @@ import { useT } from "@/i18n";
 import { isDesktopApp } from "@/lib/platform";
 import { focusRing, tv } from "@/lib/react-aria-utils";
 import { useStoredState } from "@/lib/storedState";
-import { useFileInfo, type FileInfo } from "./fileInfo";
+import { pageNoun, useFileInfo, type FileInfo } from "./fileInfo";
 import { FilesColumn } from "./FilesColumn";
 import { ResultList, ResultSummary } from "./ResultView";
 import { toolDef, type ShippedTool } from "./tools";
@@ -60,6 +60,7 @@ export function ToolPage({
   const tr = useT();
   const { t, count } = tr;
   const def = toolDef(tool);
+  const noun = pageNoun(def.noun, paths);
   const [settings, updateSettings] = def.useSettings();
   const { presets, save, rename, remove } = usePresets(tool);
   /** The Preset whose options are in use; any change of an option leaves it. */
@@ -78,7 +79,7 @@ export function ToolPage({
       ? (info: FileInfo) =>
           def.leavesUnchanged?.(request, info) ? unchangedNote(t, request) : (def.fileNote?.(request, info, tr) ?? null)
       : undefined;
-  const blocked = paths.length === 0 ? t(def.counts ? "options.needFiles.pages" : `options.needFiles.${def.noun}`) : (def.blocked?.(settings, files, paths.length, tr) ?? null);
+  const blocked = paths.length === 0 ? t(def.counts ? "options.needFiles.pages" : `options.needFiles.${noun}`) : (def.blocked?.(settings, files, paths.length, tr) ?? null);
   const Icon = TOOL_ICONS[tool];
   const running = job.isRunning;
   const hasResult = !running && job.items.length > 0;
@@ -101,7 +102,7 @@ export function ToolPage({
     <Working
       label={t(`working.${tool}`, {
         current: Math.min(job.items.filter(isFinished).length + 1, job.items.length),
-        files: count(def.counts ?? `files.${def.noun}`, job.items.length),
+        files: count(def.counts ?? `files.${noun}`, job.items.length),
       })}
       fraction={overall(job.items)}
       onCancel={job.cancel}
@@ -128,15 +129,15 @@ export function ToolPage({
   return (
     <div className="flex flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[minmax(0,1fr)_20rem] md:grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_22.5rem]">
       <section
-        aria-label={t(hasResult ? "result.list" : `files.pick.${def.noun}`)}
+        aria-label={t(hasResult ? "result.list" : `files.pick.${noun}`)}
         className="flex min-w-0 flex-col md:row-span-2 md:min-h-0"
       >
         <header className="flex h-14 shrink-0 items-center gap-2 px-2 md:px-4">{heading}</header>
         {hasResult ? (
-          <ResultList job={job} noun={def.noun} comparesSizes={!def.summary} merges={def.ordered === true} />
+          <ResultList job={job} noun={noun} comparesSizes={!def.summary} merges={def.ordered === true} />
         ) : (
           <FilesColumn
-            noun={def.noun}
+            noun={noun}
             paths={paths}
             items={running ? job.items : undefined}
             skipNote={skipNote}
@@ -159,7 +160,7 @@ export function ToolPage({
           <div className="flex flex-col p-5 md:overflow-y-auto">
             <ResultSummary
               job={job}
-              noun={def.noun}
+              noun={noun}
               summary={def.summary}
               merges={def.ordered === true}
               resultsFolder={appSettings?.resultsFolder ?? null}

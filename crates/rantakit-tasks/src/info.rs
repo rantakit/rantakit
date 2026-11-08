@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::{BufReader, Read, Seek};
 use std::path::Path;
 
+use rantakit_image::FoundInfo;
+
 use crate::kinds::{FileKind, read_kind};
 
 /// What the Files step shows about a file before a Task runs. Every field is
@@ -14,6 +16,8 @@ pub struct FileInfo {
     pub pages: Option<usize>,
     /// Photos only: the longest side in pixels, to tell "Sudah kecil" apart.
     pub longest_side: Option<u32>,
+    /// Photos only: their info, such as "Ada lokasi · Ada info kamera" (K2).
+    pub found: Option<FoundInfo>,
 }
 
 pub fn file_info(path: &Path) -> FileInfo {
@@ -41,9 +45,14 @@ pub fn file_info_of(mut file: File) -> FileInfo {
                 .and_then(|_| rantakit_pdf::page_count_of(&bytes).ok());
         }
         Some(FileKind::Jpg | FileKind::Png) => {
-            info.longest_side = rantakit_image::photo_info_of(BufReader::new(file))
+            let mut file = BufReader::new(file);
+            info.longest_side = rantakit_image::photo_info_of(&mut file)
                 .ok()
                 .map(|photo| photo.width.max(photo.height));
+            info.found = file
+                .rewind()
+                .ok()
+                .and_then(|()| rantakit_image::found_info_of(&mut file).ok());
         }
         _ => {}
     }
