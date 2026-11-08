@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import type { TaskResult, ToolOptions } from "@/features/compress/taskApi";
 import type { Translator } from "@/i18n";
-import type { FileInfo } from "./fileInfo";
+import type { FileInfo, Noun } from "./fileInfo";
 
 export interface OptionsProps<S> {
   settings: S;
@@ -14,13 +14,14 @@ export interface OptionsProps<S> {
 
 /** What makes one shipped Tool different on its page; the layout is the same for all. */
 export interface ToolDef<S extends object> {
-  /** How the Tool names its files: "3 foto", "Pilih foto"; "2 PDF", "Pilih PDF". */
-  noun: "photo" | "pdf";
+  /** How the Tool names its files: "3 foto", "Pilih foto"; "2 PDF", "Pilih PDF". "file" takes photos or PDFs, one kind per page (K1). */
+  noun: Noun;
   /** Makes one Result from several files, in an order the user sets (X2): Gabung PDF, JPG ke PDF, Scan Dokumen. */
   ordered?: boolean;
   /** False for a Tool with nothing worth saving as a Preset, such as Gabung PDF. */
   presets?: false;
-  pick: () => Promise<string[]>;
+  /** Asks for files; `current` is what the page holds, for a "file" Tool that has some. */
+  pick: (current: Noun) => Promise<string[]>;
   /** The Tool's options, remembered between visits. */
   useSettings: () => readonly [S, (patch: Partial<S>) => void];
   /** Options always shown. */

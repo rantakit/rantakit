@@ -8,6 +8,8 @@ import { gabungPdf } from "@/features/merge/MergeOptions";
 import { jpgKePdf } from "@/features/photo-pdf/PhotoPdfOptions";
 import { scanDokumen } from "@/features/scan/ScanOptions";
 import { pisahPdf } from "@/features/split/SplitOptions";
+import { hapusInfoLokasi } from "@/features/clean-info/CleanInfoOptions";
+import { beriWatermark } from "@/features/watermark/WatermarkOptions";
 import type { ToolDef } from "./toolDef";
 
 // Each Tool keeps its own settings type; the page only passes them through.
@@ -25,6 +27,8 @@ export const TOOL_DEFS = {
   "atur-halaman-pdf": aturHalamanPdf,
   "jpg-ke-pdf": jpgKePdf,
   "scan-dokumen": scanDokumen,
+  "hapus-info-lokasi": hapusInfoLokasi,
+  "beri-watermark": beriWatermark,
 } satisfies Partial<Record<ToolId, AnyToolDef>>;
 
 export type ShippedTool = keyof typeof TOOL_DEFS;

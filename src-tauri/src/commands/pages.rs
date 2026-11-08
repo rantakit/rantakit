@@ -18,7 +18,7 @@ pub struct OpenPdfs(Mutex<Vec<(PathBuf, Arc<PdfPages>)>>);
 const KEEP_OPEN: usize = 6;
 
 impl OpenPdfs {
-    fn get(&self, app: &AppHandle, path: &Path) -> Result<Arc<PdfPages>, ErrorKind> {
+    pub(crate) fn get(&self, app: &AppHandle, path: &Path) -> Result<Arc<PdfPages>, ErrorKind> {
         if let Some(pages) = self.find(path) {
             return Ok(pages);
         }

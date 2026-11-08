@@ -8,6 +8,24 @@ export interface FileInfo {
   kind: string | null;
   pages: number | null;
   longestSide: number | null;
+  /** Photos only: the info Hapus Info Lokasi would remove. */
+  found: { location: boolean; camera: boolean; other: boolean } | null;
+}
+
+/**
+ * How a page names its files: "3 foto", "2 PDF". "file" is Beri Watermark's
+ * empty page, which takes photos or PDFs; once it has files, they say which.
+ */
+export type Noun = "photo" | "pdf" | "file";
+
+/** Whether a file shows as a photo or a PDF: PDF ke JPG makes photos from a PDF. */
+export function nounOf(path: string): "photo" | "pdf" {
+  return path.toLowerCase().endsWith(".pdf") ? "pdf" : "photo";
+}
+
+/** The noun for a page of `paths`: a "file" page takes the one its files have. */
+export function pageNoun(noun: Noun, paths: string[]): Noun {
+  return noun === "file" && paths.length > 0 ? nounOf(paths[0]) : noun;
 }
 
 const infos = new Map<string, FileInfo>();
@@ -52,7 +70,8 @@ function loadThumbnail(path: string, size: number) {
  * The picture for a file's tile: the photo itself, or a PDF's first page
  * (X1), `size` px on its longest side; null while it loads.
  */
-export function useFileTile(path: string | null, noun: "photo" | "pdf", size: number) {
+export function useFileTile(path: string | null, shownAs: Noun, size: number) {
+  const noun = shownAs === "file" && path ? nounOf(path) : shownAs;
   const photo = useThumbnail(noun === "photo" ? path : null, size);
   const page = usePage(noun === "pdf" ? path : null, 0, size);
   return noun === "pdf"

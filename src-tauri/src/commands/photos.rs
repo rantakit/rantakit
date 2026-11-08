@@ -37,7 +37,7 @@ impl From<EditRequest> for PhotoEdit {
     }
 }
 
-fn read(app: &AppHandle, path: &Path) -> Result<Vec<u8>, ErrorKind> {
+pub(crate) fn read(app: &AppHandle, path: &Path) -> Result<Vec<u8>, ErrorKind> {
     #[cfg(target_os = "android")]
     if android::is_content(path) {
         return android::read(app, path);

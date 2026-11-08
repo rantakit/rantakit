@@ -8,13 +8,13 @@ import { Menu, MenuItem, MenuTrigger } from "@/components/ui/Menu";
 import { fileName } from "@/features/compress/imageApi";
 import { useT } from "@/i18n";
 import { formatBytes } from "@/lib/format";
-import { useFileTile, type FileInfo } from "./fileInfo";
+import { useFileTile, type FileInfo, type Noun } from "./fileInfo";
 import { NOUN_ICONS } from "./FilesColumn";
 import { moveBy, reorder } from "./order";
 import type { RowExtras } from "./toolDef";
 
 interface OrderedFilesProps {
-  noun: "photo" | "pdf";
+  noun: Noun;
   paths: string[];
   infos: Record<string, FileInfo | undefined>;
   onReorder: (paths: string[]) => void;
@@ -88,7 +88,7 @@ interface OrderedRowProps {
   path: string;
   paths: string[];
   useRow?: (path: string, paths: string[]) => RowExtras | null;
-  noun: "photo" | "pdf";
+  noun: Noun;
   info?: FileInfo;
   isFirst: boolean;
   isLast: boolean;

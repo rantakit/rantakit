@@ -22,6 +22,7 @@ import type { ToolId } from "@/features/home/tools";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { SettingsDialog, SettingsPage, type SettingsTab } from "@/features/settings/SettingsDialog";
 import { fileName } from "@/features/compress/imageApi";
+import { nounOf, pageNoun } from "@/features/tool/fileInfo";
 import { LeaveDialog } from "@/features/tool/LeaveDialog";
 import { ToolPage } from "@/features/tool/ToolPage";
 import { UpdateNotice } from "@/features/update/UpdateNotice";
@@ -119,6 +120,13 @@ function App() {
       setPaths([next]);
       return;
     }
+    // Beri Watermark takes photos or PDFs, but not both on one page (X5).
+    if (tool && toolDef(tool).noun === "file") {
+      const kept = job.items.length > 0 ? [] : paths;
+      if (new Set([...kept, ...added].map(nounOf)).size > 1) {
+        return setRefused({ title: t("drop.mixed"), detail: t("drop.mixed.choose") });
+      }
+    }
     // After a Result, new files start over.
     if (job.items.length > 0) {
       job.reset();
@@ -128,7 +136,9 @@ function App() {
     }
   };
 
-  const pickFiles = async (id: ShippedTool) => addFiles(await toolDef(id).pick());
+  // A Tool just opened from elsewhere has no files yet.
+  const pickFiles = async (id: ShippedTool) =>
+    addFiles(await toolDef(id).pick(pageNoun(toolDef(id).noun, id === tool && job.items.length === 0 ? paths : [])));
 
   /** From the menu: open the Tool's page, then the picker. */
   const startTool = (id: ShippedTool) => {
@@ -300,7 +310,7 @@ function App() {
   // On macOS the menu bar handles these as Cmd shortcuts; Android has none.
   useShortcuts(runCommand, !isMacApp && !isAndroidApp);
 
-  const noun = tool ? toolDef(tool).noun : "photo";
+  const noun = tool ? pageNoun(toolDef(tool).noun, paths) : "photo";
 
   return (
     <AppShell

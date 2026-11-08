@@ -8,6 +8,7 @@ repository = "https://github.com/moez-rd/rantakit"
 edition = "2024"
 
 [dependencies]
+ab_glyph = { version = "0.2", default-features = false, features = ["std"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
 imageproc = { version = "0.27", default-features = false }
 rantakit-core = { path = "../rantakit-core" }

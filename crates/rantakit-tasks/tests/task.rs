@@ -6,8 +6,9 @@ use ::image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
 use lopdf::{Document, Object, Stream, dictionary};
 use rantakit_tasks::{
     Availability, CATALOGUE, CancelToken, Details, ErrorKind, FileOutcome, ImageFormat,
-    ImageOptions, OutputFormat, PageEdit, PaperSize, PdfOptions, PhotoEdit, PhotosToPdf, Platform, Split, Target, Task, TaskEvent,
-    ToolId, ToolOptions, WHITE, detect_kind, file_info, file_info_of, run_task, tools_for_files,
+    ImageOptions, MarkColor, MarkOpacity, MarkSize, OutputFormat, PageEdit, PaperSize, PdfOptions, PdfPages, PhotoEdit,
+    PhotosToPdf, Placement, Platform, Split, Target, Task, TaskEvent, ToolId, ToolOptions, WHITE, WatermarkOptions,
+    detect_kind, file_info, file_info_of, run_task, tools_for_files,
 };
 
 /// A noisy 600x400 photo, so compressing it really makes it smaller.
@@ -23,6 +24,26 @@ fn photo_jpg() -> Vec<u8> {
         .write_image(img.as_raw(), 600, 400, ExtendedColorType::Rgb8)
         .unwrap();
     bytes
+}
+
+/// `photo_jpg` with an EXIF that says where it was taken: a GPS latitude.
+fn located_jpg() -> Vec<u8> {
+    let mut tiff = b"Exif\0\0II*\0".to_vec();
+    tiff.extend_from_slice(&8u32.to_le_bytes());
+    // IFD0: one entry, the GPS IFD at 26; then the GPS IFD: one latitude.
+    tiff.extend_from_slice(&1u16.to_le_bytes());
+    tiff.extend_from_slice(&[0x25, 0x88, 4, 0, 1, 0, 0, 0, 26, 0, 0, 0]);
+    tiff.extend_from_slice(&0u32.to_le_bytes());
+    tiff.extend_from_slice(&1u16.to_le_bytes());
+    tiff.extend_from_slice(&[2, 0, 5, 0, 3, 0, 0, 0, 26, 0, 0, 0]);
+    tiff.extend_from_slice(&0u32.to_le_bytes());
+    let photo = photo_jpg();
+    let mut out = photo[..2].to_vec();
+    out.extend_from_slice(&[0xFF, 0xE1]);
+    out.extend_from_slice(&((tiff.len() + 2) as u16).to_be_bytes());
+    out.extend_from_slice(&tiff);
+    out.extend_from_slice(&photo[2..]);
+    out
 }
 
 /// A one-page PDF that draws `photo_jpg` as an image.
@@ -98,7 +119,21 @@ fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
         | ToolOptions::ScanDokumen(_) => {
             ("foto.jpg", photo_jpg())
         }
+        ToolOptions::HapusInfoLokasi => ("foto.jpg", located_jpg()),
+        ToolOptions::BeriWatermark(opts) if opts.text.contains("PDF") => ("ijazah.pdf", pages_pdf(3)),
+        ToolOptions::BeriWatermark(_) => ("ktp.jpg", photo_jpg()),
     }
+}
+
+fn beri_watermark(text: &str) -> ToolOptions {
+    ToolOptions::BeriWatermark(WatermarkOptions {
+        text: text.into(),
+        date: Some("08/11/2026".into()),
+        placement: Placement::Repeated,
+        size: MarkSize::Medium,
+        opacity: MarkOpacity::Medium,
+        color: MarkColor::Gray,
+    })
 }
 
 /// Every Tool, with the options that exercise its different paths.
@@ -135,6 +170,9 @@ fn every_tool() -> Vec<ToolOptions> {
             }],
         ),
         scan_dokumen(true),
+        ToolOptions::HapusInfoLokasi,
+        beri_watermark("Hanya untuk verifikasi Bank X"),
+        beri_watermark("Salinan PDF untuk lamaran"),
     ]
 }
 
@@ -423,16 +461,94 @@ fn dropped_files_fit_tools_by_content_not_extension() {
             ToolId::KompresFoto,
             ToolId::UbahFormatFoto,
             ToolId::UbahUkuranFoto,
-            ToolId::JpgKePdf
+            ToolId::JpgKePdf,
+            ToolId::BeriWatermark,
+            ToolId::HapusInfoLokasi
         ]
     );
     assert_eq!(
         tools_for_files(&[&pdf], on),
-        [ToolId::KompresPdf, ToolId::PisahPdf, ToolId::AturHalamanPdf]
+        [ToolId::KompresPdf, ToolId::PisahPdf, ToolId::AturHalamanPdf, ToolId::BeriWatermark]
     );
     assert!(tools_for_files(&[&photo_named_pdf, &pdf], on).is_empty());
     assert!(tools_for_files(&[&pdf, &text], on).is_empty());
     assert!(tools_for_files(&[dir.join("hilang.jpg")], on).is_empty());
+}
+
+#[test]
+fn beri_watermark_marks_photos_and_every_page_of_a_pdf() {
+    let dir = scratch("beri_watermark");
+    let ktp = dir.join("ktp.jpg");
+    let ijazah = dir.join("ijazah.pdf");
+    fs::write(&ktp, photo_jpg()).unwrap();
+    fs::write(&ijazah, pages_pdf(3)).unwrap();
+
+    let photo = run(&task(beri_watermark("Hanya untuk verifikasi Bank X"), vec![ktp]));
+    let photo = photo[0].as_ref().unwrap();
+    assert_eq!(photo.path, dir.join("ktp (watermarked).jpg"));
+    assert!(matches!(
+        photo.details,
+        Details::Photo {
+            format: ImageFormat::Jpeg,
+            width: 600,
+            height: 400,
+            quality: Some(92)
+        }
+    ));
+
+    let pdf = run(&task(beri_watermark("Hanya untuk lamaran"), vec![ijazah]));
+    let pdf = pdf[0].as_ref().unwrap();
+    assert_eq!(pdf.path, dir.join("ijazah (watermarked).pdf"));
+    assert_eq!(pdf.details, Details::Pages { pages: 3, skipped: vec![] });
+    let pages = PdfPages::open(&pdf.path).unwrap();
+    for page in 0..3 {
+        let drawn = pages.render(page, 300).unwrap();
+        // Gray text over the page: some pixels between white and black.
+        let gray = drawn.pixels().filter(|p| (120..230).contains(&p[0])).count();
+        assert!(gray > 200, "page {} has {gray} gray pixels", page + 1);
+    }
+}
+
+#[test]
+fn beri_watermark_without_text_changes_nothing() {
+    let dir = scratch("beri_watermark_empty");
+    let ktp = dir.join("ktp.jpg");
+    fs::write(&ktp, photo_jpg()).unwrap();
+    let mut empty = beri_watermark("   ");
+    if let ToolOptions::BeriWatermark(opts) = &mut empty {
+        opts.date = None;
+    }
+    assert_eq!(run(&task(empty, vec![ktp])), [Err(ErrorKind::Unchanged)]);
+    assert_eq!(file_names(&dir), ["ktp.jpg"]);
+}
+
+#[test]
+fn hapus_info_lokasi_cleans_located_photos_and_leaves_clean_ones() {
+    let dir = scratch("hapus_info_lokasi");
+    let located = dir.join("foto.jpg");
+    let plain = dir.join("pas foto.jpg");
+    fs::write(&located, located_jpg()).unwrap();
+    fs::write(&plain, photo_jpg()).unwrap();
+
+    let found = file_info(&located).found.unwrap();
+    assert!(found.location && !found.camera);
+    assert!(file_info(&plain).found.unwrap().is_clean());
+
+    let outcomes = run(&task(ToolOptions::HapusInfoLokasi, vec![located.clone(), plain.clone()]));
+    let result = outcomes[0].as_ref().unwrap();
+    assert_eq!(result.path, dir.join("foto (cleaned).jpg"));
+    assert_eq!(
+        result.details,
+        Details::Photo {
+            format: ImageFormat::Jpeg,
+            width: 600,
+            height: 400,
+            quality: None
+        }
+    );
+    assert!(file_info(&result.path).found.unwrap().is_clean());
+    assert_eq!(outcomes[1], Err(ErrorKind::Unchanged));
+    assert_eq!(file_names(&dir), ["foto (cleaned).jpg", "foto.jpg", "pas foto.jpg"]);
 }
 
 #[test]

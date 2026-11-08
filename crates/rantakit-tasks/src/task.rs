@@ -2,10 +2,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rantakit_core::{CancelToken, ErrorKind, Progress, Tracker, read_original};
-use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, PhotoEdit, Target, WHITE};
-use rantakit_pdf::{PageEdit, PagePhoto, PaperSize, PdfDocument, PdfOptions};
+use rantakit_image::{ImageFormat, ImageOptions, OutputFormat, PhotoEdit, Placement, Target, WHITE, Watermark};
+use rantakit_pdf::{PageEdit, PagePhoto, PaperSize, PdfDocument, PdfOptions, StampFont, StampLine, StampStyle};
 
 use crate::catalogue::ToolId;
+use crate::kinds::{FileKind, detect_kind};
 use crate::names::{named_path, pages_suffix, result_folder, result_path};
 
 /// One run of a Tool on one or more Originals.
@@ -37,6 +38,94 @@ pub enum ToolOptions {
     JpgKePdf(PhotosToPdf),
     /// The photos the camera took, in order, as one page each of one PDF.
     ScanDokumen(PhotosToPdf),
+    /// Every photo without its info, picture untouched; a photo with
+    /// nothing to remove gets no Result.
+    HapusInfoLokasi,
+    /// Text over every photo, and every page of every PDF.
+    BeriWatermark(WatermarkOptions),
+}
+
+/// Beri Watermark's choices, in the user's words.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WatermarkOptions {
+    /// "Hanya untuk verifikasi Bank X".
+    pub text: String,
+    /// "Tambahkan tanggal hari ini": the user's today as they write it,
+    /// such as "08/11/2026", on a line under the text.
+    pub date: Option<String>,
+    /// "Posisi".
+    pub placement: Placement,
+    /// "Ukuran".
+    pub size: MarkSize,
+    /// "Transparansi".
+    pub opacity: MarkOpacity,
+    /// "Warna".
+    pub color: MarkColor,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum MarkSize {
+    Small,
+    #[default]
+    Medium,
+    Large,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum MarkOpacity {
+    /// "Samar".
+    Faint,
+    /// "Sedang".
+    #[default]
+    Medium,
+    /// "Jelas".
+    Strong,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum MarkColor {
+    #[default]
+    Gray,
+    Black,
+    White,
+    Red,
+}
+
+impl WatermarkOptions {
+    /// How the watermark looks, for the engines.
+    pub fn watermark(&self) -> Watermark {
+        let mut lines = vec![rantakit_image::shown(&self.text)];
+        if let Some(date) = &self.date {
+            lines.push(rantakit_image::shown(date));
+        }
+        Watermark {
+            lines,
+            placement: self.placement,
+            // Shares of the page's shorter side.
+            size: match self.size {
+                MarkSize::Small => 0.035,
+                MarkSize::Medium => 0.05,
+                MarkSize::Large => 0.07,
+            },
+            opacity: match self.opacity {
+                MarkOpacity::Faint => 0.15,
+                MarkOpacity::Medium => 0.3,
+                MarkOpacity::Strong => 0.5,
+            },
+            color: match self.color {
+                MarkColor::Gray => [128, 128, 128],
+                MarkColor::Black => [0, 0, 0],
+                MarkColor::White => [255, 255, 255],
+                MarkColor::Red => [211, 47, 47],
+            },
+        }
+    }
+}
+
+/// The live preview of Beri Watermark: `picture`, a small JPG of a photo
+/// or of a PDF's first page, with the watermark on it.
+pub fn watermark_preview(picture: &[u8], opts: &WatermarkOptions) -> Result<Vec<u8>, ErrorKind> {
+    rantakit_image::watermark_preview(picture, &opts.watermark())
 }
 
 /// JPG ke PDF's and Scan Dokumen's choices.
@@ -128,6 +217,8 @@ impl ToolOptions {
             Self::AturHalamanPdf(_) => ToolId::AturHalamanPdf,
             Self::JpgKePdf(_) => ToolId::JpgKePdf,
             Self::ScanDokumen(_) => ToolId::ScanDokumen,
+            Self::HapusInfoLokasi => ToolId::HapusInfoLokasi,
+            Self::BeriWatermark(_) => ToolId::BeriWatermark,
         }
     }
 
@@ -155,6 +246,8 @@ impl ToolOptions {
             Self::PisahPdf(_) => "pages",
             Self::AturHalamanPdf(_) => "edited",
             Self::JpgKePdf(_) | Self::ScanDokumen(_) => "scan",
+            Self::HapusInfoLokasi => "cleaned",
+            Self::BeriWatermark(_) => "watermarked",
         }
     }
 }
@@ -374,6 +467,46 @@ fn run_file(
                 },
             })
         }
+        ToolOptions::HapusInfoLokasi => {
+            let format = rantakit_image::detect_format(original)?;
+            let info = rantakit_image::photo_info(original)?;
+            let path = result_path(original, folder, suffix, photo_extension(format));
+            let out = rantakit_image::remove_info(original, &path, progress, cancel)?;
+            Ok(ResultFile {
+                path,
+                original_size,
+                size: out.size,
+                details: Details::Photo {
+                    format: out.format,
+                    width: info.width,
+                    height: info.height,
+                    quality: None,
+                },
+            })
+        }
+        ToolOptions::BeriWatermark(opts) => {
+            let watermark = opts.watermark();
+            if watermark.lines.iter().all(String::is_empty) {
+                return Err(ErrorKind::Unchanged);
+            }
+            if detect_kind(original) == Some(FileKind::Pdf) {
+                return watermark_pdf(original, original_size, folder, suffix, &watermark, progress, cancel);
+            }
+            let format = rantakit_image::detect_format(original)?;
+            let path = result_path(original, folder, suffix, photo_extension(format));
+            let out = rantakit_image::watermark_image(original, &path, &watermark, progress, cancel)?;
+            Ok(ResultFile {
+                path,
+                original_size,
+                size: out.size,
+                details: Details::Photo {
+                    format: out.format,
+                    width: out.width,
+                    height: out.height,
+                    quality: out.quality,
+                },
+            })
+        }
         ToolOptions::KompresPdf(opts) => {
             let path = result_path(original, folder, suffix, "pdf");
             let out = rantakit_pdf::compress_pdf(original, &path, opts, progress, cancel)?;
@@ -553,6 +686,62 @@ fn split_every(
         original_size,
         size: files.iter().map(|file| file.size).sum(),
         details: Details::Folder { files },
+    })
+}
+
+/// Beri Watermark on a PDF: the watermark over every page, laid out for
+/// each page as a reader shows it, in the bundled font.
+fn watermark_pdf(
+    original: &Path,
+    original_size: u64,
+    folder: &Path,
+    suffix: &str,
+    watermark: &Watermark,
+    progress: &mut dyn FnMut(Progress),
+    cancel: &CancelToken,
+) -> FileOutcome {
+    let mut tracker = Tracker::new(progress, cancel);
+    let mut pdf = PdfDocument::open(original)?;
+    tracker.step(0.3)?;
+    let metrics = rantakit_image::font_metrics();
+    let font = StampFont {
+        name: rantakit_image::watermark::FONT_NAME,
+        file: rantakit_image::watermark::FONT,
+        widths: &metrics.widths,
+        ascent: metrics.ascent,
+        descent: metrics.descent,
+        cap_height: metrics.cap_height,
+        bbox: metrics.bbox,
+    };
+    let style = StampStyle {
+        color: watermark.color,
+        opacity: watermark.opacity,
+    };
+    pdf.stamp(&font, style, &mut |width, height| {
+        watermark
+            .layout(width, height)
+            .into_iter()
+            .map(|line| StampLine {
+                text: line.text,
+                size: line.size,
+                x: line.x,
+                y: line.y,
+                angle: line.angle,
+            })
+            .collect()
+    })?;
+    tracker.step(0.6)?;
+    let pages = pdf.page_count();
+    let path = result_path(original, folder, suffix, "pdf");
+    let size = pdf.save(&path, &mut tracker)?;
+    Ok(ResultFile {
+        path,
+        original_size,
+        size,
+        details: Details::Pages {
+            pages,
+            skipped: Vec::new(),
+        },
     })
 }
 

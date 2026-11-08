@@ -7,16 +7,16 @@ import { useT } from "@/i18n";
 import type { JobItem } from "@/features/compress/useCompressJob";
 import { formatBytes } from "@/lib/format";
 import { isAndroidApp } from "@/lib/platform";
-import { useFileInfo, useFileTile, type FileInfo } from "./fileInfo";
+import { useFileInfo, useFileTile, type FileInfo, type Noun } from "./fileInfo";
 import { OrderedFiles } from "./OrderedFiles";
 import type { ComponentType } from "react";
 import type { RowExtras, SourceProps } from "./toolDef";
 import { unchangedNote } from "./unchanged";
 
-export const NOUN_ICONS = { photo: Image, pdf: File };
+export const NOUN_ICONS = { photo: Image, pdf: File, file: File };
 
 interface FilesColumnProps {
-  noun: "photo" | "pdf";
+  noun: Noun;
   paths: string[];
   /** While a Task runs: each file's progress, in place of the remove buttons. */
   items?: JobItem[];
@@ -138,7 +138,7 @@ function ReadyRow({
   onRemove,
 }: {
   path: string;
-  noun: "photo" | "pdf";
+  noun: Noun;
   info?: FileInfo;
   skipNote?: string | null;
   onRemove: () => void;
@@ -167,7 +167,7 @@ function ReadyRow({
 }
 
 /** A file while its Task runs: waiting, a progress bar, or done with its new size. */
-function WorkingRow({ item, noun }: { item: JobItem; noun: "photo" | "pdf" }) {
+function WorkingRow({ item, noun }: { item: JobItem; noun: Noun }) {
   const { t, locale } = useT();
   const tile = useFileTile(item.path, noun, 96);
   const common = { name: item.name, title: item.path, icon: NOUN_ICONS[noun], ...tile };

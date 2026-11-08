@@ -229,14 +229,14 @@ pub const CATALOGUE: &[Tool] = &[
         BagikanAman,
         &[Jpg, Png, Pdf],
         ALL,
-        ComingSoon,
+        Shipped,
     ),
     tool(
         ToolId::HapusInfoLokasi,
         BagikanAman,
         PHOTOS,
         ALL,
-        ComingSoon,
+        Shipped,
     ),
 ];
 
@@ -380,17 +380,19 @@ mod tests {
                 ToolId::KompresFoto,
                 ToolId::UbahFormatFoto,
                 ToolId::UbahUkuranFoto,
-                ToolId::JpgKePdf
+                ToolId::JpgKePdf,
+                ToolId::BeriWatermark,
+                ToolId::HapusInfoLokasi
             ]
         );
         assert_eq!(
             tools_for_kinds(&[Pdf, Pdf], on),
-            [ToolId::KompresPdf, ToolId::GabungPdf, ToolId::PisahPdf]
+            [ToolId::KompresPdf, ToolId::GabungPdf, ToolId::PisahPdf, ToolId::BeriWatermark]
         );
     }
 
     #[test]
-    fn photos_and_pdfs_together_fit_nothing() {
+    fn photos_and_pdfs_together_fit_nothing_even_where_both_fit() {
         assert!(tools_for_kinds(&[Jpg, Pdf], Platform::Linux).is_empty());
     }
 
@@ -411,7 +413,9 @@ mod tests {
                     ToolId::KompresFoto,
                     ToolId::UbahFormatFoto,
                     ToolId::UbahUkuranFoto,
-                    ToolId::JpgKePdf
+                    ToolId::JpgKePdf,
+                    ToolId::BeriWatermark,
+                    ToolId::HapusInfoLokasi
                 ]
             }
         );

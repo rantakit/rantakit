@@ -11,3 +11,4 @@ pub mod share;
 pub mod task;
 pub mod tools;
 pub mod update;
+pub mod watermark;

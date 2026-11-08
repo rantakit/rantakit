@@ -77,7 +77,20 @@ export type ToolOptions =
       edits: { corners: [number, number][] | null; turns: number }[];
       /** "Tampilan": "Bersihkan" or "Warna asli". */
       look: "clean" | "original";
-    };
+    }
+  | { tool: "hapus-info-lokasi" }
+  | ({ tool: "beri-watermark" } & WatermarkRequest);
+
+/** Beri Watermark's text and look (`WatermarkRequest` in `src-tauri/src/commands/task.rs`). */
+export interface WatermarkRequest {
+  text: string;
+  /** A second line, such as "08/11/2026". */
+  date?: string;
+  placement: "repeated" | "center" | "corner";
+  size: "small" | "medium" | "large";
+  opacity: "faint" | "medium" | "strong";
+  color: "gray" | "black" | "white" | "red";
+}
 
 /** The Size limit in bytes these options aim for, if any. */
 export function limitOf(options: ToolOptions): number | undefined {

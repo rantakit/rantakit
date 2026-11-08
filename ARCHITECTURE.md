@@ -63,6 +63,8 @@ A Tool keeps the same promise on every platform (same Tool, same output format, 
 | Finding the paper in a photo, straightening it (JPG ke PDF, Scan Dokumen) | `imageproc`, with draggable corners when detection misses | same | same |
 | Photos into a PDF (JPG ke PDF, Scan Dokumen) | `lopdf`, each JPG embedded as it is when it needs no change | same | same |
 | "Bersihkan" (Scan Dokumen) | `rantakit-image`: the paper's shade is estimated on a copy about 150 px long, where a closing (brightest, then darkest neighbors) wipes out writing and stamps up to about 4 cm but keeps large shadows, and is divided out; then the contrast is raised a little and colors are kept. A shadow that narrows to a point at the photo's edge can stay faintly | same | same |
+| Watermark (Beri Watermark) | `rantakit-image` lays the text out in page units and draws it on photos with `ab_glyph`; `rantakit-pdf` writes the same lines as a real text layer over each page, with the font embedded. Both use Plus Jakarta Sans Bold (Latin, OFL) from `crates/rantakit-image/fonts/`, without kerning, so a photo and a PDF look alike. Text outside WinAnsi shows as "?" | same | same |
+| Removing photo info (Hapus Info Lokasi) | `rantakit-image` copies a JPG's segments or a PNG's chunks and leaves out EXIF, XMP, IPTC, comments and text, keeping the color profile; the orientation stays as the only tag, so the picture bytes are never decoded or changed | same | same |
 
 Native Android backends are called from Rust through the NDK (`ndk` crate), so engine logic stays inside the engine crate. Kotlin is used only for app plumbing.
 

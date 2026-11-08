@@ -17,6 +17,16 @@ pub struct FileInfo {
     pub kind: Option<&'static str>,
     pub pages: Option<usize>,
     pub longest_side: Option<u32>,
+    /// Photos only: the info Hapus Info Lokasi would remove.
+    pub found: Option<FoundRequest>,
+}
+
+/// `FoundInfo` for the frontend.
+#[derive(Debug, Serialize)]
+pub struct FoundRequest {
+    pub location: bool,
+    pub camera: bool,
+    pub other: bool,
 }
 
 /// What the Files step shows next to each Original: size, and the page count
@@ -32,6 +42,11 @@ pub async fn file_info(app: AppHandle, paths: Vec<PathBuf>) -> Vec<FileInfo> {
                 kind: info.kind.map(FileKind::as_str),
                 pages: info.pages,
                 longest_side: info.longest_side,
+                found: info.found.map(|found| FoundRequest {
+                    location: found.location,
+                    camera: found.camera,
+                    other: found.other,
+                }),
             }
         })
         .collect()

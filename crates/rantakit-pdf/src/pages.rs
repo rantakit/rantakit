@@ -45,7 +45,7 @@ impl PageEdit {
 /// A PDF open for page edits.
 #[derive(Debug, Clone)]
 pub struct PdfDocument {
-    doc: Document,
+    pub(crate) doc: Document,
 }
 
 impl PdfDocument {

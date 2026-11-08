@@ -1,10 +1,12 @@
 mod clean;
 mod encode;
+mod info;
 pub mod paper;
 pub mod options;
 mod preview;
 mod resize;
 mod target_size;
+pub mod watermark;
 
 use std::io::{Cursor, Write};
 use std::path::Path;
@@ -13,6 +15,8 @@ use ::image::{DynamicImage, ImageDecoder, ImageError, ImageFormat as RawFormat, 
 use rantakit_core::{Tracker, read_original, write_result};
 
 pub use options::{Compressed, ImageFormat, ImageOptions, OutputFormat, Target, WHITE};
+pub use watermark::{FontMetrics, Placement, PlacedLine, Watermark, font_metrics, shown, watermark_image, watermark_preview};
+pub use info::{Cleaned, FoundInfo, found_info_of, remove_info};
 pub use preview::{PhotoInfo, photo_info, photo_info_of, thumbnail};
 pub use paper::{Corners, PagePhoto, PhotoEdit, edited_preview, find_paper, find_paper_in, page_photo};
 pub use rantakit_core::{CancelToken, ErrorKind, Progress, Result};
