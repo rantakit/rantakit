@@ -7,8 +7,8 @@ Rantakit is a free, open source, offline toolkit that helps everyday people get 
 ### Doing things to files
 
 **Tool**:
-One thing the app can do to files, such as Kompres PDF or Gabung PDF. Named with the words people search for.
-_Avoid_: feature, action, utility, converter
+One thing the app can do to files, such as Kompres PDF or Gabung PDF. Named with the words people search for. The UI calls Tools "peralatan", as in "Semua peralatan" and "Cari peralatan".
+_Avoid_: feature, action, utility, converter, "alat"
 
 **Task**:
 One run of a Tool on one or more files. Every Task appears in History.
@@ -27,7 +27,7 @@ The list of past Tasks and their Results, shown in the UI as "Riwayat".
 _Avoid_: recents, "Terbaru", log
 
 **Recent tools**:
-The Tools the user used most recently, shown first on the home screen as "Terakhir dipakai", above "Semua alat".
+The Tools the user used most recently, shown first on the home screen as "Terakhir dipakai", above "Semua peralatan".
 _Avoid_: "recent" on its own (ambiguous with History), favorites
 
 ### Options
