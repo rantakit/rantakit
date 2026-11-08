@@ -20,7 +20,7 @@ interface SearchBoxProps {
   onChange: (value: string) => void;
 }
 
-/** "Cari alat" at the top of Home. Escape clears it. */
+/** "Cari peralatan" at the top of Home. Escape clears it. */
 export function SearchBox({ value, onChange }: SearchBoxProps) {
   const { t } = useT();
   return (

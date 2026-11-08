@@ -56,7 +56,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 
 - **Engine foundation** (first, before the other epics): split `rantakit_core` into `rantakit-image` and `rantakit-pdf`, create `rantakit-tasks`, move Result naming and History out of `src-tauri`, and give every engine progress, cancel, and error kinds ([ARCHITECTURE.md](ARCHITECTURE.md)). Add a CI workflow that runs the Rust tests and the frontend type check on every push and pull request.
 - **New look:** clean and minimalist, teal on white, Fredoka and Plus Jakarta Sans, Keyline Icons (rounded), light and dark themes with the dark palette decided.
-- **Home screen:** "Terakhir dipakai" (Recent tools) above "Semua alat" (All tools), All tools grouped by Job, and Tool search.
+- **Home screen:** "Terakhir dipakai" (Recent tools) above "Semua peralatan" (All tools), All tools grouped by Job, and Tool search.
 - **Coming soon cards:** every Tool planned before 1.0 that is not built yet appears in All tools and in search, greyed out with a "Segera hadir" (Coming soon) badge. It cannot be tapped, a screen reader reads it as "<Tool name>, segera hadir", it follows the platform (Scan Dokumen only on Android), and it disappears when the Tool ships.
 - **Three-step Tool layout:** Files, Options, Result, with desktop steps 1 and 2 side by side and Open / Show in folder on the Result (plus Share on Windows).
 - **Compression by outcome:** *Sesuaikan batas ukuran* (Fit a size limit, the default) and *Kecilkan saja* (Just make it smaller), with *Paling kecil / Seimbang / Paling jernih* (Smallest / Balanced / Clearest); the 1–100 quality number moves into Advanced options.

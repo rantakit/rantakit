@@ -102,7 +102,7 @@ Every Tool, including community-contributed ones, is reviewed against these:
 
 ### Ways into the app
 
-- **Tool-first (home screen):** "Terakhir dipakai" (Recent tools) above "Semua alat" (All tools). All tools are grouped by Job (*Kecilkan & Ubah* (Shrink & Convert), *Scan*, *Atur PDF* (Arrange PDF), *Ambil Teks* (Get Text), *Bagikan dengan Aman* (Share Safely)), and a search box finds Tools by name ("kompres" (compress) finds Kompres PDF and Kompres Foto).
+- **Tool-first (home screen):** "Terakhir dipakai" (Recent tools) above "Semua peralatan" (All tools). All tools are grouped by Job (*Kecilkan & Ubah* (Shrink & Convert), *Scan*, *Atur PDF* (Arrange PDF), *Ambil Teks* (Get Text), *Bagikan dengan Aman* (Share Safely)), and a search box finds Tools by name ("kompres" (compress) finds Kompres PDF and Kompres Foto).
 - **Coming soon:** MVP Tools that are not built yet appear in All tools and in search, greyed out with a "Segera hadir" (Coming soon) badge. They cannot be tapped and show no message, a screen reader reads them as "Kompres Video, segera hadir", they follow the platform (Scan Dokumen only on Android), and they disappear once the Tool ships. Tools in the Later column are never shown.
 - **File-first:** drop files on the desktop window, or use **Share → Rantakit** on Android from WhatsApp, Gallery, or Files. Rantakit then shows only the Tools that fit those files. On Android this is expected to be the main way in.
 - **History ("Riwayat"):** past Tasks and their Results, to reopen or share again.

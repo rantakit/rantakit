@@ -80,13 +80,13 @@ export const id = {
 
   // Home
   "home.recent": "Terakhir dipakai",
-  "home.all": "Semua alat",
+  "home.all": "Semua peralatan",
   "home.comingSoon": "Segera hadir",
-  "home.search": "Cari alat",
-  "home.search.placeholder": "Cari alat, misalnya “kompres”",
+  "home.search": "Cari peralatan",
+  "home.search.placeholder": "Cari peralatan, misalnya “kompres”",
   "home.search.clear": "Hapus pencarian",
   "home.search.results": "Hasil pencarian",
-  "home.search.none": "Alat tidak ditemukan",
+  "home.search.none": "Peralatan tidak ditemukan",
 
   // Files and Options
   "setup.remove": "Hapus {name} dari daftar",
@@ -123,7 +123,7 @@ export const id = {
   "drop.ask.single": "Mau diapakan {noun} ini?",
   "drop.ask.many": "Mau diapakan {files} ini?",
   "drop.files": "File yang diseret",
-  "drop.tools": "Alat yang cocok",
+  "drop.tools": "Peralatan yang cocok",
   "noun.photo": "foto",
   "noun.pdf": "PDF",
   "noun.file": "file",
@@ -133,7 +133,7 @@ export const id = {
   "history.title": "Riwayat",
   "history.loadFailed": "Riwayat tidak bisa dibuka",
   "history.empty": "Belum ada riwayat",
-  "history.empty.hint": "Hasil dari setiap alat akan muncul di sini.",
+  "history.empty.hint": "Hasil dari setiap peralatan akan muncul di sini.",
   "history.clear": "Hapus riwayat",
   "history.clear.title": "Hapus semua riwayat?",
   "history.clear.body": "Daftar ini akan dikosongkan. File hasil yang sudah tersimpan tidak ikut terhapus.",
@@ -162,7 +162,7 @@ export const id = {
   // Errors, by the codes the backend sends
   "error.password-protected": "PDF ini dikunci dengan kata sandi. Buka kuncinya dulu, lalu coba lagi.",
   "error.damaged": "File ini rusak atau tidak lengkap. Coba unduh atau salin ulang filenya.",
-  "error.unsupported-format": "Alat ini belum bisa membuka file jenis ini.",
+  "error.unsupported-format": "Peralatan ini belum bisa membuka file jenis ini.",
   "error.size-limit-unreachable": "Paling kecil bisa {best}.",
   "error.size-limit-unreachable.unknown": "Batas ukuran tidak tercapai.",
   "error.size-limit-unreachable.shrink": "Kecilkan juga ukuran gambarnya?",
