@@ -3,8 +3,9 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { currentTranslator } from "@/i18n";
 import { isAndroidApp } from "@/lib/platform";
 
-export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png"];
-export const IMAGE_MIME_TYPES = ["image/jpeg", "image/png"];
+// HEIC and WebP are read only: their Results are JPG unless PNG is chosen (O1).
+export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "heic", "heif", "webp"];
+export const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/heic", "image/heif", "image/webp"];
 
 /** Names of files chosen or shared on Android, by their `content://` address. */
 const chosenNames = new Map<string, string>();

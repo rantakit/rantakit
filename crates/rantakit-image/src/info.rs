@@ -3,6 +3,9 @@
 //! byte for byte, so nothing is lost; only the info around it goes. The
 //! orientation stays, as the one tag of a new, minimal EXIF, so the photo
 //! still shows upright.
+//!
+//! HEIC and WebP, which Rantakit reads but never writes, are made again as
+//! a JPG instead, upright and with nothing but their color profile.
 
 use std::io::{self, BufRead, Read, Seek, SeekFrom, Write};
 use std::path::Path;
@@ -12,6 +15,7 @@ use rantakit_core::{
 };
 
 use crate::options::ImageFormat;
+use crate::photo::PhotoKind;
 
 /// Progress once the Original is read and its info taken out.
 const READ: f32 = 0.3;
@@ -61,14 +65,25 @@ pub struct Cleaned {
 /// What the photo in `file` holds besides its picture, for its row in the
 /// Files step. Reads only the info, skipping over the picture.
 pub fn found_info_of(mut file: impl BufRead + Seek) -> Result<FoundInfo> {
-    let mut start = [0u8; 8];
+    let mut start = [0u8; 16];
     file.read_exact(&mut start)
         .map_err(|e| ErrorKind::reading(&e))?;
     let found = if start.starts_with(&[0xFF, 0xD8]) {
         file.seek(SeekFrom::Start(2))
             .and_then(|_| jpeg_head(&mut file))
-    } else if start == PNG_SIGNATURE {
-        png_head(&mut file)
+    } else if start.starts_with(&PNG_SIGNATURE) {
+        file.seek(SeekFrom::Start(8))
+            .and_then(|_| png_head(&mut file))
+    } else if let Some(kind @ (PhotoKind::Heic | PhotoKind::Webp)) = PhotoKind::of(&start) {
+        // A HEIC's info may sit anywhere in the file; it is read whole.
+        if kind == PhotoKind::Heic {
+            let mut bytes = Vec::new();
+            file.seek(SeekFrom::Start(0))
+                .and_then(|_| file.read_to_end(&mut bytes))
+                .map_err(|e| ErrorKind::reading(&e))?;
+            return heic_found(&bytes);
+        }
+        webp_head(&mut file)
     } else {
         return Err(ErrorKind::UnsupportedFormat);
     };
@@ -112,6 +127,15 @@ fn without_info(bytes: &[u8]) -> Result<Split> {
         jpeg(bytes)
     } else if bytes.starts_with(&PNG_SIGNATURE) {
         png(bytes)
+    } else if let Some(kind @ (PhotoKind::Heic | PhotoKind::Webp)) = PhotoKind::of(bytes) {
+        let found = match kind {
+            PhotoKind::Heic => heic_found(bytes)?,
+            _ => webp_head(&mut io::Cursor::new(bytes)).map_err(|_| ErrorKind::Damaged)?,
+        };
+        if found.is_clean() {
+            return Ok(Split { bytes: Vec::new(), format: ImageFormat::Jpeg, found });
+        }
+        remade(bytes, found)
     } else {
         Err(ErrorKind::UnsupportedFormat)
     }
@@ -427,6 +451,74 @@ fn crc32(bytes: &[u8]) -> u32 {
         }
     }
     !crc
+}
+
+// ---------------------------------------------------------------- HEIC and WebP
+
+/// JPG quality for a HEIC or WebP made again without its info, as for Beri
+/// Watermark: high enough that the loss doesn't show.
+const JPEG_QUALITY: u8 = 92;
+
+/// What a HEIC or WebP holds, from its EXIF and XMP.
+fn found_in(exif: Option<&[u8]>, xmp: Option<&[u8]>) -> FoundInfo {
+    let mut found = FoundInfo::default();
+    if let Some(exif) = exif {
+        // WebP's EXIF chunk sometimes starts like a JPG's.
+        found.add(exif_facts(exif.strip_prefix(EXIF).unwrap_or(exif)).found);
+    }
+    if let Some(xmp) = xmp {
+        found.add(xmp_facts(xmp));
+    }
+    found
+}
+
+fn heic_found(bytes: &[u8]) -> Result<FoundInfo> {
+    let info = crate::photo::heic_info(bytes)?;
+    Ok(found_in(info.exif.as_deref(), info.xmp.as_deref()))
+}
+
+/// The EXIF and XMP chunks of a WebP, skipping over the picture.
+fn webp_head(file: &mut (impl Read + Seek)) -> io::Result<FoundInfo> {
+    file.seek(SeekFrom::Start(12))?;
+    let (mut exif, mut xmp) = (None, None);
+    let mut header = [0u8; 8];
+    loop {
+        match file.read_exact(&mut header) {
+            Ok(()) => {}
+            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => break,
+            Err(e) => return Err(e),
+        }
+        let size = u32::from_le_bytes([header[4], header[5], header[6], header[7]]) as u64;
+        let padded = size + size % 2;
+        match &header[..4] {
+            b"EXIF" | b"XMP " => {
+                let mut data = Vec::new();
+                file.by_ref().take(size).read_to_end(&mut data)?;
+                file.seek(SeekFrom::Current((padded - data.len() as u64) as i64))?;
+                if &header[..4] == b"EXIF" {
+                    exif = Some(data);
+                } else {
+                    xmp = Some(data);
+                }
+            }
+            _ => {
+                file.seek(SeekFrom::Current(padded as i64))?;
+            }
+        }
+    }
+    Ok(found_in(exif.as_deref(), xmp.as_deref()))
+}
+
+/// A HEIC or WebP without its info: the picture made again as a JPG,
+/// upright and with its color profile, since Rantakit writes neither format.
+fn remade(bytes: &[u8], found: FoundInfo) -> Result<Split> {
+    let decoded = crate::decode(bytes)?;
+    let bytes = crate::encode::encode(&decoded.img, ImageFormat::Jpeg, JPEG_QUALITY, decoded.icc.as_deref())?;
+    Ok(Split {
+        bytes,
+        format: ImageFormat::Jpeg,
+        found,
+    })
 }
 
 // ---------------------------------------------------------------- EXIF

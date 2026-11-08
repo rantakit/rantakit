@@ -15,7 +15,7 @@ use rantakit_core::{
 };
 
 use crate::options::{Compressed, ImageFormat};
-use crate::{decode, encode};
+use crate::{Decoded, decode, encode};
 
 /// Plus Jakarta Sans Bold, the app's own font, Latin only (OFL, `fonts/OFL.txt`).
 pub const FONT: &[u8] = include_bytes!("../fonts/PlusJakartaSans-Bold.ttf");
@@ -544,7 +544,8 @@ pub fn watermark_image(
     let mut tracker = Tracker::new(progress, cancel);
     let original = read_original(input)?;
     tracker.step(READ)?;
-    let (img, format) = decode(&original)?;
+    let Decoded { img, kind, icc } = decode(&original)?;
+    let format = kind.saved_as();
     drop(original);
     tracker.step(DECODED)?;
 
@@ -553,16 +554,13 @@ pub fn watermark_image(
     mark(&mut rgba, watermark);
     tracker.step(MARKED)?;
 
-    let marked = match (format, had_alpha) {
-        (ImageFormat::Png, true) => DynamicImage::ImageRgba8(rgba),
-        (ImageFormat::Png, false) => {
-            DynamicImage::ImageRgb8(DynamicImage::ImageRgba8(rgba).into_rgb8())
-        }
-        (ImageFormat::Jpeg, _) => {
-            DynamicImage::ImageRgb8(DynamicImage::ImageRgba8(rgba).into_rgb8())
-        }
+    // Transparency stays in a PNG; a JPG gets it on white, from the encoder.
+    let marked = if had_alpha {
+        DynamicImage::ImageRgba8(rgba)
+    } else {
+        DynamicImage::ImageRgb8(DynamicImage::ImageRgba8(rgba).into_rgb8())
     };
-    let bytes = encode::encode(&marked, format, JPEG_QUALITY)?;
+    let bytes = encode::encode(&marked, format, JPEG_QUALITY, icc.as_deref())?;
     tracker.step(ENCODED)?;
     let size = write_result(output, &mut tracker, |file| file.write_all(&bytes))?;
     Ok(Compressed {
@@ -584,5 +582,5 @@ pub fn watermark_preview(picture: &[u8], watermark: &Watermark) -> Result<Vec<u8
         &DynamicImage::ImageRgba8(rgba),
         crate::WHITE,
     ));
-    encode::encode(&flat, ImageFormat::Jpeg, 85)
+    encode::encode(&flat, ImageFormat::Jpeg, 85, None)
 }

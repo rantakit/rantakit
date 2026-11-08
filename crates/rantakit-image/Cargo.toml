@@ -1,7 +1,7 @@
 [package]
 name = "rantakit-image"
 version = "0.3.0"
-description = "Image engine for Rantakit (JPG and PNG), no Tauri dependency"
+description = "Image engine for Rantakit (JPG, PNG, HEIC and WebP), no Tauri dependency"
 authors = ["moez-rd"]
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/moez-rd/rantakit"
@@ -9,6 +9,7 @@ edition = "2024"
 
 [dependencies]
 ab_glyph = { version = "0.2", default-features = false, features = ["std"] }
-image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
+heic = { version = "0.1.6", default-features = false, features = ["std"] }
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 imageproc = { version = "0.27", default-features = false }
 rantakit-core = { path = "../rantakit-core" }

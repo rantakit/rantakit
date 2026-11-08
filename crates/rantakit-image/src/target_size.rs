@@ -22,10 +22,12 @@ pub(crate) fn compress_to_size(
     img: &DynamicImage,
     format: ImageFormat,
     max_bytes: u64,
+    icc: Option<&[u8]>,
     tracker: &mut Tracker<'_>,
 ) -> Result<Fitted> {
     let mut search = Search {
         tracker,
+        icc,
         attempts: 0,
     };
     let mut factor: f32 = 1.0;
@@ -67,6 +69,8 @@ pub(crate) fn compress_to_size(
 /// Reports progress and stops when cancelled before every encode or resize.
 struct Search<'t, 'a> {
     tracker: &'t mut Tracker<'a>,
+    /// The Original's color profile, in every try so the sizes are true.
+    icc: Option<&'t [u8]>,
     attempts: i32,
 }
 
@@ -81,7 +85,7 @@ impl Search<'_, '_> {
 
     fn encode(&mut self, img: &DynamicImage, format: ImageFormat, quality: u8) -> Result<Vec<u8>> {
         self.step()?;
-        encode(img, format, quality)
+        encode(img, format, quality, self.icc)
     }
 }
 

@@ -1,6 +1,7 @@
 mod clean;
 mod encode;
 mod info;
+mod photo;
 pub mod paper;
 pub mod options;
 mod preview;
@@ -8,13 +9,14 @@ mod resize;
 mod target_size;
 pub mod watermark;
 
-use std::io::{Cursor, Write};
+use std::io::{Read, Write};
 use std::path::Path;
 
-use ::image::{DynamicImage, ImageDecoder, ImageError, ImageFormat as RawFormat, ImageReader};
+use ::image::DynamicImage;
 use rantakit_core::{Tracker, read_original, write_result};
 
 pub use options::{Compressed, ImageFormat, ImageOptions, OutputFormat, Target, WHITE};
+pub use photo::PhotoKind;
 pub use watermark::{FontMetrics, Placement, PlacedLine, Watermark, font_metrics, shown, watermark_image, watermark_preview};
 pub use info::{Cleaned, FoundInfo, found_info_of, remove_info};
 pub use preview::{PhotoInfo, photo_info, photo_info_of, thumbnail};
@@ -41,12 +43,12 @@ pub fn compress_image(
     let original = read_original(input)?;
     tracker.step(READ)?;
 
-    let (img, input_format) = decode(&original)?;
+    let Decoded { img, kind, icc } = decode(&original)?;
     drop(original);
     tracker.step(DECODED)?;
 
     let format = match opts.format {
-        OutputFormat::Same => input_format,
+        OutputFormat::Same => kind.saved_as(),
         OutputFormat::To(f) => f,
     };
 
@@ -63,7 +65,7 @@ pub fn compress_image(
 
     let fitted = match opts.target {
         Target::Quality(q) => target_size::Fitted {
-            bytes: encode::encode(&img, format, q)?,
+            bytes: encode::encode(&img, format, q, icc.as_deref())?,
             width: img.width(),
             height: img.height(),
             quality: match format {
@@ -71,7 +73,7 @@ pub fn compress_image(
                 ImageFormat::Png => None,
             },
         },
-        Target::MaxBytes(max) => target_size::compress_to_size(&img, format, max, &mut tracker)?,
+        Target::MaxBytes(max) => target_size::compress_to_size(&img, format, max, icc.as_deref(), &mut tracker)?,
     };
     tracker.step(ENCODED)?;
 
@@ -86,43 +88,12 @@ pub fn compress_image(
     })
 }
 
-/// The format of the photo at `path`, from its content, not its extension.
-pub fn detect_format(path: &Path) -> Result<ImageFormat> {
-    let reader = ImageReader::open(path)
-        .map_err(|e| ErrorKind::reading(&e))?
-        .with_guessed_format()
-        .map_err(|e| ErrorKind::reading(&e))?;
-
-    format_of(reader.format())
+/// The kind of photo at `path`, from its content, not its extension.
+pub fn detect_kind(path: &Path) -> Result<PhotoKind> {
+    let mut start = [0u8; 16];
+    let mut file = std::fs::File::open(path).map_err(|e| ErrorKind::reading(&e))?;
+    let read = file.read(&mut start).map_err(|e| ErrorKind::reading(&e))?;
+    PhotoKind::of(&start[..read]).ok_or(ErrorKind::UnsupportedFormat)
 }
 
-pub(crate) fn decode(input: &[u8]) -> Result<(DynamicImage, ImageFormat)> {
-    let reader = ImageReader::new(Cursor::new(input))
-        .with_guessed_format()
-        .map_err(|e| ErrorKind::reading(&e))?;
-
-    let format = format_of(reader.format())?;
-
-    let mut decoder = reader.into_decoder().map_err(decode_error)?;
-    let orientation = decoder.orientation().map_err(decode_error)?;
-
-    let mut img = DynamicImage::from_decoder(decoder).map_err(decode_error)?;
-    img.apply_orientation(orientation);
-
-    Ok((img, format))
-}
-
-pub(crate) fn format_of(raw: Option<RawFormat>) -> Result<ImageFormat> {
-    match raw {
-        Some(RawFormat::Jpeg) => Ok(ImageFormat::Jpeg),
-        Some(RawFormat::Png) => Ok(ImageFormat::Png),
-        _ => Err(ErrorKind::UnsupportedFormat),
-    }
-}
-
-fn decode_error(err: ImageError) -> ErrorKind {
-    match err {
-        ImageError::Unsupported(_) => ErrorKind::UnsupportedFormat,
-        _ => ErrorKind::Damaged,
-    }
-}
+pub(crate) use photo::{Decoded, decode};

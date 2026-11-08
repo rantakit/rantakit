@@ -25,3 +25,6 @@ dist-ssr
 
 # Rust (workspace root)
 /target/
+
+# Real photos for local tests only (ARCHITECTURE.md, Testing); never committed
+/crates/rantakit-image/tests/local/
