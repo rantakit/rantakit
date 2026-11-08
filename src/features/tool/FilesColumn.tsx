@@ -1,4 +1,4 @@
-import { File, Image, Plus } from "@keyline-icons/react";
+import { File, FileChartColumn, FileSpreadsheet, FileText, Image, Plus } from "@keyline-icons/react";
 import { FileArrowUp } from "@keyline-icons/react/two-tone";
 import { FileRow } from "@/components/blocks/FileRow";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +13,16 @@ import type { ComponentType } from "react";
 import type { RowExtras, SourceProps } from "./toolDef";
 import { unchangedNote } from "./unchanged";
 
-export const NOUN_ICONS = { photo: Image, pdf: File, file: File };
+export const NOUN_ICONS = { photo: Image, pdf: File, file: File, document: FileText };
+
+/** A file's icon: a document's says whether it is Word, Excel, or PowerPoint. */
+export function iconFor(noun: Noun, path: string) {
+  if (noun !== "document") return NOUN_ICONS[noun];
+  const extension = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
+  if (extension.startsWith("xls")) return FileSpreadsheet;
+  if (extension.startsWith("ppt")) return FileChartColumn;
+  return FileText;
+}
 
 interface FilesColumnProps {
   noun: Noun;
@@ -156,7 +165,7 @@ function ReadyRow({
     <FileRow
       name={name}
       title={path}
-      icon={NOUN_ICONS[noun]}
+      icon={iconFor(noun, path)}
       {...tile}
       status="ready"
       note={meta.join(" · ")}
@@ -170,7 +179,7 @@ function ReadyRow({
 function WorkingRow({ item, noun }: { item: JobItem; noun: Noun }) {
   const { t, locale } = useT();
   const tile = useFileTile(item.path, noun, 96);
-  const common = { name: item.name, title: item.path, icon: NOUN_ICONS[noun], ...tile };
+  const common = { name: item.name, title: item.path, icon: iconFor(noun, item.path), ...tile };
   switch (item.status) {
     case "pending":
       return <FileRow {...common} status="waiting" note={t("task.file.waiting")} />;

@@ -17,6 +17,7 @@ import type { ToolInfo } from "@/features/home/tools";
 const TOOLS: ToolInfo[] = [
   { id: "kompres-foto", job: "kecilkan-ubah", comingSoon: false },
   { id: "kompres-pdf", job: "kecilkan-ubah", comingSoon: false },
+  { id: "kompres-dokumen", job: "kecilkan-ubah", comingSoon: false },
   { id: "ubah-format-foto", job: "kecilkan-ubah", comingSoon: false },
   { id: "ubah-ukuran-foto", job: "kecilkan-ubah", comingSoon: false },
   { id: "gabung-pdf", job: "atur-pdf", comingSoon: false },
@@ -32,7 +33,6 @@ const TOOLS: ToolInfo[] = [
     : []),
   ...(
     [
-      ["kompres-dokumen", "kecilkan-ubah"],
       ["kompres-audio", "kecilkan-ubah"],
       ["ubah-format-audio", "kecilkan-ubah"],
       ["kompres-video", "kecilkan-ubah"],
@@ -45,8 +45,13 @@ const TOOLS: ToolInfo[] = [
 const FOLDER = "C:\\Users\\Rani\\Documents\\Lamaran CPNS\\";
 
 /** What the file pickers return in the browser. */
-export function devPick(noun: "photo" | "pdf"): Promise<string[]> {
-  const names = noun === "photo" ? ["KTP.jpg", "Pas foto.png", "Ijazah scan.jpg", "IMG_2041.HEIC"] : ["Ijazah.pdf", "Transkrip nilai.pdf"];
+export function devPick(noun: "photo" | "pdf" | "document"): Promise<string[]> {
+  const names =
+    noun === "photo"
+      ? ["KTP.jpg", "Pas foto.png", "Ijazah scan.jpg", "IMG_2041.HEIC"]
+      : noun === "pdf"
+        ? ["Ijazah.pdf", "Transkrip nilai.pdf"]
+        : ["Laporan kegiatan.docx", "Anggaran 2026.xlsx", "Presentasi seminar.pptx", "Surat lamaran.docx"];
   return Promise.resolve(names.map((name) => FOLDER + name));
 }
 
@@ -67,6 +72,10 @@ function sizeOf(path: string) {
 }
 
 const isPdf = (path: string) => path.toLowerCase().endsWith(".pdf");
+const isDocument = (path: string) => /\.(docx|xlsx|pptx|docm|xlsm|pptm)$/i.test(path);
+const isOldOffice = (path: string) => /\.(doc|xls|ppt)$/i.test(path);
+/** Pictures in a document: "Surat lamaran.docx" has none, so it stays as it is. */
+const picturesOf = (path: string) => (/surat/i.test(path) ? 0 : 3 + (sizeOf(path) % 9));
 const longestSideOf = (path: string) => 600 + (sizeOf(path) % 3400);
 /** What Hapus Info Lokasi finds: "KTP.jpg" has a location and camera info, "Pas foto.png" nothing. */
 const foundOf = (path: string) =>
@@ -79,6 +88,7 @@ const SIDES: Record<string, number> = { large: 1920, medium: 1280, small: 800 };
 const kindOf = (path: string) => {
   const lower = path.toLowerCase();
   if (isPdf(path)) return "pdf";
+  if (isDocument(path)) return lower.includes(".xls") ? "excel" : lower.includes(".ppt") ? "powerpoint" : "word";
   if (lower.endsWith(".png")) return "png";
   if (lower.endsWith(".heic") || lower.endsWith(".heif")) return "heic";
   return lower.endsWith(".webp") ? "webp" : "jpg";
@@ -460,7 +470,8 @@ function runTask({ request, onEvent }: TaskArgs) {
       if (
         (to && kindOf(path) === (to === "jpeg" ? "jpg" : "png")) ||
         (tool === "ubah-ukuran-foto" && longestSideOf(path) <= side) ||
-        (tool === "hapus-info-lokasi" && !Object.values(foundOf(path)).some(Boolean))
+        (tool === "hapus-info-lokasi" && !Object.values(foundOf(path)).some(Boolean)) ||
+        (tool === "kompres-dokumen" && picturesOf(path) === 0)
       ) {
         send({ event: "fileDone", file, outcome: { status: "failed", error: { code: "unchanged" } } });
         continue;
@@ -554,6 +565,9 @@ export function installDevMocks() {
         return has("recent") ? ["kompres-pdf", "kompres-foto"] : [];
       case "match_files": {
         const paths = (args as { paths: string[] }).paths;
+        if (paths.some(isOldOffice)) return { status: "oldOffice" };
+        if (paths.every(isDocument)) return { status: "fits", kinds: paths.map(kindOf), tools: ["kompres-dokumen"] };
+        if (paths.some(isDocument)) return { status: "mixed" };
         if (paths.every(isPdf))
           return {
             status: "fits",
@@ -568,12 +582,13 @@ export function installDevMocks() {
           size: sizeOf(path),
           kind: kindOf(path),
           pages: isPdf(path) ? pageCountOf(path) : null,
-          longestSide: isPdf(path) ? null : longestSideOf(path),
-          found: isPdf(path) ? null : foundOf(path),
+          longestSide: isPdf(path) || isDocument(path) ? null : longestSideOf(path),
+          found: isPdf(path) || isDocument(path) ? null : foundOf(path),
+          pictures: isDocument(path) ? picturesOf(path) : null,
         }));
       case "thumbnail": {
         const { path, size } = args as { path: string; size: number };
-        return isPdf(path) ? new ArrayBuffer(0) : fakeThumbnail(path, size);
+        return isPdf(path) || isDocument(path) ? new ArrayBuffer(0) : fakeThumbnail(path, size);
       }
       case "find_paper": {
         const { path } = args as { path: string };

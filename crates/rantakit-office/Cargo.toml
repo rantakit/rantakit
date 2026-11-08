@@ -1,0 +1,15 @@
+[package]
+name = "rantakit-office"
+version = "0.3.0"
+description = "Word, Excel, and PowerPoint engine for Rantakit, no Tauri dependency"
+authors = ["moez-rd"]
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/moez-rd/rantakit"
+edition = "2024"
+
+[dependencies]
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
+rantakit-core = { path = "../rantakit-core" }
+zip = { version = "9.3", default-features = false, features = ["deflate-flate2"] }
+# Only to pick flate2's pure Rust backend for `zip`, the one `png` already uses.
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }

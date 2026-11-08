@@ -40,6 +40,8 @@ pub enum DropMatch {
     },
     Unsupported,
     Mixed,
+    /// An older `.doc`, `.xls`, or `.ppt`.
+    OldOffice,
 }
 
 /// Which shipped Tools can take every one of `paths`, judged by content, the
@@ -61,6 +63,7 @@ pub async fn match_files(app: AppHandle, paths: Vec<PathBuf>) -> DropMatch {
         },
         FileMatch::Unsupported => DropMatch::Unsupported,
         FileMatch::Mixed => DropMatch::Mixed,
+        FileMatch::OldOffice => DropMatch::OldOffice,
     }
 }
 

@@ -23,7 +23,7 @@ import { formatBytes } from "@/lib/format";
 import { canShare, canShowInFolder, isAndroidApp } from "@/lib/platform";
 import { tv } from "@/lib/react-aria-utils";
 import { nounOf, useFileTile, type Noun } from "./fileInfo";
-import { NOUN_ICONS } from "./FilesColumn";
+import { iconFor } from "./FilesColumn";
 import { unchangedNote } from "./unchanged";
 
 interface ResultSummaryProps {
@@ -265,7 +265,7 @@ function Sizes({ result, comparesSizes }: { result: TaskResult; comparesSizes: b
 
 function ResultTile({ path, noun, size }: { path: string; noun: Noun; size: number }) {
   const { thumbnail, thumbnailKind } = useFileTile(path, noun, size);
-  const Icon = NOUN_ICONS[noun];
+  const Icon = iconFor(noun, path);
   return (
     <span
       aria-hidden
@@ -341,7 +341,7 @@ interface ResultRowProps {
 
 function ResultRow({ tr, item, noun, comparesSizes, canRetry, onRetry }: ResultRowProps) {
   const { t, count } = tr;
-  const common = { name: item.name, title: item.path, icon: NOUN_ICONS[noun] };
+  const common = { name: item.name, title: item.path, icon: iconFor(noun, item.path) };
 
   switch (item.status) {
     case "done": {
@@ -408,7 +408,7 @@ interface OneResultProps {
 function OneResult({ item, noun, comparesSizes }: OneResultProps) {
   const { t, locale } = useT();
   const { thumbnail: preview, thumbnailKind } = useFileTile(item.result.outputPath, noun, 800);
-  const Icon = NOUN_ICONS[noun];
+  const Icon = iconFor(noun, item.result.outputPath);
   const name = fileName(item.result.outputPath);
 
   return (

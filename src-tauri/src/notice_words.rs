@@ -30,6 +30,8 @@ fn tool_name(words: &Words, tool: ToolId) -> &'static str {
         (ToolId::KompresFoto, true) => "Compress Photo",
         (ToolId::KompresPdf, false) => "Kompres PDF",
         (ToolId::KompresPdf, true) => "Compress PDF",
+        (ToolId::KompresDokumen, false) => "Kompres Dokumen",
+        (ToolId::KompresDokumen, true) => "Compress Document",
         (ToolId::UbahFormatFoto, false) => "Ubah Format Foto",
         (ToolId::UbahFormatFoto, true) => "Convert Photo",
         (ToolId::UbahUkuranFoto, false) => "Ubah Ukuran Foto",

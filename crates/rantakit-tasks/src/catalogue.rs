@@ -161,7 +161,7 @@ fn family(kind: FileKind) -> u8 {
     match kind {
         Jpg | Png | Heic | Webp => 0,
         Pdf => 1,
-        Word | Excel | PowerPoint => 2,
+        Word | Excel | PowerPoint | LockedOffice | OldOffice => 2,
         Audio => 3,
         Video => 4,
     }
@@ -173,7 +173,8 @@ use Job::*;
 
 const ALL: &[Platform] = &[Platform::Windows, Platform::Linux, Platform::Android];
 const PHOTOS: &[FileKind] = &[Jpg, Png, Heic, Webp];
-const OFFICE: &[FileKind] = &[Word, Excel, PowerPoint];
+/// A locked document goes to Kompres Dokumen, which says it needs its password.
+const OFFICE: &[FileKind] = &[Word, Excel, PowerPoint, LockedOffice];
 
 /// Every Tool planned before 1.0, in the order Home shows them within a Job.
 /// Tools planned for after 1.0 are not listed, so they never appear.
@@ -187,7 +188,7 @@ pub const CATALOGUE: &[Tool] = &[
         KecilkanUbah,
         OFFICE,
         ALL,
-        ComingSoon,
+        Shipped,
     ),
     tool(
         ToolId::KompresAudio,
@@ -312,6 +313,9 @@ pub enum FileMatch {
     /// Each file fits some Tool, but no Tool takes them all, like photos and
     /// PDFs together.
     Mixed,
+    /// An older `.doc`, `.xls`, or `.ppt`, which the user can save again as a
+    /// `.docx`, `.xlsx`, or `.pptx` first.
+    OldOffice,
 }
 
 impl FileMatch {
@@ -331,6 +335,9 @@ impl FileMatch {
 pub fn match_kinds(kinds: &[FileKind], platform: Platform) -> FileMatch {
     if kinds.is_empty() {
         return FileMatch::Unsupported;
+    }
+    if kinds.contains(&OldOffice) {
+        return FileMatch::OldOffice;
     }
     let tools = tools_for_kinds(kinds, platform);
     if !tools.is_empty() {
@@ -404,7 +411,7 @@ mod tests {
 
     #[test]
     fn coming_soon_tools_never_match() {
-        assert!(tools_for_kinds(&[Word], Platform::Linux).is_empty());
+        assert!(tools_for_kinds(&[Audio], Platform::Linux).is_empty());
     }
 
     #[test]
@@ -426,7 +433,8 @@ mod tests {
         );
         assert_eq!(match_kinds(&[Jpg, Pdf], on), FileMatch::Mixed);
         assert_eq!(match_kinds(&[Jpg, Audio], on), FileMatch::Unsupported);
-        assert_eq!(match_kinds(&[Word], on), FileMatch::Unsupported);
+        assert_eq!(match_kinds(&[Video], on), FileMatch::Unsupported);
+        assert_eq!(match_kinds(&[OldOffice, Word], on), FileMatch::OldOffice);
         assert_eq!(match_kinds(&[], on), FileMatch::Unsupported);
     }
 
@@ -490,6 +498,9 @@ mod tests {
     #[test]
     fn office_documents_lead_to_kompres_dokumen() {
         assert!(once_shipped(&[Word, Excel, PowerPoint]).contains(&ToolId::KompresDokumen));
+        assert_eq!(once_shipped(&[LockedOffice]), [ToolId::KompresDokumen]);
+        assert!(once_shipped(&[OldOffice]).is_empty());
+        assert!(once_shipped(&[Word, Pdf]).is_empty());
     }
 
     #[test]

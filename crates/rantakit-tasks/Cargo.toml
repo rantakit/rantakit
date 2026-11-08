@@ -10,11 +10,13 @@ edition = "2024"
 [dependencies]
 rantakit-core = { path = "../rantakit-core" }
 rantakit-image = { path = "../rantakit-image" }
+rantakit-office = { path = "../rantakit-office" }
 rantakit-pdf = { path = "../rantakit-pdf" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2.0.21"
 
 [dev-dependencies]
+zip = { version = "9.3", default-features = false, features = ["deflate-flate2"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 lopdf = { version = "0.46", default-features = false }

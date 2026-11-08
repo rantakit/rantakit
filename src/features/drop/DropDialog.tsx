@@ -1,5 +1,5 @@
 import { Button as AriaButton, DialogTrigger, Heading } from "react-aria-components";
-import { ChevronRight, File, Image, X } from "@keyline-icons/react";
+import { ChevronRight, File, FileText, Image, X } from "@keyline-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Modal } from "@/components/ui/Modal";
@@ -32,7 +32,7 @@ export function DropDialog({ paths, match, onChoose, onClose }: DropDialogProps)
     paths.length === 1
       ? t("drop.ask.single", { noun: t(`noun.${noun}`) })
       : t("drop.ask.many", { files: count(`files.${noun}`, paths.length) });
-  const FileIcon = noun === "photo" ? Image : File;
+  const FileIcon = noun === "photo" ? Image : noun === "document" ? FileText : File;
 
   return (
     <DialogTrigger isOpen onOpenChange={(open) => !open && onClose()}>

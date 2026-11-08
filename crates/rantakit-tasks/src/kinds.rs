@@ -1,6 +1,8 @@
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Seek};
 use std::path::Path;
+
+use rantakit_office::{OfficeKind, Sniffed};
 
 /// What a file is, judged by its content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -13,6 +15,11 @@ pub enum FileKind {
     Word,
     Excel,
     PowerPoint,
+    /// A Word, Excel, or PowerPoint document saved with a password. Which of
+    /// the three it is stays hidden until it is opened.
+    LockedOffice,
+    /// The older `.doc`, `.xls`, or `.ppt`, which no Tool opens.
+    OldOffice,
     Audio,
     Video,
 }
@@ -29,6 +36,8 @@ impl FileKind {
             Self::Word => "word",
             Self::Excel => "excel",
             Self::PowerPoint => "powerpoint",
+            Self::LockedOffice => "locked-office",
+            Self::OldOffice => "old-office",
             Self::Audio => "audio",
             Self::Video => "video",
         }
@@ -39,20 +48,35 @@ impl FileKind {
 const HEADER_BYTES: usize = 1024;
 
 /// The kind of the file at `path` from its first bytes, not its extension.
-/// `None` when it cannot be read or is not a kind Rantakit knows. Office,
-/// audio, and video files are recognized once their Tools ship.
+/// `None` when it cannot be read or is not a kind Rantakit knows. Audio
+/// and video files are recognized once their Tools ship.
 pub fn detect_kind(path: &Path) -> Option<FileKind> {
     read_kind(&mut File::open(path).ok()?)
 }
 
-/// `detect_kind` from the start of an open file.
-pub fn read_kind(file: &mut impl Read) -> Option<FileKind> {
+/// `detect_kind` of an open file, from its start. An Office document is a ZIP
+/// whose list of parts, at its end, tells Word, Excel, and PowerPoint apart.
+pub fn read_kind(file: &mut (impl Read + Seek)) -> Option<FileKind> {
     let mut header = Vec::with_capacity(HEADER_BYTES);
-    file.take(HEADER_BYTES as u64)
+    file.rewind().ok()?;
+    file.by_ref()
+        .take(HEADER_BYTES as u64)
         .read_to_end(&mut header)
         .ok()?;
+    if header.starts_with(ZIP_MAGIC) || header.starts_with(COMPOUND_MAGIC) {
+        return match rantakit_office::sniff(file)? {
+            Sniffed::Office(OfficeKind::Word) => Some(FileKind::Word),
+            Sniffed::Office(OfficeKind::Excel) => Some(FileKind::Excel),
+            Sniffed::Office(OfficeKind::PowerPoint) => Some(FileKind::PowerPoint),
+            Sniffed::Locked => Some(FileKind::LockedOffice),
+            Sniffed::Old => Some(FileKind::OldOffice),
+        };
+    }
     kind_of(&header)
 }
+
+const ZIP_MAGIC: &[u8] = b"PK\x03\x04";
+const COMPOUND_MAGIC: &[u8] = &[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
 
 fn kind_of(header: &[u8]) -> Option<FileKind> {
     let at = |offset: usize, bytes: &[u8]| header.get(offset..offset + bytes.len()) == Some(bytes);

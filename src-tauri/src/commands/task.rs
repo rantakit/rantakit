@@ -63,6 +63,10 @@ pub enum OptionsRequest {
         #[serde(flatten)]
         compression: CompressionRequest,
     },
+    KompresDokumen {
+        #[serde(flatten)]
+        compression: CompressionRequest,
+    },
     UbahFormatFoto {
         to: Format,
         /// JPG quality; ignored for PNG.
@@ -314,7 +318,7 @@ impl OptionsRequest {
     /// The Size limit typed for a compress Tool, if any.
     fn limit(&self) -> Option<u64> {
         match self {
-            Self::KompresFoto { compression, .. } | Self::KompresPdf { compression } => {
+            Self::KompresFoto { compression, .. } | Self::KompresPdf { compression } | Self::KompresDokumen { compression } => {
                 compression.limit
             }
             _ => None,
@@ -378,6 +382,9 @@ impl From<OptionsRequest> for ToolOptions {
             })),
             OptionsRequest::KompresPdf { compression } => {
                 Self::KompresPdf(Compression::from(compression).pdf())
+            }
+            OptionsRequest::KompresDokumen { compression } => {
+                Self::KompresDokumen(Compression::from(compression).document())
             }
             OptionsRequest::UbahFormatFoto {
                 to,

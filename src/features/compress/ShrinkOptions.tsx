@@ -12,7 +12,7 @@ import { asTyped, useRecentLimits } from "./recentLimits";
 import { LEVELS, type ShrinkSettings } from "./shrink";
 
 interface ShrinkOptionsProps {
-  noun: "photo" | "pdf";
+  noun: "photo" | "pdf" | "document";
   settings: ShrinkSettings;
   onChange: (patch: Partial<ShrinkSettings>) => void;
 }

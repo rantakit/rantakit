@@ -1,6 +1,7 @@
 import type { ToolId } from "@/features/home/tools";
 import { kompresFoto } from "@/features/compress/ImageOptions";
 import { kompresPdf } from "@/features/compress/PdfOptions";
+import { kompresDokumen } from "@/features/compress-documents/DocumentOptions";
 import { ubahFormatFoto } from "@/features/convert/ConvertOptions";
 import { ubahUkuranFoto } from "@/features/resize/ResizeOptions";
 import { aturHalamanPdf } from "@/features/arrange/ArrangeOptions";
@@ -21,6 +22,7 @@ type AnyToolDef = ToolDef<any>;
 export const TOOL_DEFS = {
   "kompres-foto": kompresFoto,
   "kompres-pdf": kompresPdf,
+  "kompres-dokumen": kompresDokumen,
   "ubah-format-foto": ubahFormatFoto,
   "ubah-ukuran-foto": ubahUkuranFoto,
   "gabung-pdf": gabungPdf,

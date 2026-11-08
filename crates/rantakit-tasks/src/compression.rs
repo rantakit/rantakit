@@ -3,6 +3,7 @@
 //! tuned with real documents.
 
 use rantakit_image::{ImageOptions, OutputFormat, Target, WHITE};
+use rantakit_office::OfficeOptions;
 use rantakit_pdf::PdfOptions;
 
 /// "Kecilkan saja": how small, in plain words.
@@ -72,6 +73,17 @@ impl Compression {
             target,
             max_dimension,
             background: WHITE,
+        }
+    }
+
+    /// Kompres Dokumen: the pictures in a document follow Kompres PDF's numbers,
+    /// since both are sized for a page.
+    pub fn document(&self) -> OfficeOptions {
+        let pdf = self.pdf();
+        OfficeOptions {
+            quality: pdf.quality,
+            max_dimension: pdf.max_dimension,
+            max_bytes: pdf.max_bytes,
         }
     }
 

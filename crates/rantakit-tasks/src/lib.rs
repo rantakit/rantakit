@@ -38,4 +38,5 @@ pub use rantakit_core::{CancelToken, ErrorKind, Progress};
 pub use rantakit_image::{
     Corners, FoundInfo, ImageFormat, Placement, ImageOptions, OutputFormat, PhotoEdit, Target, WHITE, edited_preview, find_paper, thumbnail,
 };
+pub use rantakit_office::OfficeOptions;
 pub use rantakit_pdf::{PageEdit, PaperSize, PdfDocument, PdfOptions, PdfPages};

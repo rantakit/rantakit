@@ -5,10 +5,10 @@ use ::image::codecs::jpeg::JpegEncoder;
 use ::image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
 use lopdf::{Document, Object, Stream, dictionary};
 use rantakit_tasks::{
-    Availability, CATALOGUE, CancelToken, Details, ErrorKind, FileOutcome, ImageFormat,
+    Availability, CATALOGUE, CancelToken, Details, ErrorKind, FileKind, FileMatch, FileOutcome, ImageFormat,
     ImageOptions, MarkColor, MarkOpacity, MarkSize, OutputFormat, PageEdit, PaperSize, PdfOptions, PdfPages, PdfToJpg, PhotoEdit,
-    FileKind, PhotosToPdf, Placement, Platform, Split, Target, Task, TaskEvent, ToolId, ToolOptions, WHITE, WatermarkOptions,
-    detect_kind, file_info, file_info_of, run_task, tools_for_files,
+    PhotosToPdf, Placement, Platform, Split, Target, Task, TaskEvent, ToolId, ToolOptions, WHITE, WatermarkOptions,
+    OfficeOptions, detect_kind, file_info, file_info_of, match_files, run_task, tools_for_files,
 };
 
 /// A noisy 600x400 photo, so compressing it really makes it smaller.
@@ -106,6 +106,47 @@ fn kompres_pdf() -> ToolOptions {
     })
 }
 
+/// A Word document with one photo pasted in as a PNG, which Kompres Dokumen
+/// turns into a JPG.
+fn report_docx() -> Vec<u8> {
+    use std::io::{Cursor, Write};
+    use zip::write::SimpleFileOptions;
+
+    let photo = ::image::load_from_memory(&photo_jpg()).unwrap();
+    let mut png = Vec::new();
+    photo.write_to(&mut Cursor::new(&mut png), ::image::ImageFormat::Png).unwrap();
+    let parts: [(&str, &[u8]); 5] = [
+        (
+            "[Content_Types].xml",
+            br#"<?xml version="1.0"?><Types xmlns="x"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/></Types>"#,
+        ),
+        (
+            "_rels/.rels",
+            br#"<Relationships xmlns="r"><Relationship Id="rId1" Type="officeDocument" Target="word/document.xml"/></Relationships>"#,
+        ),
+        ("word/document.xml", b"<w:document><w:body><w:p/></w:body></w:document>"),
+        (
+            "word/_rels/document.xml.rels",
+            br#"<Relationships xmlns="r"><Relationship Id="rId4" Type="image" Target="media/image1.png"/></Relationships>"#,
+        ),
+        ("word/media/image1.png", &png),
+    ];
+    let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    for (name, bytes) in parts {
+        writer.start_file(name, SimpleFileOptions::default()).unwrap();
+        writer.write_all(bytes).unwrap();
+    }
+    writer.finish().unwrap().into_inner()
+}
+
+fn kompres_dokumen() -> ToolOptions {
+    ToolOptions::KompresDokumen(OfficeOptions {
+        quality: 70,
+        max_dimension: None,
+        max_bytes: None,
+    })
+}
+
 /// An Original each Tool accepts. The match has no catch-all, so a new Tool
 /// does not compile until it gets a fixture and is covered by the tests below.
 fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
@@ -121,6 +162,7 @@ fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
             ("foto.jpg", photo_jpg())
         }
         ToolOptions::HapusInfoLokasi => ("foto.jpg", located_jpg()),
+        ToolOptions::KompresDokumen(_) => ("laporan.docx", report_docx()),
         ToolOptions::BeriWatermark(opts) if opts.text.contains("PDF") => ("ijazah.pdf", pages_pdf(3)),
         ToolOptions::BeriWatermark(_) => ("ktp.jpg", photo_jpg()),
     }
@@ -176,6 +218,7 @@ fn every_tool() -> Vec<ToolOptions> {
         beri_watermark("Salinan PDF untuk lamaran"),
         pdf_ke_jpg(Some(vec![2])),
         pdf_ke_jpg(None),
+        kompres_dokumen(),
     ]
 }
 
@@ -921,6 +964,46 @@ fn a_cancelled_pdf_to_jpg_leaves_no_folder() {
 
     assert_eq!(outcomes[0].as_ref().err(), Some(&ErrorKind::Cancelled));
     assert_eq!(file_names(&dir), ["ijazah.pdf"]);
+}
+
+#[test]
+fn documents_get_smaller_pictures_and_keep_their_extension() {
+    let dir = scratch("kompres_dokumen");
+    let original = write(&dir, "laporan.docm", &report_docx());
+    let result = run(&task(kompres_dokumen(), vec![original.clone()])).remove(0).unwrap();
+    assert_eq!(result.path, dir.join("laporan (compressed).docm"));
+    assert!(result.size < result.original_size);
+    assert_eq!(
+        result.details,
+        Details::Document {
+            pictures: 1,
+            pictures_recompressed: 1
+        }
+    );
+    assert_eq!(detect_kind(&result.path), Some(FileKind::Word));
+    assert_eq!(file_info(&original).pictures, Some(1));
+}
+
+#[test]
+fn old_and_locked_documents_are_told_apart() {
+    let dir = scratch("old_office");
+    let compound = |name: &str| {
+        let mut bytes = vec![0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+        bytes.extend(vec![0; 600]);
+        bytes.extend(name.encode_utf16().flat_map(u16::to_le_bytes));
+        bytes
+    };
+    let old = write(&dir, "laporan.doc", &compound("WordDocument"));
+    let locked = write(&dir, "rahasia.docx", &compound("EncryptedPackage"));
+    let docx = write(&dir, "laporan.docx", &report_docx());
+
+    assert_eq!(match_files(&[&old], Platform::Linux), FileMatch::OldOffice);
+    assert_eq!(match_files(&[&docx, &old], Platform::Linux), FileMatch::OldOffice);
+    assert_eq!(tools_for_files(&[&locked], Platform::Linux), [ToolId::KompresDokumen]);
+    assert_eq!(
+        run(&task(kompres_dokumen(), vec![locked])),
+        [Err(ErrorKind::PasswordProtected)]
+    );
 }
 
 #[test]

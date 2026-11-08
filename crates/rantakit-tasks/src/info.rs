@@ -18,6 +18,9 @@ pub struct FileInfo {
     pub longest_side: Option<u32>,
     /// Photos only: their info, such as "Ada lokasi · Ada info kamera" (K2).
     pub found: Option<FoundInfo>,
+    /// Word, Excel, and PowerPoint only: their JPG and PNG pictures, the only
+    /// parts Kompres Dokumen makes smaller.
+    pub pictures: Option<usize>,
 }
 
 pub fn file_info(path: &Path) -> FileInfo {
@@ -43,6 +46,11 @@ pub fn file_info_of(mut file: File) -> FileInfo {
                 .read_to_end(&mut bytes)
                 .ok()
                 .and_then(|_| rantakit_pdf::page_count_of(&bytes).ok());
+        }
+        Some(FileKind::Word | FileKind::Excel | FileKind::PowerPoint) => {
+            info.pictures = rantakit_office::document_info_of(BufReader::new(file))
+                .ok()
+                .map(|document| document.pictures);
         }
         Some(FileKind::Jpg | FileKind::Png | FileKind::Heic | FileKind::Webp) => {
             let mut file = BufReader::new(file);

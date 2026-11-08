@@ -6,15 +6,19 @@ import type { ToolId } from "@/features/home/tools";
 export type DropMatch =
   | { status: "fits"; kinds: string[]; tools: ToolId[] }
   | { status: "unsupported" }
-  | { status: "mixed" };
+  | { status: "mixed" }
+  /** An older `.doc`, `.xls`, or `.ppt`. */
+  | { status: "oldOffice" };
 
 const PHOTO_KINDS = ["jpg", "png", "heic", "webp"];
+const DOCUMENT_KINDS = ["word", "excel", "powerpoint", "locked-office"];
 
-/** How to count the files: "3 foto", "3 PDF", or "3 file". */
-export function filesNoun(match: DropMatch): "photo" | "pdf" | "any" {
+/** How to count the files: "3 foto", "3 PDF", "3 dokumen", or "3 file". */
+export function filesNoun(match: DropMatch): "photo" | "pdf" | "document" | "any" {
   if (match.status !== "fits") return "any";
   if (match.kinds.every((kind) => PHOTO_KINDS.includes(kind))) return "photo";
   if (match.kinds.every((kind) => kind === "pdf")) return "pdf";
+  if (match.kinds.every((kind) => DOCUMENT_KINDS.includes(kind))) return "document";
   return "any";
 }
 
