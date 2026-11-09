@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- GitHub organization avatar: the Rantakit mark in the dark-mode primary
+       color, on the dark background of the app. -->
+  <rect width="1024" height="1024" fill="#121212"/>
+  <path d="M212 712V332A120 120 0 0 1 332 212H712Z" fill="#7D93E6"/>
+  <g fill="none" stroke="#7D93E6" stroke-linecap="round">
+    <path d="M742 642Q707 707 647 747" stroke-width="48"/>
+    <path d="M752 482Q657 607 492 752" stroke-width="68"/>
+    <path d="M707 357Q547 527 362 707" stroke-width="56"/>
+  </g>
+</svg>
