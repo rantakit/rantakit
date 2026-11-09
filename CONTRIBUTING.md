@@ -10,6 +10,8 @@ Rantakit is in early development, and the current focus is 0.4.x maintenance: fi
 - **Suggest a Tool or an improvement** with the [feature request form](https://github.com/rantakit/rantakit/issues/new?template=feature_request.yml). Tell us the everyday situation: what you were trying to get done, and where the file had to go.
 - **Send a pull request** for an open issue, or after agreeing on the change in an issue.
 
+Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems privately, as described in [SECURITY.md](SECURITY.md), not in a public issue.
+
 **Never attach real personal documents** (ID cards, family cards, diplomas, bank statements, and the like) to an issue or pull request, yours or anyone else's. If a file triggers the bug, make one that contains nothing private, or describe how to make it.
 
 ## Where decisions live
