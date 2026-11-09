@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AppShell } from "@/components/layout/AppShell";
 import type { NavTarget, Page } from "@/components/layout/navigation";
 import { PermissionDialogs } from "@/features/compress/PermissionDialogs";
@@ -15,10 +16,13 @@ import { useToolSession } from "@/features/tool/useToolSession";
 import { UpdateNotice } from "@/features/update/UpdateNotice";
 import { useShortcuts, type AppCommand } from "@/lib/appCommands";
 import { useBackButton } from "@/lib/backButton";
+import { ISSUES_URL, LICENSE_URL, openExternal, SOURCE_URL } from "@/lib/links";
 import { useMenuEvents, useNativeLanguage } from "@/lib/menuEvents";
 import { useNavHistory } from "@/lib/navHistory";
 import { isAndroidApp, isMacApp } from "@/lib/platform";
 import { useStoredState } from "@/lib/storedState";
+import { editText } from "@/lib/textEditing";
+import { undoLast } from "@/lib/undoTarget";
 import { useBackForwardInputs } from "@/lib/useBackForwardInputs";
 import { useWideLayout } from "@/lib/wideLayout";
 
@@ -74,15 +78,6 @@ function App() {
 
   const pickFiles = async (id: ShippedTool) => incoming.add(await session.pick(id));
 
-  /** From the menu: open the Tool's page, then the picker. */
-  const startTool = (id: ShippedTool) => {
-    if (tool === id && page === "home") return pickFiles(id);
-    session.guard(() => {
-      openTool(id);
-      pickFiles(id);
-    });
-  };
-
   // A Tool page sits over Home, so the Tool alone names where the user is.
   const history = useNavHistory<Page | ShippedTool>(pageTool ?? page);
 
@@ -115,25 +110,41 @@ function App() {
     else goHistory(-1);
   }, settingsPage || history.canBack);
 
-  /** Commands from the macOS menu bar and the keyboard shortcuts. */
+  /** Commands from the hamburger menu, the macOS menu bar, and the keyboard shortcuts. */
   const runCommand = (command: AppCommand) => {
     switch (command) {
+      case "open_files":
+        return incoming.openFiles();
+      case "open_settings":
+        return navigate("settings");
+      case "quit":
+        // The same as the window's close button.
+        return getCurrentWindow().close();
+      case "undo":
+        return undoLast();
+      case "cut":
+      case "copy":
+      case "paste":
+      case "select_all":
+        return editText(command);
+      case "toggle_sidebar":
+        return toggleSidebar();
       case "go_home":
         return navigate("home");
       case "go_history":
         return navigate("history");
-      case "open_settings":
-        return navigate("settings");
-      case "compress_image":
-        return startTool("kompres-foto");
-      case "compress_pdf":
-        return startTool("kompres-pdf");
       case "go_back":
         return goHistory(-1);
       case "go_forward":
         return goHistory(1);
-      case "toggle_sidebar":
-        return toggleSidebar();
+      case "open_source":
+        return openExternal(SOURCE_URL);
+      case "report_problem":
+        return openExternal(ISSUES_URL);
+      case "open_license":
+        return openExternal(LICENSE_URL);
+      case "open_about":
+        return setSettingsTab("about");
     }
   };
 
@@ -156,6 +167,7 @@ function App() {
         onForward: () => goHistory(1),
         sidebarOpen: layout.sidebar,
         onToggleSidebar: toggleSidebar,
+        onCommand: runCommand,
       }}
       titleBarEnd={<UpdateNotice busy={job.isRunning} />}
     >

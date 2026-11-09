@@ -40,8 +40,10 @@ pub fn run() {
             // Photos taken for a Scan Dokumen Task that was cut short.
             #[cfg(target_os = "android")]
             camera::clear(app.handle());
-            #[cfg(windows)]
-            if let Some(window) = app.get_webview_window("main") {
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                let window = main_window(app)?;
+                #[cfg(windows)]
                 round_corners(&window);
             }
             Ok(())
@@ -120,6 +122,24 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Opens the main window on Windows and Linux. Their config sets `create:
+/// false` so it is made here, with clipboard access: without it, Paste in the
+/// title bar menu makes WebView2 ask for permission and fails on WebKitGTK.
+/// macOS has its native Edit menu instead.
+#[cfg(any(windows, target_os = "linux"))]
+fn main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .first()
+        .cloned()
+        .unwrap_or_default();
+    tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?
+        .enable_clipboard_access()
+        .build()
 }
 
 /// Asks Windows 11 to round the undecorated window like a native one (about

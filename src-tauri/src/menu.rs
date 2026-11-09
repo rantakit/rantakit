@@ -1,5 +1,5 @@
 //! Native menu bar, macOS only. Windows and Linux have keyboard shortcuts and
-//! the title bar instead, see `src/lib/appCommands.ts`.
+//! the hamburger menu in the title bar instead, see `src/lib/appCommands.ts`.
 //!
 //! Links are opened here; the other items are forwarded to the main window as
 //! a `menu` event carrying the item id. The labels follow the UI language:
@@ -9,8 +9,7 @@ use tauri::menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem, 
 use tauri::{AppHandle, Emitter, Runtime};
 use tauri_plugin_opener::OpenerExt;
 
-pub const COMPRESS_IMAGE: &str = "compress_image";
-pub const COMPRESS_PDF: &str = "compress_pdf";
+pub const OPEN_FILES: &str = "open_files";
 pub const GO_HOME: &str = "go_home";
 pub const GO_HISTORY: &str = "go_history";
 pub const GO_BACK: &str = "go_back";
@@ -22,7 +21,7 @@ pub const OPEN_SETTINGS: &str = "open_settings";
 
 /// Event the main window listens to for the items it handles.
 const MENU_EVENT: &str = "menu";
-const SOURCE_URL: &str = "https://github.com/moez-rd/rantakit";
+const SOURCE_URL: &str = "https://github.com/rantakit/rantakit";
 const LICENSE_URL: &str = "https://www.gnu.org/licenses/agpl-3.0.html";
 
 /// Every label in the menu bar, in one language.
@@ -35,8 +34,7 @@ struct Labels {
     show_all: &'static str,
     quit: &'static str,
     file: &'static str,
-    compress_image: &'static str,
-    compress_pdf: &'static str,
+    open_files: &'static str,
     edit: &'static str,
     cut: &'static str,
     copy: &'static str,
@@ -66,8 +64,7 @@ const ID: Labels = Labels {
     show_all: "Tampilkan semua",
     quit: "Keluar dari Rantakit",
     file: "File",
-    compress_image: "Kompres Foto…",
-    compress_pdf: "Kompres PDF…",
+    open_files: "Buka…",
     edit: "Edit",
     cut: "Potong",
     copy: "Salin",
@@ -97,8 +94,7 @@ const EN: Labels = Labels {
     show_all: "Show All",
     quit: "Quit Rantakit",
     file: "File",
-    compress_image: "Compress Photo…",
-    compress_pdf: "Compress PDF…",
+    open_files: "Open…",
     edit: "Edit",
     cut: "Cut",
     copy: "Copy",
@@ -167,22 +163,13 @@ fn build_in<R: Runtime>(app: &AppHandle<R>, l: &Labels) -> tauri::Result<Menu<R>
         app,
         l.file,
         true,
-        &[
-            &MenuItem::with_id(
-                app,
-                COMPRESS_IMAGE,
-                l.compress_image,
-                true,
-                Some("CmdOrCtrl+O"),
-            )?,
-            &MenuItem::with_id(
-                app,
-                COMPRESS_PDF,
-                l.compress_pdf,
-                true,
-                Some("CmdOrCtrl+Shift+O"),
-            )?,
-        ],
+        &[&MenuItem::with_id(
+            app,
+            OPEN_FILES,
+            l.open_files,
+            true,
+            Some("CmdOrCtrl+O"),
+        )?],
     )?;
 
     // Without these, copy and paste shortcuts don't work in text fields on macOS.
@@ -243,8 +230,8 @@ pub fn handle_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
     match event.id().as_ref() {
         OPEN_SOURCE => open_url(app, SOURCE_URL),
         OPEN_LICENSE => open_url(app, LICENSE_URL),
-        id @ (COMPRESS_IMAGE | COMPRESS_PDF | GO_HOME | GO_HISTORY | GO_BACK | GO_FORWARD
-        | TOGGLE_SIDEBAR | OPEN_SETTINGS) => {
+        id @ (OPEN_FILES | GO_HOME | GO_HISTORY | GO_BACK | GO_FORWARD | TOGGLE_SIDEBAR
+        | OPEN_SETTINGS) => {
             if let Err(err) = app.emit_to("main", MENU_EVENT, id) {
                 eprintln!("failed to forward menu item {id}: {err}");
             }

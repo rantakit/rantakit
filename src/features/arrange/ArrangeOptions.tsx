@@ -11,6 +11,7 @@ import { PageThumbnail } from "@/features/pages/PageThumbnail";
 import { moveBy, reorder } from "@/features/tool/order";
 import { defineTool, type WorkspaceProps } from "@/features/tool/toolDef";
 import { useT, type Translator } from "@/i18n";
+import { useUndoTarget } from "@/lib/undoTarget";
 import { isChanged, originalPages, remove, rotate, type PlacedPage } from "./arrangement";
 
 /** Atur Halaman PDF has no options; its work is the page grid. */
@@ -55,6 +56,8 @@ function Workspace({ path, pages: count, heading, working, onStart, onUnsavedCha
     setSelected((keys) => new Set(last.filter((p) => keys.has(p.key)).map((p) => p.key)));
     say(t("arrange.undone"));
   };
+  // Undo in the title bar menu.
+  useUndoTarget(history.length > 0 && !running, undo);
 
   const turn = (by: 1 | -1) => {
     if (selected.size === 0) return;

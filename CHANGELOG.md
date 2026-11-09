@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- On Windows and Linux, a ☰ menu at the start of the title bar opens "File", "Edit", "Tampilan" (View), "Navigasi" (Go), and "Bantuan" (Help). From it you can open files, open Settings, undo in "Atur Halaman PDF", cut, copy, and paste in text fields, change the text size and theme, go between pages, and report a problem. Each item shows its shortcut, if it has one
+
+### Changed
+
+- Ctrl+O (Cmd+O on macOS) opens "Buka…" (Open…) to choose files for any Tool, instead of starting "Kompres Foto" (Compress Photo). Ctrl+Shift+O no longer starts "Kompres PDF"
+- "Kode sumber" (Source code) and "Versi baru" (New version) link to the project's new home, github.com/rantakit/rantakit
+
 ## [0.4.0] - 2026-11-08
 
 Rantakit 0.4.0 adds ten Tools, on Windows, Linux, and Android, for putting PDFs together the way a portal asks, turning paper into one PDF, sharing ID copies safely, and handling more formats. Rantakit is in early development and is not stable yet.

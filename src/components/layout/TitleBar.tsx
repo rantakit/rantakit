@@ -5,6 +5,8 @@ import { Button } from "react-aria-components";
 import { useT } from "@/i18n";
 import { isMacApp } from "@/lib/platform";
 import { focusRing, tv } from "@/lib/react-aria-utils";
+import type { AppCommand } from "@/lib/appCommands";
+import { AppMenu } from "./AppMenu";
 
 /** Title bar button, 28 px square. */
 const control = tv({
@@ -26,10 +28,13 @@ export interface TitleBarNav {
   onForward: () => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  /** Runs what is chosen in the hamburger menu. */
+  onCommand: (command: AppCommand) => void;
 }
 
 /**
- * The desktop title bar: the sidebar toggle, Back and Forward on the left,
+ * The desktop title bar: the hamburger menu (not on macOS, which has its menu bar),
+ * the sidebar toggle, Back and Forward on the left,
  * `children` (the "Versi baru" notice) and the window controls on the right.
  * macOS keeps its own traffic lights, so the buttons start clear of them and
  * the window controls are left out. The empty strip moves the window; a
@@ -42,6 +47,7 @@ export function TitleBar({
   onForward,
   sidebarOpen,
   onToggleSidebar,
+  onCommand,
   children,
 }: TitleBarNav & { children?: ReactNode }) {
   const { t } = useT();
@@ -52,6 +58,15 @@ export function TitleBar({
       className={`flex h-9 shrink-0 items-center gap-2 px-1.5 ${isMacApp ? "ps-20" : ""}`}
     >
       <div className="flex shrink-0 items-center gap-1">
+        {!isMacApp && (
+          <AppMenu
+            canBack={canBack}
+            canForward={canForward}
+            sidebarOpen={sidebarOpen}
+            onCommand={onCommand}
+            className={(rp) => control(rp)}
+          />
+        )}
         {/* The sidebar only exists from md up. */}
         <Button
           aria-label={t(sidebarOpen ? "nav.sidebar.hide" : "nav.sidebar.show")}

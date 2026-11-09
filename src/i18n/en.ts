@@ -361,6 +361,24 @@ export const en: Messages = {
   "window.restore": "Restore",
   "window.close": "Close",
 
+  // The hamburger menu in the title bar, Windows and Linux
+  "menu.label": "Menu",
+  "menu.file": "File",
+  "menu.edit": "Edit",
+  "menu.view": "View",
+  "menu.go": "Go",
+  "menu.help": "Help",
+  "menu.open": "Open…",
+  "menu.quit": "Quit",
+  "menu.cut": "Cut",
+  "menu.copy": "Copy",
+  "menu.paste": "Paste",
+  "menu.selectAll": "Select all",
+  "menu.source": "Source code",
+  "menu.reportProblem": "Report a problem",
+  "menu.license": "License",
+  "menu.about": "About Rantakit",
+
   // New version
   "update.notice": "New version",
   "update.title": "Rantakit {version} is out",

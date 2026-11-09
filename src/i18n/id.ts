@@ -364,6 +364,24 @@ export const id = {
   "window.restore": "Kembalikan ukuran",
   "window.close": "Tutup",
 
+  // The hamburger menu in the title bar, Windows and Linux
+  "menu.label": "Menu",
+  "menu.file": "File",
+  "menu.edit": "Edit",
+  "menu.view": "Tampilan",
+  "menu.go": "Navigasi",
+  "menu.help": "Bantuan",
+  "menu.open": "Buka…",
+  "menu.quit": "Keluar",
+  "menu.cut": "Potong",
+  "menu.copy": "Salin",
+  "menu.paste": "Tempel",
+  "menu.selectAll": "Pilih semua",
+  "menu.source": "Kode sumber",
+  "menu.reportProblem": "Laporkan masalah",
+  "menu.license": "Lisensi",
+  "menu.about": "Tentang Rantakit",
+
   // Versi baru
   "update.notice": "Versi baru",
   "update.title": "Rantakit {version} sudah ada",
