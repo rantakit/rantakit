@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-09
+
+Rantakit 0.4.1 brings a new Home, convert Tools named after the format you need, a new icon and color, and a menu in the title bar on Windows and Linux. Rantakit is in early development and is not stable yet.
+
 ### Added
 
 - On Windows and Linux, a hamburger menu at the start of the title bar opens File, Edit, View, Go, and Help. From it you can open files, open Settings, undo in Arrange PDF Pages, cut, copy, and paste in text fields, change the text size and theme, go between pages, and report a problem. Each item shows its shortcut, if it has one
@@ -166,10 +170,11 @@ First public release, for Windows and Linux. Rantakit is in early development an
 - Settings for theme (light, dark, system) and UI zoom
 - Interface in Indonesian
 
-[Unreleased]: https://github.com/moez-rd/rantakit/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/moez-rd/rantakit/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/moez-rd/rantakit/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/moez-rd/rantakit/compare/v0.2.0-rc.2...v0.2.0
-[0.2.0-rc.2]: https://github.com/moez-rd/rantakit/compare/v0.2.0-rc.1...v0.2.0-rc.2
-[0.2.0-rc.1]: https://github.com/moez-rd/rantakit/compare/v0.1.0...v0.2.0-rc.1
-[0.1.0]: https://github.com/moez-rd/rantakit/releases/tag/v0.1.0
+[Unreleased]: https://github.com/rantakit/rantakit/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/rantakit/rantakit/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/rantakit/rantakit/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/rantakit/rantakit/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/rantakit/rantakit/compare/v0.2.0-rc.2...v0.2.0
+[0.2.0-rc.2]: https://github.com/rantakit/rantakit/compare/v0.2.0-rc.1...v0.2.0-rc.2
+[0.2.0-rc.1]: https://github.com/rantakit/rantakit/compare/v0.1.0...v0.2.0-rc.1
+[0.1.0]: https://github.com/rantakit/rantakit/releases/tag/v0.1.0

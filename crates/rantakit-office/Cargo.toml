@@ -1,6 +1,6 @@
 [package]
 name = "rantakit-office"
-version = "0.4.0"
+version = "0.4.1"
 description = "Word, Excel, and PowerPoint engine for Rantakit, no Tauri dependency"
 authors = ["moez-rd"]
 license = "AGPL-3.0-or-later"
