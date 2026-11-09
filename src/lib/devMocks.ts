@@ -6,41 +6,45 @@ import type { ToolInfo } from "@/features/home/tools";
  * checked without the Tauri shell. Never part of a build. The Tools mirror
  * crates/rantakit-tasks/src/catalogue.rs on desktop.
  *
- * URL switches: `?recent` fills Recent tools, `?fail` makes the second file
+ * URL switches: `?recent` puts recently used Tools first on Home, `?fail` makes the second file
  * of every Task miss its Size limit, `?slow` makes Tasks take longer,
  * `?historyOff` starts with History turned off, `?update` finds version 0.5.0
  * (with `?updateDeb`, as a Linux .deb that can't install it), `?pages` makes
  * each PDF a folder of 12 page files, as Pisah PDF will (X3).
- * `?android` lists Scan Dokumen, whose camera is mocked: `?camera=ask` or
+ * `?android` lists Scan Dokumen, whose camera is mocked, and shows Home as
+ * on Android: `?camera=ask` or
  * `?camera=refused` starts without the permission.
  */
+const ANDROID = new URLSearchParams(location.search).has("android");
+
 const TOOLS: ToolInfo[] = [
   { id: "kompres-foto", job: "kecilkan-ubah", comingSoon: false },
   { id: "kompres-pdf", job: "kecilkan-ubah", comingSoon: false },
-  { id: "kompres-dokumen", job: "kecilkan-ubah", comingSoon: false },
-  { id: "ubah-format-foto", job: "kecilkan-ubah", comingSoon: false },
+  { id: "ubah-ke-jpg", job: "kecilkan-ubah", comingSoon: false },
+  { id: "ubah-ke-png", job: "kecilkan-ubah", comingSoon: false },
   { id: "ubah-ukuran-foto", job: "kecilkan-ubah", comingSoon: false },
-  { id: "gabung-pdf", job: "atur-pdf", comingSoon: false },
-  { id: "pisah-pdf", job: "atur-pdf", comingSoon: false },
-  { id: "atur-halaman-pdf", job: "atur-pdf", comingSoon: false },
-  { id: "pdf-ke-jpg", job: "atur-pdf", comingSoon: false },
-  { id: "jpg-ke-pdf", job: "scan", comingSoon: false },
-  { id: "hapus-info-lokasi", job: "bagikan-aman", comingSoon: false },
-  { id: "beri-watermark", job: "bagikan-aman", comingSoon: false },
-  // Android only.
-  ...(new URLSearchParams(location.search).has("android")
-    ? [{ id: "scan-dokumen", job: "scan", comingSoon: false } as const]
-    : []),
+  { id: "kompres-dokumen", job: "kecilkan-ubah", comingSoon: false },
   ...(
     [
       ["kompres-audio", "kecilkan-ubah"],
       ["ubah-format-audio", "kecilkan-ubah"],
       ["kompres-video", "kecilkan-ubah"],
-      ["word-ke-pdf", "kecilkan-ubah"],
-      ["excel-ke-pdf", "kecilkan-ubah"],
     ] as const
   ).map(([id, job]) => ({ id, job, comingSoon: true })),
+  { id: "ubah-ke-pdf", job: "scan", comingSoon: false },
+  // Android only.
+  ...(ANDROID ? [{ id: "scan-dokumen", job: "scan", comingSoon: false } as const] : []),
+  { id: "gabung-pdf", job: "atur-pdf", comingSoon: false },
+  { id: "pisah-pdf", job: "atur-pdf", comingSoon: false },
+  { id: "atur-halaman-pdf", job: "atur-pdf", comingSoon: false },
+  { id: "beri-watermark", job: "bagikan-aman", comingSoon: false },
+  { id: "hapus-info-lokasi", job: "bagikan-aman", comingSoon: false },
 ];
+
+/** `home_tools` with nothing used yet. */
+const HOME_DEFAULTS = ANDROID
+  ? ["scan-dokumen", "kompres-foto", "kompres-pdf", "ubah-ke-pdf", "gabung-pdf", "ubah-ke-jpg", "beri-watermark"]
+  : ["kompres-pdf", "kompres-foto", "ubah-ke-pdf", "gabung-pdf", "ubah-ke-jpg", "pisah-pdf", "beri-watermark"];
 
 const FOLDER = "C:\\Users\\Rani\\Documents\\Lamaran CPNS\\";
 
@@ -278,7 +282,7 @@ function sampleHistory() {
       })),
     },
     { id: "2", tool: "kompres-pdf", createdAt: now - day, files: [file("Ijazah.pdf", "compressed")] },
-    { id: "1", tool: "ubah-format-foto", createdAt: now - 9 * day, files: [file("Logo.jpg", "converted", false)] },
+    { id: "1", tool: "ubah-ke-png", createdAt: now - 9 * day, files: [file("Logo.jpg", "converted", false)] },
   ];
 }
 
@@ -561,8 +565,10 @@ export function installDevMocks() {
         presets.splice(0, Infinity, ...presets.filter((p) => p.id !== id));
         return null;
       }
-      case "recent_tools":
-        return has("recent") ? ["kompres-pdf", "kompres-foto"] : [];
+      case "home_tools": {
+        const recent = has("recent") ? ["hapus-info-lokasi", "kompres-foto"] : [];
+        return [...recent, ...HOME_DEFAULTS.filter((id) => !recent.includes(id))].slice(0, 7);
+      }
       case "match_files": {
         const paths = (args as { paths: string[] }).paths;
         if (paths.some(isOldOffice)) return { status: "oldOffice" };
@@ -572,10 +578,10 @@ export function installDevMocks() {
           return {
             status: "fits",
             kinds: ["pdf"],
-            tools: paths.length > 1 ? ["kompres-pdf", "gabung-pdf", "pisah-pdf", "pdf-ke-jpg", "beri-watermark"] : ["kompres-pdf", "pisah-pdf", "atur-halaman-pdf", "pdf-ke-jpg", "beri-watermark"],
+            tools: paths.length > 1 ? ["kompres-pdf", "ubah-ke-jpg", "gabung-pdf", "pisah-pdf", "beri-watermark"] : ["kompres-pdf", "ubah-ke-jpg", "pisah-pdf", "atur-halaman-pdf", "beri-watermark"],
           };
         if (paths.some(isPdf)) return { status: "mixed" };
-        return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-format-foto", "ubah-ukuran-foto", "jpg-ke-pdf", "beri-watermark", "hapus-info-lokasi"] };
+        return { status: "fits", kinds: ["jpg"], tools: ["kompres-foto", "ubah-ke-jpg", "ubah-ke-png", "ubah-ukuran-foto", "ubah-ke-pdf", "beri-watermark", "hapus-info-lokasi"] };
       }
       case "file_info":
         return (args as { paths: string[] }).paths.map((path) => ({

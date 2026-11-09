@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::catalogue::ToolId;
 use crate::history::{new_id, now_ms};
 use crate::store::{JsonFile, Result};
 
@@ -33,10 +34,15 @@ impl Presets {
         Self(JsonFile::new(path))
     }
 
-    /// The Presets of one Tool, oldest first.
+    /// The Presets of one Tool, oldest first, with those saved under an id the
+    /// Tool had before 0.4.1: Ubah ke JPG lists those of Ubah Format Foto and
+    /// PDF ke JPG, whose options the frontend reads as before.
     pub fn list(&self, tool: &str) -> Result<Vec<Preset>> {
         let mut presets = self.0.read()?.presets;
-        presets.retain(|preset| preset.tool == tool);
+        let wanted = ToolId::parse(tool);
+        presets.retain(|preset| {
+            preset.tool == tool || (wanted.is_some() && ToolId::parse(&preset.tool) == wanted)
+        });
         Ok(presets)
     }
 
@@ -93,6 +99,22 @@ mod tests {
         assert_eq!(names, ["Pas foto CPNS", "Beasiswa"]);
         assert_eq!(foto[0], cpns);
         assert_eq!(foto[0].options, options);
+    }
+
+    #[test]
+    fn a_folded_tool_keeps_the_presets_saved_under_its_old_ids() {
+        let presets = presets("legacy");
+        presets.save("ubah-format-foto", "Foto ke JPG", json!({})).unwrap();
+        presets.save("pdf-ke-jpg", "Halaman ke JPG", json!({})).unwrap();
+        presets.save("jpg-ke-pdf", "Scan A4", json!({})).unwrap();
+        presets.save("ubah-ke-jpg", "Baru", json!({})).unwrap();
+
+        let names = |tool| -> Vec<String> {
+            presets.list(tool).unwrap().into_iter().map(|p| p.name).collect()
+        };
+        assert_eq!(names("ubah-ke-jpg"), ["Foto ke JPG", "Halaman ke JPG", "Baru"]);
+        assert_eq!(names("ubah-ke-pdf"), ["Scan A4"]);
+        assert!(names("ubah-ke-png").is_empty());
     }
 
     #[test]

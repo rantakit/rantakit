@@ -7,6 +7,7 @@ import { usePermissionGate } from "@/features/compress/usePermissionGate";
 import { IncomingFilesDialogs } from "@/features/drop/IncomingFilesDialogs";
 import { useIncomingFiles } from "@/features/drop/useIncomingFiles";
 import { HomePage } from "@/features/home/HomePage";
+import { ToolsPage } from "@/features/home/ToolsPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { SettingsDialog, SettingsPage, type SettingsTab } from "@/features/settings/SettingsDialog";
 import { ToolSessionDialogs } from "@/features/tool/LeaveGuard";
@@ -44,12 +45,13 @@ function App() {
 
   const session = useToolSession();
   const { tool, job } = session;
-  /** The Tool page on screen; a Tool page sits over Home. */
-  const pageTool = page === "home" ? tool : null;
+  /** The Tool page on screen; a Tool page sits over Home or the All tools page, whichever opened it. */
+  const pageTool = page === "history" ? null : tool;
   const gate = usePermissionGate(job.start);
 
+  /** Opens a Tool's page over the current one; from History, over Home. */
   const openTool = (id: ShippedTool, withPaths: string[] = []) => {
-    setPage("home");
+    if (page === "history") setPage("home");
     session.open(id, withPaths);
   };
 
@@ -78,7 +80,7 @@ function App() {
 
   const pickFiles = async (id: ShippedTool) => incoming.add(await session.pick(id));
 
-  // A Tool page sits over Home, so the Tool alone names where the user is.
+  // A Tool page sits over Home or the All tools page, so the Tool alone names where the user is.
   const history = useNavHistory<Page | ShippedTool>(pageTool ?? page);
 
   /** Back or Forward; leaving a Tool page asks first, and staying keeps the history where it is. */
@@ -87,7 +89,7 @@ function App() {
     if (!target) return;
     session.guard(() => {
       history.go(delta);
-      if (target === "home" || target === "history") {
+      if (target === "home" || target === "tools" || target === "history") {
         session.close();
         setPage(target);
       } else {
@@ -131,6 +133,8 @@ function App() {
         return toggleSidebar();
       case "go_home":
         return navigate("home");
+      case "go_tools":
+        return navigate("tools");
       case "go_history":
         return navigate("history");
       case "go_back":
@@ -179,7 +183,7 @@ function App() {
       )}
       {/* Hidden, not closed, under the Settings page, so a Tool page keeps its files and options. */}
       <div className={settingsPage ? "hidden" : "contents"}>
-        {page === "home" &&
+        {page !== "history" &&
           (tool ? (
             <ToolPage
               key={tool}
@@ -195,10 +199,15 @@ function App() {
               onUnsavedChange={session.setUnsaved}
               onProcessAnother={session.processAnother}
             />
+          ) : page === "tools" ? (
+            <ToolsPage onOpenTool={(id) => isShipped(id) && openTool(id)} />
           ) : (
             <HomePage
               onOpenTool={(id) => isShipped(id) && openTool(id)}
-              notice={isAndroidApp && <UpdateNotice busy={false} className="-mb-5 h-9 self-end px-3" />}
+              onAllTools={() => navigate("tools")}
+              onHistory={() => navigate("history")}
+              onPickFiles={incoming.openFiles}
+              notice={isAndroidApp && <UpdateNotice busy={false} className="-mb-3 h-9 self-end px-3" />}
             />
           ))}
         {page === "history" && <HistoryPage />}

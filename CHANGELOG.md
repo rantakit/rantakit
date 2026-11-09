@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ctrl+O (Cmd+O on macOS) opens Open… to choose files for any Tool, instead of starting Compress Photo. Ctrl+Shift+O no longer starts Compress PDF
 - Source code and New version link to the project's new home, github.com/rantakit/rantakit
 - The Fit a size limit option is now labelled just Fit
+- Home is new. On desktop a card takes dropped files or opens Choose files; on Android a round add button offers Choose files and Scan Document. Under it, seven Tools as icons, the ones used lately first, with All at the end, then Latest results: the ten latest Tasks, each opening its Result, with See all leading to History
+- Every Tool, grouped and described as Home showed them before, moved to Tools, a new item between Home and History. Ctrl+2 opens it, and History moves to Ctrl+3
+- Convert to JPG (photos, or the pages of a PDF), Convert to PNG, and Convert to PDF (photos into one PDF) replace Convert Photo, PDF to JPG, and JPG to PDF. Their old names still find them in search, and Presets, History, and recently used Tools carry over. Word to PDF and Excel to PDF are no longer listed as coming soon; Convert to PDF says they are
+- Open… and Home's Choose files also take Word, Excel, and PowerPoint files
+- History has an inbox icon
 - The window opens larger, at 1280×800. On Windows and Linux it shrinks to fit smaller screens, such as a 1366×768 laptop, and never goes below its minimum size
 
 ### Fixed

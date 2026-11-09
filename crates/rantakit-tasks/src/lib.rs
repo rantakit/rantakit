@@ -15,8 +15,9 @@ mod store;
 mod task;
 
 pub use catalogue::{
-    Availability, CATALOGUE, FileCount, FileMatch, Job, Platform, Tool, ToolId, match_files,
-    match_kinds, recent_first, tools_for, tools_for_files, tools_for_kinds,
+    Availability, CATALOGUE, FileCount, FileMatch, HOME_TOOLS, Job, Platform, Tool, ToolId,
+    home_tools, match_files, match_kinds, recent_first, tools_for, tools_for_files,
+    tools_for_kinds,
 };
 pub use compression::{Compression, Level, dpi_to_side};
 pub use history::{Entry, EntryFile, History, HistoryError};

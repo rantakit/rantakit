@@ -2,17 +2,15 @@ import { useEffect, useState, type ComponentType } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { IconProps } from "@keyline-icons/react";
 import {
-  ArrowLeftRight,
   AudioLines,
   FileArrowDown,
   FileImage,
-  FileSpreadsheet,
   FileText,
   FileZip,
   Film,
   Grid2x2,
+  Image,
   ImageArrowDown,
-  Images,
   Layers,
   MapPinOff,
   Maximize2,
@@ -26,24 +24,22 @@ import {
 export type ToolId =
   | "kompres-foto"
   | "kompres-pdf"
-  | "ubah-format-foto"
+  | "ubah-ke-jpg"
+  | "ubah-ke-png"
   | "ubah-ukuran-foto"
   | "kompres-dokumen"
   | "kompres-audio"
   | "ubah-format-audio"
   | "kompres-video"
-  | "word-ke-pdf"
-  | "excel-ke-pdf"
-  | "jpg-ke-pdf"
+  | "ubah-ke-pdf"
   | "scan-dokumen"
   | "gabung-pdf"
   | "pisah-pdf"
   | "atur-halaman-pdf"
-  | "pdf-ke-jpg"
   | "beri-watermark"
   | "hapus-info-lokasi";
 
-/** The Jobs, in the order Home shows them (`Job::as_str`). */
+/** The Jobs, in the order the All tools page shows them (`Job::as_str`). */
 export const JOBS = ["kecilkan-ubah", "scan", "atur-pdf", "ambil-teks", "bagikan-aman"] as const;
 export type JobId = (typeof JOBS)[number];
 
@@ -57,33 +53,34 @@ export interface ToolInfo {
 export const TOOL_ICONS: Record<ToolId, ComponentType<IconProps>> = {
   "kompres-foto": ImageArrowDown,
   "kompres-pdf": FileArrowDown,
-  "ubah-format-foto": ArrowLeftRight,
+  "ubah-ke-jpg": FileImage,
+  "ubah-ke-png": Image,
   "ubah-ukuran-foto": Maximize2,
   "kompres-dokumen": FileZip,
   "kompres-audio": AudioLines,
   "ubah-format-audio": MusicNote,
   "kompres-video": Film,
-  "word-ke-pdf": FileText,
-  "excel-ke-pdf": FileSpreadsheet,
-  "jpg-ke-pdf": Images,
+  "ubah-ke-pdf": FileText,
   "scan-dokumen": ScanText,
   "gabung-pdf": Layers,
   "pisah-pdf": Split,
   "atur-halaman-pdf": Grid2x2,
-  "pdf-ke-jpg": FileImage,
   "beri-watermark": Stamp,
   "hapus-info-lokasi": MapPinOff,
 };
 
-/** The last Tools used, newest first; empty until the first Task finishes. */
-export function useRecentTools(): string[] {
-  const [recent, setRecent] = useState<string[]>([]);
+/**
+ * The Tools in Home's grid: the recently used ones, newest first, topped up
+ * with this platform's defaults (`home_tools`). Empty until the backend answers.
+ */
+export function useHomeTools(): ToolId[] {
+  const [tools, setTools] = useState<ToolId[]>([]);
   useEffect(() => {
-    invoke<string[]>("recent_tools")
-      .then(setRecent)
+    invoke<ToolId[]>("home_tools")
+      .then(setTools)
       .catch(() => {});
   }, []);
-  return recent;
+  return tools;
 }
 
 /** The Tools to list on this platform; empty until the backend answers. */

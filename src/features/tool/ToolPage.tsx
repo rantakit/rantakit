@@ -134,7 +134,7 @@ export function ToolPage({
       >
         <header className="flex h-14 shrink-0 items-center gap-2 px-2 md:px-4">{heading}</header>
         {hasResult ? (
-          <ResultList job={job} noun={noun} comparesSizes={!def.summary} merges={def.ordered === true} />
+          <ResultList job={job} noun={noun} comparesSizes={def.comparesSizes?.(noun) ?? !def.summary} merges={def.ordered === true} />
         ) : (
           <FilesColumn
             noun={noun}

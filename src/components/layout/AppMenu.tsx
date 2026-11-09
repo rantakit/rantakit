@@ -113,6 +113,7 @@ export function AppMenu({ canBack, canForward, sidebarOpen, onCommand, className
           <MenuItem>{t("menu.go")}</MenuItem>
           <Menu onAction={run}>
             {item("go_home", t("nav.home"))}
+            {item("go_tools", t("nav.tools"))}
             {item("go_history", t("nav.history"))}
             <MenuSeparator />
             {item("go_back", t("nav.back"), !canBack)}

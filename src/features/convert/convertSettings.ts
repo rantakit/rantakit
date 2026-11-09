@@ -5,9 +5,8 @@ import { isInt, useStoredState } from "@/lib/storedState";
 export type PhotoFormat = "jpeg" | "png";
 export type Background = "white" | "black" | "custom";
 
+/** How photos become JPG; Ubah ke PNG has nothing to choose. */
 export interface ConvertSettings {
-  /** "Ubah ke"; null follows the files. Never remembered: each visit starts from the files. */
-  to: PhotoFormat | null;
   /** "Kualitas JPG (1–100)". */
   quality: number;
   /** "Warna latar" behind transparent parts when a PNG becomes a JPG. */
@@ -22,26 +21,18 @@ const BACKGROUNDS: Record<Exclude<Background, "custom">, string> = { white: "#ff
 function parse(stored: unknown): ConvertSettings {
   const s = (stored ?? {}) as Partial<Record<keyof ConvertSettings, unknown>>;
   return {
-    to: null,
     quality: isInt(s.quality, 1, 100) ? s.quality : 90,
     background: s.background === "black" || s.background === "custom" ? s.background : "white",
     customColor: typeof s.customColor === "string" && HEX.test(s.customColor) ? s.customColor : "#f2f2f2",
   };
 }
 
-/** Ubah Format Foto's options, remembered for the next visit. */
+/** The photo options of Ubah ke JPG, remembered for the next visit; kept where Ubah Format Foto kept them. */
 export function useConvertSettings() {
   return useStoredState("rantakit.ubahFormatFoto", parse);
 }
 
-/** The chosen format, or the opposite of the files': PNG when every file is a JPG, JPG otherwise. */
-export function convertTo(settings: ConvertSettings, files: FileInfo[]): PhotoFormat {
-  if (settings.to) return settings.to;
-  return files.length > 0 && files.every((file) => file.kind === "jpg") ? "png" : "jpeg";
-}
-
-export function toConvertOptions(settings: ConvertSettings, files: FileInfo[]): ToolOptions {
-  const to = convertTo(settings, files);
+export function toConvertOptions(to: PhotoFormat, settings: ConvertSettings): ToolOptions {
   return {
     tool: "ubah-format-foto",
     to,

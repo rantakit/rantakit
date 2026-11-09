@@ -30,7 +30,7 @@ interface ResultSummaryProps {
   job: CompressJob;
   noun: Noun;
   /** The Tool's own line for what happened (X4); left out by the compress Tools. */
-  summary?: (results: TaskResult[], tr: Translator) => string;
+  summary?: (results: TaskResult[], tr: Translator) => string | null;
   /** Whether every file went into one Result, as in Gabung PDF. */
   merges: boolean;
   /** Where Results were saved; null next to each Original. */
@@ -78,6 +78,7 @@ export function ResultSummary({ job, noun, summary, merges, resultsFolder }: Res
 
   // A merge that stopped names the file that stopped it; nothing else was made.
   const stopper = merges ? items.find((item) => item.status === "failed") : undefined;
+  const said = done.length > 0 ? (summary?.(done.map((item) => item.result), tr) ?? null) : null;
 
   // A merge makes one PDF, whatever went into it.
   const one = count("files.pdf", 1);
@@ -105,8 +106,8 @@ export function ResultSummary({ job, noun, summary, merges, resultsFolder }: Res
     done:
       done.length === 0
         ? t("result.nothingChanged")
-        : summary
-          ? `${summary(done.map((item) => item.result), tr)} ${saved}`
+        : said
+          ? `${said} ${saved}`
           : limit
             ? `${t("result.underLimit.all", { limit: formatBytes(limit, locale) })} ${saved}`
             : saved,

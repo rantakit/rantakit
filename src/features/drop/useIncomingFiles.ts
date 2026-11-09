@@ -73,7 +73,7 @@ export function useIncomingFiles({ busy, openTool, addToTool, openWith, leaveFor
   const draggedMatch = useDropMatch(dragging);
 
   const openFiles = async () => {
-    const hint = await receive(await pickAnyFiles());
+    const hint = await receive(await pickAnyFiles({ documents: true }));
     if (hint) setRefused(hint);
   };
 

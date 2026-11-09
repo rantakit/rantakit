@@ -48,11 +48,13 @@ Tools are named with the words people search for (Kompres PDF, not invented name
 
 | Job | MVP | Later |
 |---|---|---|
-| 1. Make it acceptable | Kompres Foto and Kompres PDF (compress photo, compress PDF; both with Size limit mode), Ubah Format Foto (convert photo: JPG, PNG, HEIC, WebP → JPG or PNG), Ubah Ukuran Foto (resize photo), compress office documents (Word, Excel, PowerPoint), compress and convert audio, compress video, Word ke PDF (Word to PDF), Excel ke PDF (Excel to PDF) | |
-| 2. Paper → PDF | **All platforms:** JPG ke PDF (JPG to PDF), with crop and straighten. **Android:** Scan Dokumen (scan document: camera, automatic edge detection, crop, straighten, clean up, multiple pages into one PDF) | |
-| 3. Arrange documents | Gabung PDF (merge PDF), Pisah PDF (split PDF), Atur Halaman PDF (arrange PDF pages: reorder, rotate, delete, extract), PDF ke JPG (PDF to JPG) | |
+| 1. Make it acceptable | Kompres Foto and Kompres PDF (compress photo, compress PDF; both with Size limit mode), Ubah ke JPG (convert to JPG: photos, or the pages of a PDF), Ubah ke PNG (convert to PNG: JPG, HEIC, and WebP photos), Ubah Ukuran Foto (resize photo), compress office documents (Word, Excel, PowerPoint), compress and convert audio, compress video | |
+| 2. Paper → PDF | **All platforms:** Ubah ke PDF (convert to PDF: photos into one PDF, with crop and straighten; Word and Excel files too once they pass the size gate). **Android:** Scan Dokumen (scan document: camera, automatic edge detection, crop, straighten, clean up, multiple pages into one PDF) | |
+| 3. Arrange documents | Gabung PDF (merge PDF), Pisah PDF (split PDF), Atur Halaman PDF (arrange PDF pages: reorder, rotate, delete, extract) | |
 | 4. Get text | | Ambil Teks dari Gambar/PDF (get text from an image or PDF), with Indonesian and English included in the app |
 | 5. Share safely | Beri Watermark (add a watermark to photos and PDFs), Hapus Info Lokasi (remove location and camera info from photos) | Password-protect PDF, redaction, a simple drawn signature |
+
+Converting Tools are named after the format the user needs, not the one they have: a portal asks for a PDF or a JPG, whatever the user is holding. One convert Tool takes one kind of file per Task, and its options follow that kind. The names they replaced in 0.4.1 (Ubah Format Foto, JPG ke PDF, PDF ke JPG) still find them in search.
 
 HEIC is in the MVP because users often receive iPhone photos through WhatsApp or Drive. The heavy formats (HEIC and WebP, office documents, audio, video, Word and Excel to PDF) are in the MVP only if they pass the size gate (see [App size](#app-size)). OCR (Job 4) comes in the first release after the MVP, because it carries the most risk: app size, accuracy for Indonesian, and speed on low-end phones.
 
@@ -88,7 +90,7 @@ Every Tool, including community-contributed ones, is reviewed against these:
 ### No jargon
 
 - **The rule:** a word is fine if it appears in the user's world, and jargon if it only exists inside file tools. JPG, PNG, PDF, KB, and MB are fine, because portals use them. Quality percentages, DPI, pixel dimensions, lossless, EXIF, metadata, and OCR are jargon. The full list lives in [GLOSSARY.md](GLOSSARY.md).
-- **Tool names** use search vocabulary: "Kompres PDF", "Gabung PDF", "JPG ke PDF", "Scan Dokumen", "Ambil Teks dari Gambar", "Beri Watermark".
+- **Tool names** use search vocabulary: "Kompres PDF", "Gabung PDF", "Ubah ke PDF", "Scan Dokumen", "Ambil Teks dari Gambar", "Beri Watermark".
 - **Compression is controlled by outcome, not by a quality slider:**
   - **Sesuaikan** (Fit, the default): the user types the Size limit from the portal and Rantakit finds the best quality that fits. If the limit can't be reached, Rantakit says so and offers the next step ("Can only reach 240 KB. Also shrink the image dimensions?").
   - **Kecilkan saja** (Just make it smaller): three choices, *Paling kecil* (Smallest), *Seimbang* (Balanced), *Paling jernih* (Clearest).
@@ -102,7 +104,12 @@ Every Tool, including community-contributed ones, is reviewed against these:
 
 ### Ways into the app
 
-- **Tool-first (home screen):** "Terakhir dipakai" (Recent tools) above "Semua peralatan" (All tools). All tools are grouped by Job (*Kecilkan & Ubah* (Shrink & Convert), *Scan*, *Atur PDF* (Arrange PDF), *Ambil Teks* (Get Text), *Bagikan dengan Aman* (Share Safely)), and a search box finds Tools by name ("kompres" (compress) finds Kompres PDF and Kompres Foto).
+- **Home ("Beranda"):** a search box, then a way in by file, then seven Tools as an icon grid, then the latest Results.
+  - On desktop the way in is a drop card, "Tarik file ke sini" (Drag files here) with "Pilih file" (Choose files). On Android it is a round add button in the corner, above the tab bar, that offers "Pilih file" and "Scan Dokumen". Which one shows depends on the platform, not the screen width.
+  - The grid shows the Recent tools first and fills up to seven with defaults for the platform, then "Semua" (All), which opens All tools. It has four columns on a phone and eight from 768 px.
+  - "Hasil terbaru" (Latest results) lists the ten latest Tasks, one row each, and "Lihat semua" (See all) opens History. Pressing a row opens its Result. It is hidden while History is off.
+  - Typing in search replaces everything under it with the matching Tools, as the same icons ("kompres" (compress) finds Kompres PDF and Kompres Foto).
+- **All tools ("Peralatan"):** a navigation item of its own, between Beranda and Riwayat. Every Tool with its description, grouped by Job (*Kecilkan & Ubah* (Shrink & Convert), *Scan*, *Atur PDF* (Arrange PDF), *Ambil Teks* (Get Text), *Bagikan dengan Aman* (Share Safely)), with the same search.
 - **Coming soon:** MVP Tools that are not built yet appear in All tools and in search, greyed out with a "Segera hadir" (Coming soon) badge. They cannot be tapped and show no message, a screen reader reads them as "Kompres Video, segera hadir", they follow the platform (Scan Dokumen only on Android), and they disappear once the Tool ships. Tools in the Later column are never shown.
 - **File-first:** drop files on the desktop window, or use **Share → Rantakit** on Android from WhatsApp, Gallery, or Files. Rantakit then shows only the Tools that fit those files. On Android this is expected to be the main way in.
 - **History ("Riwayat"):** past Tasks and their Results, to reopen or share again.
@@ -127,15 +134,15 @@ On desktop, steps 1 and 2 sit side by side on one screen. On a phone they are st
 |---|---|
 | Kompres Foto / Kompres PDF / compress office documents | `ijazah (compressed).pdf` |
 | Convert / resize photo | `foto (converted).jpg`, `foto (resized).jpg` |
-| JPG ke PDF / Scan Dokumen | `scan 2026-10-31.pdf` |
+| Ubah ke PDF / Scan Dokumen | `scan 2026-10-31.pdf` |
 | Gabung PDF | `merged 2026-10-31.pdf` |
 | Pisah PDF / Atur Halaman PDF | `ijazah (pages 1-3).pdf`, `ijazah (page 1).pdf`, `ijazah (edited).pdf` |
-| PDF ke JPG | `ijazah (page 1).jpg` |
+| Ubah ke JPG, from a PDF | `ijazah (page 1).jpg` |
 | Beri Watermark | `ktp (watermarked).jpg` |
 | Hapus Info Lokasi | `foto (cleaned).jpg` |
 | Name already taken | `ijazah (compressed) (2).pdf` |
 
-- **Several Results from one Original** (Pisah PDF splitting every page, PDF ke JPG) go into a new folder named after it, `ijazah (pages)/`, so they don't scatter around the Original. A taken folder name gets a number, like a file: `ijazah (pages) (2)/`.
+- **Several Results from one Original** (Pisah PDF splitting every page, Ubah ke JPG from a PDF) go into a new folder named after it, `ijazah (pages)/`, so they don't scatter around the Original. A taken folder name gets a number, like a file: `ijazah (pages) (2)/`.
 
 ### History
 
@@ -161,7 +168,7 @@ On desktop, steps 1 and 2 sit side by side on one screen. On a phone they are st
 
 ### One Rantakit, two layouts
 
-- **Same catalogue everywhere.** The only differences come from hardware: Scan Dokumen (camera) is Android-only, and desktop covers the same Job with JPG ke PDF plus crop and straighten.
+- **Same catalogue everywhere.** The only differences come from hardware: Scan Dokumen (camera) is Android-only, and desktop covers the same Job with Ubah ke PDF plus crop and straighten.
 - **Same names, icons, words, and steps everywhere.** Someone who learned Kompres PDF on their phone recognizes it immediately on an internet-café PC.
 - **Two layouts from one design system:**
   - **Phone:** one column, actions at the bottom, bottom navigation, system share sheet.

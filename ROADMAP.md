@@ -153,7 +153,7 @@ Users download Rantakit over prepaid mobile data, so the app must stay small ([R
 **Epics:**
 
 - **Fit the size budget first.** `office2pdf` adds about 38 MB to the Android arm64 APK before fonts ([ADR 0009](docs/adr/0009-size-budget.md)). Slim it (unused Typst parts, subset Carlito and Liberation fonts, anything a release build can drop) and measure again. If it still does not fit, decide between raising the caps and moving the Tool to after 1.0.
-- **Word ke PDF and Excel ke PDF** (Word to PDF, Excel to PDF), labeled best effort.
+- **Word and Excel files in Ubah ke PDF** (convert to PDF), labeled best effort. Since 0.4.1 its description says they are coming soon.
 
 **Done when:** within the size budget, and common documents (letters, CVs, simple tables) look the same as in the original app.
 

@@ -34,7 +34,7 @@ const tile = tv({
 
 interface ToolCardProps {
   name: string;
-  /** One plain line under the name; Recent tools cards leave it out. */
+  /** One plain line under the name. */
   description?: string;
   /** A two-tone icon from `@keyline-icons/react/two-tone`. */
   icon: ComponentType<IconProps>;
@@ -47,7 +47,7 @@ interface ToolCardProps {
   onPress?: () => void;
 }
 
-/** A Tool on Home: icon, name, and description. */
+/** A Tool on the All tools page ("Peralatan"): icon, name, and description. */
 export function ToolCard({ name, description, icon: Icon, size = "normal", comingSoon, onPress }: ToolCardProps) {
   if (comingSoon) {
     return (

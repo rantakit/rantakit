@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { ChevronRight, FolderOpen, History, Share2, SquareArrowOutUpRight, TriangleAlert } from "@keyline-icons/react";
+import { ChevronRight, FolderOpen, Inbox, Share2, SquareArrowOutUpRight, TriangleAlert } from "@keyline-icons/react";
 import { DialogTrigger } from "react-aria-components";
 import { AlertDialog } from "@/components/ui/AlertDialog";
 import { Button } from "@/components/ui/Button";
@@ -85,14 +85,14 @@ export function HistoryPage() {
 
       {off ? (
         <Message
-          icon={History}
+          icon={Inbox}
           title={t("history.off")}
           action={<Button onPress={() => setKeepHistory(true).then(load).catch(() => {})}>{t("history.turnOn")}</Button>}
         >
           {t("history.off.body")}
         </Message>
       ) : items.length === 0 ? (
-        <Message icon={History} title={t("history.empty")}>
+        <Message icon={Inbox} title={t("history.empty")}>
           {t("history.empty.hint")}
         </Message>
       ) : (
@@ -144,7 +144,7 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
   const { t, count, locale } = useT();
   const [expanded, setExpanded] = useState(false);
   const known = isToolId(entry.tool);
-  const Icon = known ? TOOL_ICONS[entry.tool as ToolId] : History;
+  const Icon = known ? TOOL_ICONS[entry.tool as ToolId] : Inbox;
   const existing = entry.files.filter((file) => file.exists);
   const first = entry.files[0];
   // Several Results from one Original, such as its pages, sit in one folder (X3).
@@ -155,7 +155,7 @@ function HistoryEntry({ entry }: { entry: HistoryItem }) {
   const names = toOne
     ? t("history.mergedFrom", {
         files: count(
-          entry.tool === "jpg-ke-pdf" ? "files.photo" : entry.tool === "scan-dokumen" ? "pages" : "files.pdf",
+          entry.tool === "ubah-ke-pdf" ? "files.photo" : entry.tool === "scan-dokumen" ? "pages" : "files.pdf",
           entry.files.length,
         ),
         name: fileName(first.resultPath),
@@ -288,7 +288,7 @@ function FileLine({ file, fromOne }: { file: HistoryFile; fromOne: boolean }) {
 }
 
 interface MessageProps {
-  icon: typeof History;
+  icon: typeof Inbox;
   title: string;
   children: ReactNode;
   /** A button under the message. */

@@ -482,10 +482,18 @@ fn every_tool_that_runs_is_shipped_and_accepts_its_original() {
         // Scan Dokumen takes photos from its camera, never files dropped in.
         let from_camera = facts.id == ToolId::ScanDokumen && facts.accepts.is_empty();
         assert!(
-            from_camera || facts.accepts.contains(&detect_kind(&path).unwrap()),
+            from_camera || facts.accepts_kind(detect_kind(&path).unwrap()),
             "{tool:?}"
         );
     }
+}
+
+#[test]
+fn converting_tasks_belong_to_the_tool_named_after_their_goal() {
+    assert_eq!(ToolOptions::convert(ImageFormat::Png, 90, WHITE).id(), ToolId::UbahKePng);
+    assert_eq!(ToolOptions::convert(ImageFormat::Jpeg, 90, WHITE).id(), ToolId::UbahKeJpg);
+    assert_eq!(pdf_ke_jpg(None).id(), ToolId::UbahKeJpg);
+    assert_eq!(jpg_ke_pdf(PaperSize::A4, vec![]).id(), ToolId::UbahKePdf);
 }
 
 #[test]
@@ -505,16 +513,23 @@ fn dropped_files_fit_tools_by_content_not_extension() {
         tools_for_files(&[&photo_named_pdf, &png], on),
         [
             ToolId::KompresFoto,
-            ToolId::UbahFormatFoto,
+            ToolId::UbahKeJpg,
+            ToolId::UbahKePng,
             ToolId::UbahUkuranFoto,
-            ToolId::JpgKePdf,
+            ToolId::UbahKePdf,
             ToolId::BeriWatermark,
             ToolId::HapusInfoLokasi
         ]
     );
     assert_eq!(
         tools_for_files(&[&pdf], on),
-        [ToolId::KompresPdf, ToolId::PisahPdf, ToolId::AturHalamanPdf, ToolId::PdfKeJpg, ToolId::BeriWatermark]
+        [
+            ToolId::KompresPdf,
+            ToolId::UbahKeJpg,
+            ToolId::PisahPdf,
+            ToolId::AturHalamanPdf,
+            ToolId::BeriWatermark
+        ]
     );
     assert!(tools_for_files(&[&photo_named_pdf, &pdf], on).is_empty());
     assert!(tools_for_files(&[&pdf, &text], on).is_empty());

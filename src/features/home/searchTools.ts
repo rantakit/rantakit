@@ -1,24 +1,26 @@
 import { translator } from "@/i18n";
 import type { ToolId, ToolInfo } from "./tools";
 
-/** Extra words people type for each Tool, in either language. Never shown. */
+/**
+ * Extra words people type for each Tool, in either language. Never shown.
+ * The goal-based convert Tools keep the names of the Tools they replaced,
+ * so "jpg ke pdf" or "ubah format foto" still finds them.
+ */
 const KEYWORDS: Record<ToolId, string> = {
   "kompres-foto": "compress reduce shrink photo image picture gambar perkecil",
   "kompres-pdf": "compress reduce shrink perkecil",
-  "ubah-format-foto": "convert konversi format jpg jpeg png heic heif webp ke to",
+  "ubah-ke-jpg": "convert konversi format jpeg png heic heif webp pdf ke to ubah format foto pdf ke jpg png ke jpg image gambar halaman",
+  "ubah-ke-png": "convert konversi format jpg jpeg heic heif webp ke to ubah format foto jpg ke png image gambar",
   "ubah-ukuran-foto": "resize scale dimensions pixels perbesar perkecil kecilkan ukuran",
   "kompres-dokumen": "compress office document dokumen word excel powerpoint ppt doc docx xls xlsx pptx",
   "kompres-audio": "compress sound voice note suara",
   "ubah-format-audio": "convert konversi sound suara mp3",
   "kompres-video": "compress",
-  "word-ke-pdf": "convert konversi docx doc",
-  "excel-ke-pdf": "convert konversi xlsx xls spreadsheet",
-  "jpg-ke-pdf": "convert konversi photo image foto scan",
+  "ubah-ke-pdf": "convert konversi jpg ke pdf foto ke pdf gambar ke pdf photo image jpeg png heic scan word excel",
   "scan-dokumen": "camera kamera pindai foto dokumen scanner",
   "gabung-pdf": "merge combine join satukan gabungkan",
   "pisah-pdf": "split separate extract",
   "atur-halaman-pdf": "arrange reorder rotate delete pages putar hapus",
-  "pdf-ke-jpg": "convert konversi image gambar foto",
   "beri-watermark": "watermark stamp tanda air cap",
   "hapus-info-lokasi": "remove location gps exif metadata privacy privasi",
 };

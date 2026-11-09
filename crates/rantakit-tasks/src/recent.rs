@@ -11,8 +11,8 @@ use crate::store::{JsonFile, Result};
 
 /// How many Size limits are offered; Kompres Foto and Kompres PDF share them.
 pub const RECENT_LIMITS: usize = 5;
-/// How many Tools "Terakhir dipakai" (Recent tools) shows on Home.
-pub const RECENT_TOOLS: usize = 4;
+/// How many recently used Tools are kept; Home shows them first in its grid.
+pub const RECENT_TOOLS: usize = crate::catalogue::HOME_TOOLS;
 
 /// The last few values used, newest first, each once.
 pub struct Recent<T> {
@@ -22,7 +22,8 @@ pub struct Recent<T> {
 
 /// Size limits in bytes.
 pub type RecentLimits = Recent<u64>;
-/// Tools by `ToolId::as_str`.
+/// Tools by `ToolId::as_str`; ids from before 0.4.1 may remain, so read them
+/// with `ToolId::parse`.
 pub type RecentTools = Recent<String>;
 
 impl RecentLimits {
@@ -86,11 +87,15 @@ mod tests {
     }
 
     #[test]
-    fn the_last_four_tools_newest_first_without_duplicates() {
+    fn the_last_seven_tools_newest_first_without_duplicates() {
         let tools = RecentTools::tools(scratch("tools"));
-        for tool in ["kompres-foto", "kompres-pdf", "kompres-foto", "a", "b", "c"] {
+        let used = ["kompres-foto", "kompres-pdf", "kompres-foto", "a", "b", "c", "d", "e", "f"];
+        for tool in used {
             tools.record(tool.into()).unwrap();
         }
-        assert_eq!(tools.list().unwrap(), ["c", "b", "a", "kompres-foto"]);
+        assert_eq!(
+            tools.list().unwrap(),
+            ["f", "e", "d", "c", "b", "a", "kompres-foto"]
+        );
     }
 }

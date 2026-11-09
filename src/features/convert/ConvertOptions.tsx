@@ -1,4 +1,5 @@
-import { RadioCards } from "@/components/ui/RadioCards";
+import { useMemo } from "react";
+import { Image } from "@keyline-icons/react";
 import { ToggleButton } from "@/components/ui/ToggleButton";
 import { ToggleButtonGroup } from "@/components/ui/ToggleButtonGroup";
 import { pickImages } from "@/features/compress/imageApi";
@@ -6,31 +7,18 @@ import { NumberInput } from "@/features/tool/NumberInput";
 import { OptionField } from "@/features/tool/OptionField";
 import { defineTool, type OptionsProps } from "@/features/tool/toolDef";
 import { useT } from "@/i18n";
-import {
-  convertTo,
-  leavesUnchanged,
-  toConvertOptions,
-  useConvertSettings,
-  type Background,
-  type ConvertSettings,
-  type PhotoFormat,
-} from "./convertSettings";
+import { leavesUnchanged, toConvertOptions, useConvertSettings, type Background, type ConvertSettings } from "./convertSettings";
 
-function Main({ settings, onChange, files }: OptionsProps<ConvertSettings>) {
+/** What the Tool makes, said once above the button: "Setiap foto disimpan sebagai JPG." */
+export function ConvertNote({ to }: { to: "jpg" | "png" | "any" }) {
   const { t } = useT();
   return (
-    <OptionField label={t("convert.to")}>
-      <RadioCards<PhotoFormat>
-        label={t("convert.to")}
-        horizontal
-        value={convertTo(settings, files)}
-        options={[
-          { id: "jpeg", label: "JPG" },
-          { id: "png", label: "PNG" },
-        ]}
-        onChange={(to) => onChange({ to })}
-      />
-    </OptionField>
+    <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-strong">
+        <Image aria-hidden className="size-5" />
+      </span>
+      <p className="text-small text-text-muted">{t(`convert.note.${to}`)}</p>
+    </div>
   );
 }
 
@@ -87,13 +75,26 @@ function Advanced({ settings, onChange }: OptionsProps<ConvertSettings>) {
   );
 }
 
-export const ubahFormatFoto = defineTool({
+/** Ubah ke JPG for photos; the PDF half is PDF ke JPG's page (see `ubahKeJpg`). */
+export const photosToJpg = defineTool({
   noun: "photo",
   pick: pickImages,
   useSettings: useConvertSettings,
-  Main,
+  Main: () => <ConvertNote to="jpg" />,
   Advanced,
-  showAdvanced: (settings, files) => convertTo(settings, files) === "jpeg",
-  toRequest: toConvertOptions,
+  toRequest: (settings) => toConvertOptions("jpeg", settings),
+  leavesUnchanged,
+});
+
+/** Nothing to choose: a PNG keeps every pixel and its transparency. */
+const NO_SETTINGS: ConvertSettings = { quality: 90, background: "white", customColor: "#f2f2f2" };
+
+export const ubahKePng = defineTool({
+  noun: "photo",
+  presets: false,
+  pick: pickImages,
+  useSettings: () => useMemo(() => [NO_SETTINGS, () => {}] as const, []),
+  Main: () => <ConvertNote to="png" />,
+  toRequest: (settings) => toConvertOptions("png", settings),
   leavesUnchanged,
 });

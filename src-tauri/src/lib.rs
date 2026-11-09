@@ -107,7 +107,7 @@ pub fn run() {
             commands::history::list_history,
             commands::history::clear_history,
             commands::recent::recent_limits,
-            commands::recent::recent_tools,
+            commands::recent::home_tools,
             commands::settings::get_settings,
             commands::settings::set_keep_history,
             commands::settings::set_results_folder,

@@ -16,7 +16,7 @@ export interface OptionsProps<S> {
 export interface ToolDef<S extends object> {
   /** How the Tool names its files: "3 foto", "Pilih foto"; "2 PDF", "Pilih PDF". "file" takes photos or PDFs, one kind per page (K1). */
   noun: Noun;
-  /** Makes one Result from several files, in an order the user sets (X2): Gabung PDF, JPG ke PDF, Scan Dokumen. */
+  /** Makes one Result from several files, in an order the user sets (X2): Gabung PDF, Ubah ke PDF, Scan Dokumen. */
   ordered?: boolean;
   /** False for a Tool with nothing worth saving as a Preset, such as Gabung PDF. */
   presets?: false;
@@ -69,8 +69,15 @@ export interface ToolDef<S extends object> {
    * What happened, in the words that matter for this Tool (X4): "5 PDF → 1
    * PDF, 23 halaman", or "Lokasi dan info kamera dihapus dari 3 foto". Left
    * out by the compress Tools, whose Result shows each size before and after.
+   * Null says nothing more than where the Results were saved.
    */
-  summary?: (results: TaskResult[], tr: Translator) => string;
+  summary?: (results: TaskResult[], tr: Translator) => string | null;
+  /**
+   * Whether each Result shows its size next to the Original's, for a page
+   * of `noun`; by default when there is no `summary`. Ubah ke JPG compares
+   * them for photos, not for the photos made from a PDF.
+   */
+  comparesSizes?: (noun: Noun) => boolean;
   /**
    * The Tool's own work area, which takes the place of Files and Options once
    * a file is chosen, such as Atur Halaman PDF's page grid. Such a Tool works

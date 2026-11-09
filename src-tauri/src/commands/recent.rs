@@ -1,4 +1,4 @@
-use rantakit_tasks::{RecentLimits, RecentTools};
+use rantakit_tasks::{Platform, RecentLimits, RecentTools, ToolId, home_tools as tools_on_home};
 use tauri::State;
 
 use crate::error::Result;
@@ -9,9 +9,14 @@ pub fn recent_limits(limits: State<'_, RecentLimits>) -> Result<Vec<u64>> {
     Ok(limits.list()?)
 }
 
-/// The last Tools used, newest first, for "Terakhir dipakai" (Recent tools).
-/// Kept even while History is off.
+/// The Tools Home shows in its grid: the recently used ones, newest first,
+/// topped up with this platform's defaults. Recent Tools are kept even while
+/// History is off.
 #[tauri::command]
-pub fn recent_tools(tools: State<'_, RecentTools>) -> Result<Vec<String>> {
-    Ok(tools.list()?)
+pub fn home_tools(tools: State<'_, RecentTools>) -> Result<Vec<&'static str>> {
+    let recent = tools.list()?;
+    Ok(tools_on_home(Platform::current(), &recent)
+        .into_iter()
+        .map(ToolId::as_str)
+        .collect())
 }

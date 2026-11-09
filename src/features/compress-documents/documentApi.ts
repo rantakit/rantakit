@@ -7,7 +7,7 @@ import { isAndroidApp } from "@/lib/platform";
 /** Word, Excel, and PowerPoint, with their macro-enabled variants. */
 export const DOCUMENT_EXTENSIONS = ["docx", "xlsx", "pptx", "docm", "xlsm", "pptm"];
 
-const DOCUMENT_MIME_TYPES = [
+export const DOCUMENT_MIME_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",

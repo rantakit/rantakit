@@ -15,6 +15,13 @@ export const isMacApp = isDesktopApp && platform === "darwin";
 /** The Android app: no title bar or keyboard shortcuts, Results in `Download/Rantakit/`. */
 export const isAndroidApp = isTauri() && platform === "android";
 
+/**
+ * Screens that differ on Android, such as Home's add button: the Android app,
+ * or `bun run dev` in a browser with `?android` (see src/lib/devMocks.ts).
+ */
+export const looksLikeAndroid =
+  isAndroidApp || (import.meta.env.DEV && !isTauri() && new URLSearchParams(location.search).has("android"));
+
 /** The Windows app. */
 export const isWindowsApp = isDesktopApp && platform === "windows";
 

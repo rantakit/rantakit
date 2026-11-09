@@ -203,8 +203,9 @@ impl PhotoSize {
 }
 
 impl ToolOptions {
-    /// Ubah Format Foto: every photo to `to`. `quality` applies to JPG, and
-    /// `background` shows through a transparent PNG that becomes a JPG.
+    /// Ubah ke JPG or Ubah ke PNG: every photo to `to`. `quality` applies to
+    /// JPG, and `background` shows through a transparent PNG that becomes a
+    /// JPG.
     pub fn convert(to: ImageFormat, quality: u8, background: [u8; 3]) -> Self {
         Self::UbahFormatFoto(ImageOptions {
             format: OutputFormat::To(to),
@@ -225,21 +226,27 @@ impl ToolOptions {
         })
     }
 
+    /// The listed Tool this Task belongs to. Ubah Format Foto, JPG ke PDF, and
+    /// PDF ke JPG are listed as the goal-based Tools since 0.4.1.
     pub fn id(&self) -> ToolId {
         match self {
             Self::KompresFoto(_) => ToolId::KompresFoto,
             Self::KompresPdf(_) => ToolId::KompresPdf,
             Self::KompresDokumen(_) => ToolId::KompresDokumen,
-            Self::UbahFormatFoto(_) => ToolId::UbahFormatFoto,
+            Self::UbahFormatFoto(ImageOptions {
+                format: OutputFormat::To(ImageFormat::Png),
+                ..
+            }) => ToolId::UbahKePng,
+            Self::UbahFormatFoto(_) => ToolId::UbahKeJpg,
             Self::UbahUkuranFoto(_) => ToolId::UbahUkuranFoto,
             Self::GabungPdf { .. } => ToolId::GabungPdf,
             Self::PisahPdf(_) => ToolId::PisahPdf,
             Self::AturHalamanPdf(_) => ToolId::AturHalamanPdf,
-            Self::JpgKePdf(_) => ToolId::JpgKePdf,
+            Self::JpgKePdf(_) => ToolId::UbahKePdf,
             Self::ScanDokumen(_) => ToolId::ScanDokumen,
             Self::HapusInfoLokasi => ToolId::HapusInfoLokasi,
             Self::BeriWatermark(_) => ToolId::BeriWatermark,
-            Self::PdfKeJpg(_) => ToolId::PdfKeJpg,
+            Self::PdfKeJpg(_) => ToolId::UbahKeJpg,
         }
     }
 

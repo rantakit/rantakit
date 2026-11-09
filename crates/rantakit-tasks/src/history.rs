@@ -13,6 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::catalogue::ToolId;
 use crate::task::{FileOutcome, Task};
 
 #[derive(Debug, thiserror::Error)]
@@ -49,6 +50,28 @@ pub struct Entry {
     pub created_at: u64,
     /// Each Result, in the order the files were given.
     pub files: Vec<EntryFile>,
+}
+
+impl Entry {
+    /// Names the Tool by its id since 0.4.1 when an older one ran: Ubah
+    /// Format Foto is Ubah ke PNG when it made PNGs, otherwise Ubah ke JPG.
+    fn rename_folded_tool(&mut self) {
+        let made_png = || {
+            self.files.iter().all(|file| {
+                file.result_path
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("png"))
+            })
+        };
+        let tool = match ToolId::parse(&self.tool) {
+            Some(ToolId::UbahKeJpg) if self.tool == "ubah-format-foto" && made_png() => {
+                ToolId::UbahKePng
+            }
+            Some(tool) => tool,
+            None => return,
+        };
+        self.tool = tool.as_str().into();
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -170,6 +193,7 @@ impl History {
             Ok(Stored::Current(mut entries)) => {
                 let oldest = now_ms().saturating_sub(KEEP_MS);
                 entries.retain(|entry| entry.created_at >= oldest);
+                entries.iter_mut().for_each(Entry::rename_folded_tool);
                 Ok(entries)
             }
             // Written by a newer app version: leave it untouched rather than lose data.
@@ -259,6 +283,25 @@ mod tests {
 
         history.clear().unwrap();
         assert!(history.list().unwrap().is_empty());
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn entries_of_folded_tools_name_the_tool_they_became() {
+        let (history, dir) = temp_history("folded");
+        let mut png = used("png", "ubah-format-foto");
+        png.files[0].result_path = "in (converted).PNG".into();
+        history.add(used("jpg", "ubah-format-foto")).unwrap();
+        history.add(png).unwrap();
+        history.add(used("pdf", "jpg-ke-pdf")).unwrap();
+        history.add(used("pages", "pdf-ke-jpg")).unwrap();
+        history.add(used("gone", "word-ke-pdf")).unwrap();
+
+        let tools: Vec<_> = history.list().unwrap().into_iter().map(|e| e.tool).collect();
+        assert_eq!(
+            tools,
+            ["word-ke-pdf", "ubah-ke-jpg", "ubah-ke-pdf", "ubah-ke-png", "ubah-ke-jpg"]
+        );
         fs::remove_dir_all(dir).unwrap();
     }
 

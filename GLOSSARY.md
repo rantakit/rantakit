@@ -27,8 +27,15 @@ The list of past Tasks and their Results, shown in the UI as "Riwayat".
 _Avoid_: recents, "Terbaru", log
 
 **Recent tools**:
-The Tools the user used most recently, shown first on the home screen as "Terakhir dipakai", above "Semua peralatan".
+The Tools the user used most recently, shown first in Home's grid of seven Tools, which defaults for the platform fill up.
 _Avoid_: "recent" on its own (ambiguous with History), favorites
+
+**Latest results**:
+The ten latest Tasks from History, shown on Home as "Hasil terbaru", with "Lihat semua" leading to History.
+_Avoid_: "Terbaru" as a page name
+
+**All tools**:
+The page listing every Tool with its description, grouped by Job, shown in the navigation as "Peralatan" and titled "Semua peralatan".
 
 ### Options
 

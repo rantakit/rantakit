@@ -11,6 +11,7 @@ use tauri_plugin_opener::OpenerExt;
 
 pub const OPEN_FILES: &str = "open_files";
 pub const GO_HOME: &str = "go_home";
+pub const GO_TOOLS: &str = "go_tools";
 pub const GO_HISTORY: &str = "go_history";
 pub const GO_BACK: &str = "go_back";
 pub const GO_FORWARD: &str = "go_forward";
@@ -42,6 +43,7 @@ struct Labels {
     select_all: &'static str,
     view: &'static str,
     home: &'static str,
+    tools: &'static str,
     history: &'static str,
     back: &'static str,
     forward: &'static str,
@@ -72,6 +74,7 @@ const ID: Labels = Labels {
     select_all: "Pilih semua",
     view: "Tampilan",
     home: "Beranda",
+    tools: "Peralatan",
     history: "Riwayat",
     back: "Kembali",
     forward: "Maju",
@@ -102,6 +105,7 @@ const EN: Labels = Labels {
     select_all: "Select All",
     view: "View",
     home: "Home",
+    tools: "Tools",
     history: "History",
     back: "Back",
     forward: "Forward",
@@ -191,7 +195,8 @@ fn build_in<R: Runtime>(app: &AppHandle<R>, l: &Labels) -> tauri::Result<Menu<R>
         true,
         &[
             &MenuItem::with_id(app, GO_HOME, l.home, true, Some("CmdOrCtrl+1"))?,
-            &MenuItem::with_id(app, GO_HISTORY, l.history, true, Some("CmdOrCtrl+2"))?,
+            &MenuItem::with_id(app, GO_TOOLS, l.tools, true, Some("CmdOrCtrl+2"))?,
+            &MenuItem::with_id(app, GO_HISTORY, l.history, true, Some("CmdOrCtrl+3"))?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, GO_BACK, l.back, true, Some("CmdOrCtrl+["))?,
             &MenuItem::with_id(app, GO_FORWARD, l.forward, true, Some("CmdOrCtrl+]"))?,
@@ -230,7 +235,7 @@ pub fn handle_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
     match event.id().as_ref() {
         OPEN_SOURCE => open_url(app, SOURCE_URL),
         OPEN_LICENSE => open_url(app, LICENSE_URL),
-        id @ (OPEN_FILES | GO_HOME | GO_HISTORY | GO_BACK | GO_FORWARD | TOGGLE_SIDEBAR
+        id @ (OPEN_FILES | GO_HOME | GO_TOOLS | GO_HISTORY | GO_BACK | GO_FORWARD | TOGGLE_SIDEBAR
         | OPEN_SETTINGS) => {
             if let Err(err) = app.emit_to("main", MENU_EVENT, id) {
                 eprintln!("failed to forward menu item {id}: {err}");

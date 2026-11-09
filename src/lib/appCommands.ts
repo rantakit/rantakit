@@ -15,6 +15,7 @@ export type AppCommand =
   | "select_all"
   | "toggle_sidebar"
   | "go_home"
+  | "go_tools"
   | "go_history"
   | "go_back"
   | "go_forward"
@@ -40,7 +41,8 @@ const SHORTCUTS: Partial<Record<AppCommand, Shortcut>> = {
   open_settings: { key: "," }, // Ctrl+,
   toggle_sidebar: { key: "b" }, // Ctrl+B
   go_home: { key: "1" }, // Ctrl+1
-  go_history: { key: "2" }, // Ctrl+2
+  go_tools: { key: "2" }, // Ctrl+2
+  go_history: { key: "3" }, // Ctrl+3
   go_back: { key: "arrowleft", alt: true }, // Alt+←
   go_forward: { key: "arrowright", alt: true }, // Alt+→
 };
