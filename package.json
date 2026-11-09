@@ -12,7 +12,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@fontsource/fredoka": "^5.3.0",
+    "@fontsource/gantari": "^5",
     "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@keyline-icons/react": "^2.3.0",
     "@tauri-apps/api": "^2",

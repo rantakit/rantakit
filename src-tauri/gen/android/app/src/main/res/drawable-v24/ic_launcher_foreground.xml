@@ -1,16 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The "r" of public/rantakit.svg, centered and about 46 dp tall, so it stays
-     inside the 66 dp circle every launcher shape keeps. -->
+<!-- The cut square of public/rantakit.svg, on the 72 dp the launcher shows, so
+     it stays inside the 66 dp circle every launcher shape keeps. Also the
+     themed icon on Android 13 and later. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="1080"
     android:viewportHeight="1080">
-    <group
-        android:translateX="20"
-        android:translateY="28">
-        <path
-            android:fillColor="#FFFFF8EC"
-            android:pathData="M422.53 742L422.53 742Q388.83 742 374.71 732.44Q360.59 722.87 357.41 706.48Q354.22 690.08 354.22 672.77L354.22 672.77L354.22 354.87Q354.22 336.65 357.86 321.17Q361.50 305.68 375.62 296.12Q389.74 286.55 423.45 286.55L423.45 286.55Q455.33 286.55 469.45 295.21Q483.56 303.86 487.21 315.25Q490.85 326.63 490.85 334.83L490.85 334.83L479.92 340.30Q481.74 336.65 489.49 327.09Q497.23 317.52 510.89 307.05Q524.55 296.57 544.14 289.29Q563.72 282 589.23 282L589.23 282Q599.25 282 611.54 283.37Q623.84 284.73 637.05 288.83Q650.26 292.93 661.19 299.76Q672.12 306.59 678.95 316.61Q685.78 326.63 685.78 341.21L685.78 341.21Q685.78 378.55 668.48 404.51Q651.17 430.48 624.75 430.48L624.75 430.48Q609.27 430.48 602.89 427.74Q596.51 425.01 592.42 422.28Q588.32 419.54 582.85 417.27Q577.39 414.99 562.81 414.99L562.81 414.99Q549.15 414.99 536.85 418.63Q524.55 422.28 514.08 430.02Q503.60 437.76 497.68 449.15Q491.76 460.53 491.76 474.20L491.76 474.20L491.76 674.59Q491.76 691.90 488.57 707.84Q485.39 723.78 470.81 732.89Q456.24 742 422.53 742Z" />
-    </group>
+    <path
+        android:fillColor="#FFFFF6E8"
+        android:pathData="M330 680V414A84 84 0 0 1 414 330H680Z" />
+    <path
+        android:strokeColor="#FFFFF6E8"
+        android:strokeWidth="33.6"
+        android:strokeLineCap="round"
+        android:pathData="M701 631Q676.5 676.5 634.5 704.5" />
+    <path
+        android:strokeColor="#FFFFF6E8"
+        android:strokeWidth="47.6"
+        android:strokeLineCap="round"
+        android:pathData="M708 519Q641.5 606.5 526 708" />
+    <path
+        android:strokeColor="#FFFFF6E8"
+        android:strokeWidth="39.2"
+        android:strokeLineCap="round"
+        android:pathData="M676.5 431.5Q564.5 550.5 435 676.5" />
 </vector>

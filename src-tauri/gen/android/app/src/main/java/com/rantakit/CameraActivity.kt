@@ -191,9 +191,9 @@ class CameraActivity : AppCompatActivity() {
     flash.text = word(if (flashOn) "flashOn" else "flashOff")
     flash.isActivated = flashOn
     ViewCompat.setStateDescription(flash, flash.text)
-    flash.backgroundTintList = ColorStateList.valueOf(if (flashOn) TEAL else GLASS)
-    flash.setTextColor(if (flashOn) ON_TEAL else WHITE)
-    flash.compoundDrawablesRelative[0]?.setTint(if (flashOn) ON_TEAL else WHITE)
+    flash.backgroundTintList = ColorStateList.valueOf(if (flashOn) BRAND else GLASS)
+    flash.setTextColor(if (flashOn) ON_BRAND else WHITE)
+    flash.compoundDrawablesRelative[0]?.setTint(if (flashOn) ON_BRAND else WHITE)
   }
 
   /** The last page taken, small, and how many there are. */
@@ -300,11 +300,11 @@ class CameraActivity : AppCompatActivity() {
       setPadding(dp(2), dp(2), dp(2), dp(2))
     }
     count = TextView(this).apply {
-      setTextColor(ON_TEAL)
+      setTextColor(ON_BRAND)
       setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
       typeface = Typeface.DEFAULT_BOLD
       gravity = Gravity.CENTER
-      background = pill(TEAL)
+      background = pill(BRAND)
       minWidth = dp(26)
       setPadding(dp(6), 0, dp(6), 0)
       importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -337,7 +337,7 @@ class CameraActivity : AppCompatActivity() {
       }, FrameLayout.LayoutParams(dp(62), dp(62), Gravity.CENTER))
     }
 
-    done = textButton(word("done"), null, TEAL, ON_TEAL).apply {
+    done = textButton(word("done"), null, BRAND, ON_BRAND).apply {
       setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
       minWidth = dp(76)
       background = GradientDrawable().apply {
@@ -380,7 +380,7 @@ class CameraActivity : AppCompatActivity() {
     const val GALLERY = "gallery"
     private val WHITE = Color.rgb(245, 245, 245)
     private val GLASS = Color.argb(31, 255, 255, 255)
-    private val TEAL = Color.rgb(45, 212, 191)
-    private val ON_TEAL = Color.rgb(4, 47, 46)
+    private val BRAND = Color.rgb(125, 147, 230)
+    private val ON_BRAND = Color.rgb(15, 22, 56)
   }
 }

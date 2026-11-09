@@ -316,7 +316,8 @@ function AboutPanel() {
     <div className="flex flex-col items-center gap-4 py-6 text-center">
       <img src="/rantakit.svg" alt="" className="size-16" />
       <div className="flex flex-col">
-        <span className="font-display text-dialog">Rantakit</span>
+        {/* The wordmark: the name in lowercase, as in the logo. */}
+        <span className="font-display text-dialog font-extrabold tracking-[-0.01em]">rantakit</span>
         <span className="text-small text-text-muted">
           {version ? t("about.version", { version }) : t("about.devVersion")}
         </span>

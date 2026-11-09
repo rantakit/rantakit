@@ -163,7 +163,7 @@ export function CropEditor({ path, name, position, count, edit, onDone, onCancel
                     fillOpacity={0.5}
                     fillRule="evenodd"
                   />
-                  <polygon points={outline} fill="none" stroke="#2dd4bf" strokeWidth={2.5 * unit} />
+                  <polygon points={outline} fill="none" stroke="#b4c2f3" strokeWidth={2.5 * unit} />
                   {at.map(([x, y], i) => (
                     <g
                       key={CORNERS[i]}
@@ -184,9 +184,9 @@ export function CropEditor({ path, name, position, count, edit, onDone, onCancel
                         <circle cx={x} cy={y} r={(HANDLE + 6) * unit} fill="none" stroke="#fff" strokeWidth={3 * unit} />
                       )}
                       {drag?.corner === i && drag.touch ? (
-                        <circle cx={x} cy={y} r={16 * unit} fill="#2dd4bf" fillOpacity={0.35} stroke="#fff" strokeWidth={3 * unit} />
+                        <circle cx={x} cy={y} r={16 * unit} fill="#b4c2f3" fillOpacity={0.35} stroke="#fff" strokeWidth={3 * unit} />
                       ) : (
-                        <circle cx={x} cy={y} r={HANDLE * unit} fill="#fff" stroke="#0f766e" strokeWidth={3 * unit} />
+                        <circle cx={x} cy={y} r={HANDLE * unit} fill="#fff" stroke="#33419e" strokeWidth={3 * unit} />
                       )}
                     </g>
                   ))}
@@ -201,13 +201,13 @@ export function CropEditor({ path, name, position, count, edit, onDone, onCancel
                           transform={`translate(${lens.x} ${lens.y}) scale(${LENS_ZOOM}) translate(${-at[drag.corner][0]} ${-at[drag.corner][1]})`}
                         >
                           <image href={photo} width={W} height={H} preserveAspectRatio="none" />
-                          <polygon points={outline} fill="none" stroke="#2dd4bf" strokeWidth={(2.5 * unit) / LENS_ZOOM} />
+                          <polygon points={outline} fill="none" stroke="#b4c2f3" strokeWidth={(2.5 * unit) / LENS_ZOOM} />
                         </g>
                       </g>
                       <circle cx={lens.x} cy={lens.y} r={lens.r} fill="none" stroke="#fff" strokeWidth={3 * unit} />
                       <path
                         d={`M${lens.x - 6 * unit} ${lens.y}H${lens.x + 6 * unit}M${lens.x} ${lens.y - 6 * unit}V${lens.y + 6 * unit}`}
-                        stroke="#2dd4bf"
+                        stroke="#b4c2f3"
                         strokeWidth={2 * unit}
                         strokeLinecap="round"
                       />

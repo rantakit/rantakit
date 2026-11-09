@@ -5,7 +5,7 @@
     "": {
       "name": "rantakit",
       "dependencies": {
-        "@fontsource/fredoka": "^5.3.0",
+        "@fontsource/gantari": "^5",
         "@fontsource/plus-jakarta-sans": "^5.3.0",
         "@keyline-icons/react": "^2.3.0",
         "@tauri-apps/api": "^2",
@@ -33,7 +33,7 @@
     },
   },
   "packages": {
-    "@fontsource/fredoka": ["@fontsource/fredoka@5.3.0", "", {}, "sha512-s2IhjQ50wDnKkkaKmjhtL0rxQg6ITsVusiipM3m7zUwVZZbbCKsscNDkngwp28xVzfIt7neWrkgU1qKqyTycQg=="],
+    "@fontsource/gantari": ["@fontsource/gantari@5.3.0", "", {}, "sha512-ZBjib+9u+vlWtDaA7QwMrHg4kOLLxGjkh8QMnydwmkS9n2tbQq+BwZ9DgfsdJF4Z2w2OICCV2Ql5vYKNRwTixg=="],
 
     "@fontsource/plus-jakarta-sans": ["@fontsource/plus-jakarta-sans@5.3.0", "", {}, "sha512-9WRw3G74Ve4cyPApAZSXLPY5DiLOZXDn7Q7dIBjFBpA0Pj56ljDItEdy2UUajjJxRuTg2HkMLO5C3K2nAQORWg=="],
 

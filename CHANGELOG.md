@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- A new icon: a rounded square cut on the diagonal, half filled and half hatched by hand, on an indigo-blue gradient. It replaces the teal "r" on every platform and in the README
+- The main color is indigo blue, from the new icon, instead of teal: buttons, links, selected items, and the camera screen on Android
+- Page titles, headings, and the name in About use the Gantari font instead of Fredoka, and the name is written as the wordmark, in lowercase
 - Ctrl+O (Cmd+O on macOS) opens Open… to choose files for any Tool, instead of starting Compress Photo. Ctrl+Shift+O no longer starts Compress PDF
 - Source code and New version link to the project's new home, github.com/rantakit/rantakit
 - The Fit a size limit option is now labelled just Fit

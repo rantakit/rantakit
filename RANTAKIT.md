@@ -197,30 +197,37 @@ Keep the app as small as possible, because many users download it over prepaid m
 
 **Calm, trustworthy, warm, local.** Closer to a neat, friendly service counter than a flashy online converter full of ads. The look is clean and minimalist: white space, thin lines instead of shadows, big clear buttons, no mascots, no decorative gradients. Reassurance ("File tetap di perangkatmu" (Your files stay on your device)) appears quietly where it matters.
 
+### Logo
+
+- **The icon** is a rounded square cut on the diagonal, on an indigo-blue gradient (`#5470D9` to `#33419E`). The top-left half is filled; the bottom-right half is only hatched, with three hand-drawn strokes. The hatched half stands for the Original, the filled half for the Result, and the gap between them for the Original left untouched. Indigo, "nila", is the oldest natural dye of Indonesian weaving and batik, and the blue is the blue of cloth dyed with it.
+- **The wordmark** is the name in lowercase, "rantakit", in Gantari ExtraBold, beside the icon.
+- The gradient belongs to the logo only; the interface itself has no decorative gradients.
+- Sources: [assets/brand/rantakit-icon.svg](assets/brand/rantakit-icon.svg) for the icon, [public/rantakit-wordmark.svg](public/rantakit-wordmark.svg) for the wordmark.
+
 ### Color
 
-- **Teal `#14B8A6`** is the brand color, taken from the icon. A darker teal is used for text and buttons wherever needed to reach WCAG AA contrast.
+- **Indigo blue** is the brand color, taken from the icon: `#5470D9` for borders and rings, and `#33419E` for text, buttons, and selected items, so they reach WCAG AA contrast. Dark mode uses lighter blues, `#7D93E6` and `#B4C2F3`.
 - **White `#FFFFFF`** is the background in light mode, with neutral greys for lines, the sidebar, and secondary text.
 - **Red, amber, and green** are used only for status (error, warning, success).
 - Themes: light, dark, and follow system.
 
 ### Typography
 
-- **Fredoka** (the logo font): wordmark, page titles, and large headings only, such as "Kompres PDF" at the top of a Tool page.
+- **Gantari** (the logo font, by the Indonesian type foundry Lafontype): wordmark, page titles, and large headings only, such as "Kompres PDF" at the top of a Tool page.
 - **Plus Jakarta Sans**: everything else, including Tool cards, buttons, options, file names, and numbers.
 - Both fonts are bundled with the app, so nothing is downloaded.
 - Base text size is **16 px**, larger than typical desktop apps, for older users and small, cheap screens.
 
 ### Icons
 
-[Keyline Icons](https://keylineicons.com/) (MIT license), **rounded** variant, to match Fredoka and the warm personality.
+[Keyline Icons](https://keylineicons.com/) (MIT license), **rounded** variant, to match the rounded corners of the logo and the warm personality.
 
 | Style | Where |
 |---|---|
 | **Stroke** | Default everywhere: Tool cards, buttons, menus |
 | **Fill** | Active or selected state on desktop and in controls (current sidebar item, selected option) |
 | **Duotone / two-tone** | Active item in mobile bottom navigation |
-| **Duotone, teal** | Tool icons on the home screen and at the top of a Tool page |
+| **Duotone, indigo** | Tool icons on the home screen and at the top of a Tool page |
 
 Every icon that stands for a Tool or navigation item has a **text label** next to it; icons are never used alone.
 
