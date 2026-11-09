@@ -30,16 +30,16 @@ Semua proses berjalan di perangkatmu, jadi aplikasi tetap berfungsi tanpa koneks
 
 <table>
   <tr>
-    <td width="50%"><img src="screenshots/id/home.png" alt="Beranda" /><br /><sub><b>Beranda</b>: semua alat di satu tempat, yang terakhir dipakai paling atas</sub></td>
-    <td width="50%"><img src="screenshots/id/tool.png" alt="Kompres Foto" /><br /><sub><b>Halaman alat</b>: tambah berkas, lalu atur batas ukuran atau kecilkan saja</sub></td>
+    <td width="50%"><img src="screenshots/id/home.png" alt="Beranda" /><br /><sub><b>Beranda</b></sub></td>
+    <td width="50%"><img src="screenshots/id/tool.png" alt="Kompres Foto" /><br /><sub><b>Kompres Foto</b></sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="screenshots/id/result.png" alt="Hasil" /><br /><sub><b>Hasil</b>: ukuran sebelum dan sesudah, buka atau tampilkan di folder</sub></td>
-    <td width="50%"><img src="screenshots/id/history.png" alt="Riwayat" /><br /><sub><b>Riwayat</b>: proses sebelumnya per hari, disimpan 30 hari</sub></td>
+    <td width="50%"><img src="screenshots/id/result.png" alt="Hasil" /><br /><sub><b>Hasil</b></sub></td>
+    <td width="50%"><img src="screenshots/id/history.png" alt="Riwayat" /><br /><sub><b>Riwayat</b></sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="screenshots/id/settings.png" alt="Pengaturan" /><br /><sub><b>Pengaturan</b>: tema, ukuran teks, bahasa, tempat menyimpan hasil</sub></td>
-    <td width="50%"><img src="screenshots/id/home-dark.png" alt="Beranda dengan tema gelap" /><br /><sub><b>Tema gelap</b></sub></td>
+    <td width="50%"><img src="screenshots/id/settings.png" alt="Pengaturan" /><br /><sub><b>Pengaturan</b></sub></td>
+    <td width="50%"><img src="screenshots/id/tools-dark.png" alt="Semua peralatan dengan tema gelap" /><br /><sub><b>Semua peralatan</b></sub></td>
   </tr>
 </table>
 
@@ -48,8 +48,8 @@ Semua proses berjalan di perangkatmu, jadi aplikasi tetap berfungsi tanpa koneks
 <table>
   <tr>
     <td width="25%"><img src="screenshots/id/android-home.png" alt="Beranda di Android" /><br /><sub><b>Beranda</b></sub></td>
-    <td width="25%"><img src="screenshots/id/android-tool.png" alt="Kompres Foto di Android" /><br /><sub><b>Halaman alat</b>: foto dari HP, dengan batas ukuran</sub></td>
-    <td width="25%"><img src="screenshots/id/android-result.png" alt="Hasil di Android" /><br /><sub><b>Hasil</b>: bagikan ke aplikasi apa saja</sub></td>
+    <td width="25%"><img src="screenshots/id/android-tool.png" alt="Kompres Foto di Android" /><br /><sub><b>Kompres Foto</b></sub></td>
+    <td width="25%"><img src="screenshots/id/android-result.png" alt="Hasil di Android" /><br /><sub><b>Hasil</b></sub></td>
     <td width="25%"><img src="screenshots/id/android-history.png" alt="Riwayat di Android" /><br /><sub><b>Riwayat</b></sub></td>
   </tr>
 </table>

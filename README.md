@@ -30,16 +30,16 @@ Everything runs on your device. That means it works with no internet connection.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/readme/screenshots/en/home.png" alt="Home" /><br /><sub><b>Home</b>: every tool in one place, recent tools first</sub></td>
-    <td width="50%"><img src="docs/readme/screenshots/en/tool.png" alt="Compress Photo" /><br /><sub><b>A tool</b>: add files, then set a size limit or just make them smaller</sub></td>
+    <td width="50%"><img src="docs/readme/screenshots/en/home.png" alt="Home" /><br /><sub><b>Home</b></sub></td>
+    <td width="50%"><img src="docs/readme/screenshots/en/tool.png" alt="Compress Photo" /><br /><sub><b>Compress Photo</b></sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/readme/screenshots/en/result.png" alt="Result" /><br /><sub><b>Result</b>: sizes before and after, open or show in folder</sub></td>
-    <td width="50%"><img src="docs/readme/screenshots/en/history.png" alt="History" /><br /><sub><b>History</b>: past tasks by day, kept for 30 days</sub></td>
+    <td width="50%"><img src="docs/readme/screenshots/en/result.png" alt="Results" /><br /><sub><b>Results</b></sub></td>
+    <td width="50%"><img src="docs/readme/screenshots/en/history.png" alt="History" /><br /><sub><b>History</b></sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/readme/screenshots/en/settings.png" alt="Settings" /><br /><sub><b>Settings</b>: theme, text size, language, where results are saved</sub></td>
-    <td width="50%"><img src="docs/readme/screenshots/en/home-dark.png" alt="Home in dark theme" /><br /><sub><b>Dark theme</b></sub></td>
+    <td width="50%"><img src="docs/readme/screenshots/en/settings.png" alt="Settings" /><br /><sub><b>Settings</b></sub></td>
+    <td width="50%"><img src="docs/readme/screenshots/en/tools-dark.png" alt="All tools in the dark theme" /><br /><sub><b>All tools</b></sub></td>
   </tr>
 </table>
 
@@ -48,8 +48,8 @@ Everything runs on your device. That means it works with no internet connection.
 <table>
   <tr>
     <td width="25%"><img src="docs/readme/screenshots/en/android-home.png" alt="Home on Android" /><br /><sub><b>Home</b></sub></td>
-    <td width="25%"><img src="docs/readme/screenshots/en/android-tool.png" alt="Compress Photo on Android" /><br /><sub><b>A tool</b>: photos from your phone, with a size limit</sub></td>
-    <td width="25%"><img src="docs/readme/screenshots/en/android-result.png" alt="Result on Android" /><br /><sub><b>Result</b>: share to any app</sub></td>
+    <td width="25%"><img src="docs/readme/screenshots/en/android-tool.png" alt="Compress Photo on Android" /><br /><sub><b>Compress Photo</b></sub></td>
+    <td width="25%"><img src="docs/readme/screenshots/en/android-result.png" alt="Results on Android" /><br /><sub><b>Results</b></sub></td>
     <td width="25%"><img src="docs/readme/screenshots/en/android-history.png" alt="History on Android" /><br /><sub><b>History</b></sub></td>
   </tr>
 </table>
