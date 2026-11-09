@@ -33,8 +33,9 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, the Rust build output
+      //    (over 100,000 files after an Android build), and agent worktrees
+      ignored: ["**/src-tauri/**", "**/target/**", "**/.claude/**"],
     },
   },
 }));
