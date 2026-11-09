@@ -1,0 +1,83 @@
+name: Bug report
+description: Something in Rantakit doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a problem. You can write in English or Indonesian.
+
+        **Please don't attach real personal documents**, such as an ID card, family card, diploma, or bank statement, yours or anyone else's. Issues are public. If a file triggers the problem, attach one that contains nothing private, or describe it (file type, size, number of pages, where it came from).
+  - type: input
+    id: version
+    attributes:
+      label: Rantakit version
+      description: Shown in Settings, under "About".
+      placeholder: "0.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - Linux
+        - Android
+        - macOS (built from source)
+    validations:
+      required: true
+  - type: input
+    id: platform-version
+    attributes:
+      label: Platform version and install type
+      description: For example "Windows 11, installer", "Ubuntu 24.04, AppImage", or "Android 13, arm64 APK, Samsung Galaxy A14".
+    validations:
+      required: false
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      description: Which Tool were you using?
+      options:
+        - "Compress Photo"
+        - "Compress PDF"
+        - "Convert Photo"
+        - "Resize Photo"
+        - "Compress Document"
+        - "JPG to PDF"
+        - "Scan Document"
+        - "Merge PDF"
+        - "Split PDF"
+        - "Arrange PDF Pages"
+        - "PDF to JPG"
+        - "Add Watermark"
+        - "Remove Location Info"
+        - "Not a Tool (Home, History, Settings, installing, or updating)"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do, step by step?
+      placeholder: |
+        1. Open "Compress PDF"
+        2. Add a 12-page scanned PDF of about 8 MB
+        3. Set the Size limit to 1 MB
+        4. Press "Compress"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Include any message Rantakit showed, word for word. Screenshots help, as long as they show nothing private.
+    validations:
+      required: true

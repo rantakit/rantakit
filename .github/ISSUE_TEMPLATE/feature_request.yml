@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest a new Tool, or a way to make a Tool more useful.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the idea. You can write in English or Indonesian. The [roadmap](https://github.com/rantakit/rantakit/blob/main/ROADMAP.md) shows what is already planned.
+
+        Please don't attach real personal documents; issues are public.
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      description: Which Tool is this about?
+      options:
+        - "A new Tool"
+        - "Compress Photo"
+        - "Compress PDF"
+        - "Convert Photo"
+        - "Resize Photo"
+        - "Compress Document"
+        - "JPG to PDF"
+        - "Scan Document"
+        - "Merge PDF"
+        - "Split PDF"
+        - "Arrange PDF Pages"
+        - "PDF to JPG"
+        - "Add Watermark"
+        - "Remove Location Info"
+        - "Not a Tool (Home, History, Settings, installing, or updating)"
+    validations:
+      required: true
+  - type: textarea
+    id: situation
+    attributes:
+      label: The everyday situation
+      description: What were you trying to get done, and where did the file have to go? Rules from a form or portal, such as "ID photo, JPG, max 200 KB", are very useful.
+      placeholder: I was applying for a job and the portal only takes my diploma as one PDF under 1 MB, but I had three photos of it on my phone.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: What would you like Rantakit to do? It's fine if you don't know how it should look.
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today
+      description: Another app, a website, or a workaround you use now, if any.
+    validations:
+      required: false

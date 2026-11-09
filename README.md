@@ -168,7 +168,7 @@ Tauri 2, Rust, [`image`](https://crates.io/crates/image), [`lopdf`](https://crat
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up, run the checks, and send a pull request.
 
 ## License
 

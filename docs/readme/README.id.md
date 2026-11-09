@@ -151,7 +151,7 @@ Tauri 2, Rust, [`image`](https://crates.io/crates/image), [`lopdf`](https://crat
 
 ## Berkontribusi
 
-Issue dan pull request sangat diterima.
+Issue dan pull request sangat diterima. Baca [CONTRIBUTING.md](../../CONTRIBUTING.md) (dalam bahasa Inggris) untuk cara menyiapkan proyek, menjalankan pemeriksaan, dan mengirim pull request.
 
 ## Lisensi
 
