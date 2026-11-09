@@ -354,6 +354,7 @@ export const en: Messages = {
   "settings.results.change": "Change folder",
   "settings.results.pick": "Choose a folder for result files",
   "about.source": "View source code",
+  "about.reportProblem": "Report a problem",
 
   // Title bar
   "window.minimize": "Minimize",

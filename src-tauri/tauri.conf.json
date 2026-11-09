@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Rantakit",
-        "width": 1100,
-        "height": 720,
+        "width": 1280,
+        "height": 800,
         "minWidth": 800,
         "minHeight": 560,
         "center": true,

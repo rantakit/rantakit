@@ -56,7 +56,7 @@ export function ShrinkOptions({ noun, settings, onChange }: ShrinkOptionsProps) 
             </AriaNumberField>
             <Select
               aria-label={t("options.limit.unit")}
-              className="w-24 shrink-0"
+              className="w-24 shrink-0 [&>button]:h-11"
               value={settings.unit}
               onChange={(key) => onChange({ unit: key as ShrinkSettings["unit"] })}
             >

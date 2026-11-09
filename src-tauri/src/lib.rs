@@ -127,19 +127,36 @@ pub fn run() {
 /// Opens the main window on Windows and Linux. Their config sets `create:
 /// false` so it is made here, with clipboard access: without it, Paste in the
 /// title bar menu makes WebView2 ask for permission and fails on WebKitGTK.
-/// macOS has its native Edit menu instead.
+/// macOS has its native Edit menu instead. The configured size shrinks to fit
+/// small screens.
 #[cfg(any(windows, target_os = "linux"))]
 fn main_window(app: &tauri::App) -> tauri::Result<tauri::WebviewWindow> {
-    let config = app
+    let mut config = app
         .config()
         .app
         .windows
         .first()
         .cloned()
         .unwrap_or_default();
+    if let Ok(Some(monitor)) = app.primary_monitor() {
+        let screen = monitor
+            .work_area()
+            .size
+            .to_logical::<f64>(monitor.scale_factor());
+        config.width = fit(config.width, screen.width, config.min_width);
+        config.height = fit(config.height, screen.height, config.min_height);
+    }
     tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?
         .enable_clipboard_access()
         .build()
+}
+
+/// The configured window size along one side, kept within 90% of the screen's
+/// work area, so a 1366×768 laptop gets a window that fits with the taskbar,
+/// but never below the minimum size.
+#[cfg(any(windows, target_os = "linux"))]
+fn fit(wanted: f64, screen: f64, min: Option<f64>) -> f64 {
+    wanted.min((screen * 0.9).floor()).max(min.unwrap_or(0.0))
 }
 
 /// Asks Windows 11 to round the undecorated window like a native one (about

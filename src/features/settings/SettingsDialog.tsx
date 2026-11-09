@@ -28,7 +28,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs";
 import { ToggleButton } from "@/components/ui/ToggleButton";
 import { ToggleButtonGroup } from "@/components/ui/ToggleButtonGroup";
 import { useT } from "@/i18n";
-import { LICENSE_URL, openExternal, SOURCE_URL } from "@/lib/links";
+import { ISSUES_URL, LICENSE_URL, openExternal, SOURCE_URL } from "@/lib/links";
 import { isAndroidApp, isDesktopApp } from "@/lib/platform";
 import { focusRing, tv } from "@/lib/react-aria-utils";
 import { pickResultsFolder, setCheckUpdates, setKeepHistory, setResultsFolder, useAppSettings } from "./appSettings";
@@ -326,6 +326,7 @@ function AboutPanel() {
       <div className="flex flex-wrap justify-center gap-4 text-small">
         <Link onPress={() => openExternal(LICENSE_URL)}>{t("about.viewLicense")}</Link>
         <Link onPress={() => openExternal(SOURCE_URL)}>{t("about.source")}</Link>
+        <Link onPress={() => openExternal(ISSUES_URL)}>{t("about.reportProblem")}</Link>
       </div>
       {canCheck && (
         <div className="mt-4 flex w-full items-start justify-between gap-6 border-t border-border pt-6 text-start">

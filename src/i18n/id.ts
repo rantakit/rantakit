@@ -357,6 +357,7 @@ export const id = {
   "settings.results.change": "Ganti folder",
   "settings.results.pick": "Pilih folder untuk file hasil",
   "about.source": "Lihat kode sumber",
+  "about.reportProblem": "Laporkan masalah",
 
   // Title bar
   "window.minimize": "Perkecil",
