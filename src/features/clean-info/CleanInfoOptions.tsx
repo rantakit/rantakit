@@ -1,6 +1,6 @@
 import { ShieldCheck } from "@keyline-icons/react";
 import { pickImages } from "@/features/compress/imageApi";
-import type { TaskResult, ToolOptions } from "@/features/compress/taskApi";
+import type { TaskResult, ToolOptions } from "@/features/tool/taskApi";
 import type { FileInfo } from "@/features/tool/fileInfo";
 import { defineTool } from "@/features/tool/toolDef";
 import { useT, type Translator } from "@/i18n";

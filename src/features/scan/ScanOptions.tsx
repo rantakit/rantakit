@@ -3,7 +3,7 @@ import { Camera, CameraOff, Image, Settings } from "@keyline-icons/react";
 import { RadioCards } from "@/components/ui/RadioCards";
 import { Button } from "@/components/ui/Button";
 import { pickImages } from "@/features/compress/imageApi";
-import type { TaskResult } from "@/features/compress/taskApi";
+import type { TaskResult } from "@/features/tool/taskApi";
 import { OptionField } from "@/features/tool/OptionField";
 import { defineTool, type OptionsProps, type SourceProps } from "@/features/tool/toolDef";
 import {

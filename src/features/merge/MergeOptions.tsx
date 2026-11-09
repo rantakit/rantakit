@@ -1,6 +1,6 @@
 import { Layers } from "@keyline-icons/react";
 import { pickPdfs } from "@/features/compress/pdfApi";
-import type { TaskResult } from "@/features/compress/taskApi";
+import type { TaskResult } from "@/features/tool/taskApi";
 import type { FileInfo } from "@/features/tool/fileInfo";
 import { defineTool, type OptionsProps } from "@/features/tool/toolDef";
 import { useT, type Translator } from "@/i18n";

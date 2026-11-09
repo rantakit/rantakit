@@ -1,6 +1,6 @@
 import { isInt, useStoredState } from "@/lib/storedState";
 import { levelOf, limitBytes, parseShrink, type ShrinkSettings } from "./shrink";
-import type { ToolOptions } from "./taskApi";
+import type { ToolOptions } from "@/features/tool/taskApi";
 
 export type OutputFormat = "same" | "jpeg" | "png";
 

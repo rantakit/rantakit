@@ -2,7 +2,7 @@ import { TextField } from "react-aria-components";
 import { FieldGroup, Input } from "@/components/ui/Field";
 import { RadioCards } from "@/components/ui/RadioCards";
 import { pickPdfs } from "@/features/compress/pdfApi";
-import type { TaskResult, ToolOptions } from "@/features/compress/taskApi";
+import type { TaskResult, ToolOptions } from "@/features/tool/taskApi";
 import { PageStrip } from "@/features/pages/PageStrip";
 import type { FileInfo } from "@/features/tool/fileInfo";
 import { NumberInput } from "@/features/tool/NumberInput";

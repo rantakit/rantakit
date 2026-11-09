@@ -1,4 +1,4 @@
-import type { ToolOptions } from "@/features/compress/taskApi";
+import type { ToolOptions } from "@/features/tool/taskApi";
 import type { FileInfo } from "@/features/tool/fileInfo";
 import { isInt, useStoredState } from "@/lib/storedState";
 

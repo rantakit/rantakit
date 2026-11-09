@@ -1,5 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
-import type { TaskResult, ToolOptions } from "@/features/compress/taskApi";
+import type { TaskResult, ToolOptions } from "./taskApi";
 import type { Translator } from "@/i18n";
 import type { FileInfo, Noun } from "./fileInfo";
 

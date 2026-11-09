@@ -4,7 +4,7 @@ import { FileRow } from "@/components/blocks/FileRow";
 import { Button } from "@/components/ui/Button";
 import { fileName } from "@/features/compress/imageApi";
 import { useT } from "@/i18n";
-import type { JobItem } from "@/features/compress/useCompressJob";
+import type { JobItem } from "./useCompressJob";
 import { formatBytes } from "@/lib/format";
 import { isAndroidApp } from "@/lib/platform";
 import { useFileInfo, useFileTile, type FileInfo, type Noun } from "./fileInfo";

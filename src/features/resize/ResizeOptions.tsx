@@ -1,7 +1,7 @@
 import { RadioCards } from "@/components/ui/RadioCards";
 import { pickImages } from "@/features/compress/imageApi";
 import { PHOTO_SIZES, type PhotoSize } from "@/features/compress/imageSettings";
-import type { ToolOptions } from "@/features/compress/taskApi";
+import type { ToolOptions } from "@/features/tool/taskApi";
 import type { FileInfo } from "@/features/tool/fileInfo";
 import { NumberInput } from "@/features/tool/NumberInput";
 import { OptionField } from "@/features/tool/OptionField";

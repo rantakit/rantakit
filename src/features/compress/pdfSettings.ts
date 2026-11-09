@@ -1,6 +1,6 @@
 import { isInt, useStoredState } from "@/lib/storedState";
 import { levelOf, limitBytes, parseShrink, type ShrinkSettings } from "./shrink";
-import type { ToolOptions } from "./taskApi";
+import type { ToolOptions } from "@/features/tool/taskApi";
 
 /** "Resolusi gambar maksimum" choices; 0 leaves images as they are. */
 export const MAX_DPIS = [0, 300, 200, 150, 100];

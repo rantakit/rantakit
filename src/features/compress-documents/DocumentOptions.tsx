@@ -2,7 +2,7 @@ import { Select, SelectItem } from "@/components/ui/Select";
 import { MAX_DPIS } from "@/features/compress/pdfSettings";
 import { levelOf, limitBytes, parseShrink, type ShrinkSettings } from "@/features/compress/shrink";
 import { ShrinkOptions } from "@/features/compress/ShrinkOptions";
-import type { ToolOptions } from "@/features/compress/taskApi";
+import type { ToolOptions } from "@/features/tool/taskApi";
 import type { FileInfo } from "@/features/tool/fileInfo";
 import { NumberInput } from "@/features/tool/NumberInput";
 import { OptionField } from "@/features/tool/OptionField";

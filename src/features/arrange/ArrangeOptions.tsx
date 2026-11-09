@@ -6,7 +6,7 @@ import { DropIndicator, useDragAndDrop } from "react-aria-components/useDragAndD
 import { Button } from "@/components/ui/Button";
 import { fileName } from "@/features/compress/imageApi";
 import { pickPdfs } from "@/features/compress/pdfApi";
-import type { TaskResult } from "@/features/compress/taskApi";
+import type { TaskResult } from "@/features/tool/taskApi";
 import { PageThumbnail } from "@/features/pages/PageThumbnail";
 import { moveBy, reorder } from "@/features/tool/order";
 import { defineTool, type WorkspaceProps } from "@/features/tool/toolDef";

@@ -3,7 +3,7 @@ import { RadioCards } from "@/components/ui/RadioCards";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
 import { fileName, pickImages } from "@/features/compress/imageApi";
-import type { TaskResult } from "@/features/compress/taskApi";
+import type { TaskResult } from "@/features/tool/taskApi";
 import { OptionField } from "@/features/tool/OptionField";
 import { defineTool, type OptionsProps, type RowExtras } from "@/features/tool/toolDef";
 import { useThumbnail } from "@/features/tool/fileInfo";

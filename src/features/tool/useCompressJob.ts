@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { fileName } from "./imageApi";
+import { fileName } from "@/features/compress/imageApi";
 import {
   cancelTask,
   startTask,

@@ -3,7 +3,7 @@ import { FieldGroup, Input } from "@/components/ui/Field";
 import { RadioCards } from "@/components/ui/RadioCards";
 import { fileName } from "@/features/compress/imageApi";
 import { pickPdfs } from "@/features/compress/pdfApi";
-import { resultFiles, type TaskResult, type ToolOptions } from "@/features/compress/taskApi";
+import { resultFiles, type TaskResult, type ToolOptions } from "@/features/tool/taskApi";
 import { PageStrip } from "@/features/pages/PageStrip";
 import { formatRanges, parseRanges } from "@/features/split/pageRanges";
 import type { FileInfo } from "@/features/tool/fileInfo";

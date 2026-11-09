@@ -7,7 +7,7 @@ import { ToggleButton } from "@/components/ui/ToggleButton";
 import { ToggleButtonGroup } from "@/components/ui/ToggleButtonGroup";
 import { pickImages } from "@/features/compress/imageApi";
 import { pickPdfs } from "@/features/compress/pdfApi";
-import type { TaskResult, ToolOptions, WatermarkRequest } from "@/features/compress/taskApi";
+import type { TaskResult, ToolOptions, WatermarkRequest } from "@/features/tool/taskApi";
 import { pickAnyFiles } from "@/features/drop/pickFiles";
 import { nounOf, type Noun } from "@/features/tool/fileInfo";
 import { OptionField } from "@/features/tool/OptionField";
