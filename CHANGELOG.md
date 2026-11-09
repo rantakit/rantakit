@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- On Windows and Linux, a ☰ menu at the start of the title bar opens "File", "Edit", "Tampilan" (View), "Navigasi" (Go), and "Bantuan" (Help). From it you can open files, open Settings, undo in "Atur Halaman PDF", cut, copy, and paste in text fields, change the text size and theme, go between pages, and report a problem. Each item shows its shortcut, if it has one
+- On Windows and Linux, a hamburger menu at the start of the title bar opens File, Edit, View, Go, and Help. From it you can open files, open Settings, undo in Arrange PDF Pages, cut, copy, and paste in text fields, change the text size and theme, go between pages, and report a problem. Each item shows its shortcut, if it has one
+- Report a problem in Settings › About opens the project's GitHub Issues
 
 ### Changed
 
-- Ctrl+O (Cmd+O on macOS) opens "Buka…" (Open…) to choose files for any Tool, instead of starting "Kompres Foto" (Compress Photo). Ctrl+Shift+O no longer starts "Kompres PDF"
-- "Kode sumber" (Source code) and "Versi baru" (New version) link to the project's new home, github.com/rantakit/rantakit
+- Ctrl+O (Cmd+O on macOS) opens Open… to choose files for any Tool, instead of starting Compress Photo. Ctrl+Shift+O no longer starts Compress PDF
+- Source code and New version link to the project's new home, github.com/rantakit/rantakit
+- The Fit a size limit option is now labelled just Fit
+- The window opens larger, at 1280×800. On Windows and Linux it shrinks to fit smaller screens, such as a 1366×768 laptop, and never goes below its minimum size
+
+### Fixed
+
+- The KB/MB choice next to the size limit field is as tall as the number field beside it
 
 ## [0.4.0] - 2026-11-08
 

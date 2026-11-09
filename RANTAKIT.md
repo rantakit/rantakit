@@ -90,7 +90,7 @@ Every Tool, including community-contributed ones, is reviewed against these:
 - **The rule:** a word is fine if it appears in the user's world, and jargon if it only exists inside file tools. JPG, PNG, PDF, KB, and MB are fine, because portals use them. Quality percentages, DPI, pixel dimensions, lossless, EXIF, metadata, and OCR are jargon. The full list lives in [GLOSSARY.md](GLOSSARY.md).
 - **Tool names** use search vocabulary: "Kompres PDF", "Gabung PDF", "JPG ke PDF", "Scan Dokumen", "Ambil Teks dari Gambar", "Beri Watermark".
 - **Compression is controlled by outcome, not by a quality slider:**
-  - **Sesuaikan batas ukuran** (Fit a size limit, the default): the user types the Size limit from the portal and Rantakit finds the best quality that fits. If the limit can't be reached, Rantakit says so and offers the next step ("Can only reach 240 KB. Also shrink the image dimensions?").
+  - **Sesuaikan** (Fit, the default): the user types the Size limit from the portal and Rantakit finds the best quality that fits. If the limit can't be reached, Rantakit says so and offers the next step ("Can only reach 240 KB. Also shrink the image dimensions?").
   - **Kecilkan saja** (Just make it smaller): three choices, *Paling kecil* (Smallest), *Seimbang* (Balanced), *Paling jernih* (Clearest).
 - **Advanced options** are collapsed in every Tool, every option has a safe default, and the app remembers whether the user left the section open.
 

@@ -190,7 +190,7 @@ export const en: Messages = {
   "level.balanced.description.pdf": "A safe choice for most PDFs",
   "level.clearest.description.pdf": "Images stay sharp",
   "shrink.label": "How to shrink",
-  "shrink.limit": "Fit a size limit",
+  "shrink.limit": "Fit",
   "shrink.smaller": "Just make it smaller",
   "options.limit.placeholder": "for example 200",
   "options.limit.unit": "Size limit unit",

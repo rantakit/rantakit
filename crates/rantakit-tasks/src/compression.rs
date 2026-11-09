@@ -47,7 +47,7 @@ const PDF_LIMIT_QUALITY: u8 = 90;
 /// What the user asked for in a compress Tool's Options.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Compression {
-    /// "Sesuaikan batas ukuran": each Result at or under this many bytes.
+    /// Fit a size limit: each Result at or under this many bytes.
     /// `None` compresses by `level` instead.
     pub limit: Option<u64>,
     pub level: Level,

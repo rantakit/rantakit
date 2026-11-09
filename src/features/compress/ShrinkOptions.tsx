@@ -17,7 +17,7 @@ interface ShrinkOptionsProps {
   onChange: (patch: Partial<ShrinkSettings>) => void;
 }
 
-/** The top of a compress Tool's Options: "Sesuaikan batas ukuran" or "Kecilkan saja". */
+/** The top of a compress Tool's Options: Fit a size limit, or Just make it smaller. */
 export function ShrinkOptions({ noun, settings, onChange }: ShrinkOptionsProps) {
   const { t, locale } = useT();
   const recent = useRecentLimits();

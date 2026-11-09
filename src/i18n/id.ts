@@ -193,7 +193,7 @@ export const id = {
   "level.balanced.description.pdf": "Pilihan aman untuk kebanyakan PDF",
   "level.clearest.description.pdf": "Gambar tetap tajam",
   "shrink.label": "Cara mengecilkan",
-  "shrink.limit": "Sesuaikan batas ukuran",
+  "shrink.limit": "Sesuaikan",
   "shrink.smaller": "Kecilkan saja",
   "options.limit.placeholder": "misalnya 200",
   "options.limit.unit": "Satuan batas ukuran",
