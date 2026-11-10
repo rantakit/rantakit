@@ -26,29 +26,29 @@ pub struct Task {
 /// A Tool and its options for one Task.
 #[derive(Debug, Clone)]
 pub enum ToolOptions {
-    KompresFoto(ImageOptions),
-    KompresPdf(PdfOptions),
+    CompressPhoto(ImageOptions),
+    CompressPdf(PdfOptions),
     /// Word, Excel, and PowerPoint files with their pictures made smaller.
-    KompresDokumen(OfficeOptions),
+    CompressDocument(OfficeOptions),
     /// Always `OutputFormat::To`; build it with `ToolOptions::convert`.
     UbahFormatFoto(ImageOptions),
     /// Always has `max_dimension`; build it with `ToolOptions::resize`.
-    UbahUkuranFoto(ImageOptions),
+    ResizePhoto(ImageOptions),
     /// Every Original, in order, into one PDF named after `date`, the user's
     /// today such as "2026-11-07": `merged 2026-11-07.pdf`.
-    GabungPdf { date: String },
-    PisahPdf(Split),
+    MergePdf { date: String },
+    SplitPdf(Split),
     /// The one Original's pages as they will be, in order.
-    AturHalamanPdf(Vec<PageEdit>),
+    OrganizePdf(Vec<PageEdit>),
     /// Every Original, a photo, in order, as one page each of one PDF.
     JpgKePdf(PhotosToPdf),
     /// The photos the camera took, in order, as one page each of one PDF.
-    ScanDokumen(PhotosToPdf),
+    ScanDocument(PhotosToPdf),
     /// Every photo without its info, picture untouched; a photo with
     /// nothing to remove gets no Result.
-    HapusInfoLokasi,
+    RemoveLocationInfo,
     /// Text over every photo, and every page of every PDF.
-    BeriWatermark(WatermarkOptions),
+    AddWatermark(WatermarkOptions),
     /// Pages of every PDF as JPG photos.
     PdfKeJpg(PdfToJpg),
 }
@@ -218,7 +218,7 @@ impl ToolOptions {
     /// Ubah Ukuran Foto: every photo at most `side` pixels on its longest
     /// side, in its own format. Photos are never enlarged.
     pub fn resize(side: u32) -> Self {
-        Self::UbahUkuranFoto(ImageOptions {
+        Self::ResizePhoto(ImageOptions {
             format: OutputFormat::Same,
             target: Target::Quality(90),
             max_dimension: Some(side),
@@ -230,35 +230,35 @@ impl ToolOptions {
     /// PDF ke JPG are listed as the goal-based Tools since 0.4.1.
     pub fn id(&self) -> ToolId {
         match self {
-            Self::KompresFoto(_) => ToolId::KompresFoto,
-            Self::KompresPdf(_) => ToolId::KompresPdf,
-            Self::KompresDokumen(_) => ToolId::KompresDokumen,
+            Self::CompressPhoto(_) => ToolId::CompressPhoto,
+            Self::CompressPdf(_) => ToolId::CompressPdf,
+            Self::CompressDocument(_) => ToolId::CompressDocument,
             Self::UbahFormatFoto(ImageOptions {
                 format: OutputFormat::To(ImageFormat::Png),
                 ..
-            }) => ToolId::UbahKePng,
-            Self::UbahFormatFoto(_) => ToolId::UbahKeJpg,
-            Self::UbahUkuranFoto(_) => ToolId::UbahUkuranFoto,
-            Self::GabungPdf { .. } => ToolId::GabungPdf,
-            Self::PisahPdf(_) => ToolId::PisahPdf,
-            Self::AturHalamanPdf(_) => ToolId::AturHalamanPdf,
-            Self::JpgKePdf(_) => ToolId::UbahKePdf,
-            Self::ScanDokumen(_) => ToolId::ScanDokumen,
-            Self::HapusInfoLokasi => ToolId::HapusInfoLokasi,
-            Self::BeriWatermark(_) => ToolId::BeriWatermark,
-            Self::PdfKeJpg(_) => ToolId::UbahKeJpg,
+            }) => ToolId::ConvertToPng,
+            Self::UbahFormatFoto(_) => ToolId::ConvertToJpg,
+            Self::ResizePhoto(_) => ToolId::ResizePhoto,
+            Self::MergePdf { .. } => ToolId::MergePdf,
+            Self::SplitPdf(_) => ToolId::SplitPdf,
+            Self::OrganizePdf(_) => ToolId::OrganizePdf,
+            Self::JpgKePdf(_) => ToolId::ConvertToPdf,
+            Self::ScanDocument(_) => ToolId::ScanDocument,
+            Self::RemoveLocationInfo => ToolId::RemoveLocationInfo,
+            Self::AddWatermark(_) => ToolId::AddWatermark,
+            Self::PdfKeJpg(_) => ToolId::ConvertToJpg,
         }
     }
 
     /// Whether every Original goes into one Result, as in Gabung PDF.
     pub fn merges(&self) -> bool {
-        matches!(self, Self::GabungPdf { .. } | Self::JpgKePdf(_) | Self::ScanDokumen(_))
+        matches!(self, Self::MergePdf { .. } | Self::JpgKePdf(_) | Self::ScanDocument(_))
     }
 
     /// The choices of a Tool that makes photos into a PDF.
     fn photos(&self) -> Option<&PhotosToPdf> {
         match self {
-            Self::JpgKePdf(opts) | Self::ScanDokumen(opts) => Some(opts),
+            Self::JpgKePdf(opts) | Self::ScanDocument(opts) => Some(opts),
             _ => None,
         }
     }
@@ -267,15 +267,15 @@ impl ToolOptions {
     /// Pisah PDF names each Result after its pages instead.
     pub fn suffix(&self) -> &'static str {
         match self {
-            Self::KompresFoto(_) | Self::KompresPdf(_) | Self::KompresDokumen(_) => "compressed",
+            Self::CompressPhoto(_) | Self::CompressPdf(_) | Self::CompressDocument(_) => "compressed",
             Self::UbahFormatFoto(_) => "converted",
-            Self::UbahUkuranFoto(_) => "resized",
-            Self::GabungPdf { .. } => "merged",
-            Self::PisahPdf(_) => "pages",
-            Self::AturHalamanPdf(_) => "edited",
-            Self::JpgKePdf(_) | Self::ScanDokumen(_) => "scan",
-            Self::HapusInfoLokasi => "cleaned",
-            Self::BeriWatermark(_) => "watermarked",
+            Self::ResizePhoto(_) => "resized",
+            Self::MergePdf { .. } => "merged",
+            Self::SplitPdf(_) => "pages",
+            Self::OrganizePdf(_) => "edited",
+            Self::JpgKePdf(_) | Self::ScanDocument(_) => "scan",
+            Self::RemoveLocationInfo => "cleaned",
+            Self::AddWatermark(_) => "watermarked",
             Self::PdfKeJpg(_) => "pages",
         }
     }
@@ -408,7 +408,7 @@ fn run_file(
     let suffix = task.tool.suffix();
 
     match &task.tool {
-        ToolOptions::KompresFoto(opts) => photo_result(
+        ToolOptions::CompressPhoto(opts) => photo_result(
             original,
             original_size,
             folder,
@@ -431,7 +431,7 @@ fn run_file(
                 cancel,
             )
         }
-        ToolOptions::UbahUkuranFoto(opts) => {
+        ToolOptions::ResizePhoto(opts) => {
             let info = rantakit_image::photo_info(original)?;
             if info.width.max(info.height) <= opts.max_dimension.unwrap_or(u32::MAX) {
                 return Err(ErrorKind::Unchanged);
@@ -446,10 +446,10 @@ fn run_file(
                 cancel,
             )
         }
-        ToolOptions::GabungPdf { .. } | ToolOptions::JpgKePdf(_) | ToolOptions::ScanDokumen(_) => {
+        ToolOptions::MergePdf { .. } | ToolOptions::JpgKePdf(_) | ToolOptions::ScanDocument(_) => {
             unreachable!("run_task merges every Original at once")
         }
-        ToolOptions::PisahPdf(split) => {
+        ToolOptions::SplitPdf(split) => {
             let pdf = PdfDocument::open(original)?;
             let count = pdf.page_count();
             let mut tracker = Tracker::new(progress, cancel);
@@ -479,7 +479,7 @@ fn run_file(
                 Split::Every(every) => split_every(original, original_size, folder, &pdf, *every, &mut tracker),
             }
         }
-        ToolOptions::AturHalamanPdf(edits) => {
+        ToolOptions::OrganizePdf(edits) => {
             let pdf = PdfDocument::open(original)?;
             let unchanged = edits.len() == pdf.page_count()
                 && edits
@@ -502,7 +502,7 @@ fn run_file(
                 },
             })
         }
-        ToolOptions::HapusInfoLokasi => {
+        ToolOptions::RemoveLocationInfo => {
             let format = rantakit_image::detect_kind(original)?.saved_as();
             let info = rantakit_image::photo_info(original)?;
             let path = result_path(original, folder, suffix, photo_extension(format));
@@ -519,7 +519,7 @@ fn run_file(
                 },
             })
         }
-        ToolOptions::BeriWatermark(opts) => {
+        ToolOptions::AddWatermark(opts) => {
             let watermark = opts.watermark();
             if watermark.lines.iter().all(String::is_empty) {
                 return Err(ErrorKind::Unchanged);
@@ -543,7 +543,7 @@ fn run_file(
             })
         }
         ToolOptions::PdfKeJpg(opts) => pdf_to_jpg(original, original_size, folder, opts, progress, cancel),
-        ToolOptions::KompresDokumen(opts) => {
+        ToolOptions::CompressDocument(opts) => {
             // The Result keeps the Original's extension, so a `.docm` keeps its macros working.
             let extension = original
                 .extension()
@@ -562,7 +562,7 @@ fn run_file(
                 },
             })
         }
-        ToolOptions::KompresPdf(opts) => {
+        ToolOptions::CompressPdf(opts) => {
             let path = result_path(original, folder, suffix, "pdf");
             let out = rantakit_pdf::compress_pdf(original, &path, opts, progress, cancel)?;
             Ok(ResultFile {
@@ -606,7 +606,7 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
             .collect()
     };
     let (date, mut parts) = match (&task.tool, task.tool.photos()) {
-        (ToolOptions::GabungPdf { date }, _) => (date, Parts::Pdfs(Vec::with_capacity(count))),
+        (ToolOptions::MergePdf { date }, _) => (date, Parts::Pdfs(Vec::with_capacity(count))),
         (_, Some(opts)) => (&opts.date, Parts::Photos(Vec::with_capacity(count))),
         _ => return fail(0, ErrorKind::UnsupportedFormat),
     };

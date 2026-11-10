@@ -17,14 +17,13 @@ pub struct PagePhoto {
     pub gray: bool,
 }
 
-/// "Ukuran kertas".
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PaperSize {
     #[default]
     A4,
     /// Folio, 215 × 330 mm, common in Indonesian offices.
     F4,
-    /// "Ikuti ukuran foto": each page the shape of its photo.
+    /// Follow photo size
     Photo,
 }
 

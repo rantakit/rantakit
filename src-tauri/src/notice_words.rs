@@ -26,18 +26,18 @@ pub const EN: Words = Words {
 
 fn tool_name(words: &Words, tool: ToolId) -> &'static str {
     match (tool, words.english) {
-        (ToolId::KompresFoto, false) => "Kompres Foto",
-        (ToolId::KompresFoto, true) => "Compress Photo",
-        (ToolId::KompresPdf, false) => "Kompres PDF",
-        (ToolId::KompresPdf, true) => "Compress PDF",
-        (ToolId::KompresDokumen, false) => "Kompres Dokumen",
-        (ToolId::KompresDokumen, true) => "Compress Document",
-        (ToolId::UbahKeJpg, false) => "Ubah ke JPG",
-        (ToolId::UbahKeJpg, true) => "Convert to JPG",
-        (ToolId::UbahKePng, false) => "Ubah ke PNG",
-        (ToolId::UbahKePng, true) => "Convert to PNG",
-        (ToolId::UbahUkuranFoto, false) => "Ubah Ukuran Foto",
-        (ToolId::UbahUkuranFoto, true) => "Resize Photo",
+        (ToolId::CompressPhoto, false) => "Kompres Foto",
+        (ToolId::CompressPhoto, true) => "Compress Photo",
+        (ToolId::CompressPdf, false) => "Kompres PDF",
+        (ToolId::CompressPdf, true) => "Compress PDF",
+        (ToolId::CompressDocument, false) => "Kompres Dokumen",
+        (ToolId::CompressDocument, true) => "Compress Document",
+        (ToolId::ConvertToJpg, false) => "Ubah ke JPG",
+        (ToolId::ConvertToJpg, true) => "Convert to JPG",
+        (ToolId::ConvertToPng, false) => "Ubah ke PNG",
+        (ToolId::ConvertToPng, true) => "Convert to PNG",
+        (ToolId::ResizePhoto, false) => "Ubah Ukuran Foto",
+        (ToolId::ResizePhoto, true) => "Resize Photo",
         _ => "Rantakit",
     }
 }
@@ -86,11 +86,11 @@ mod tests {
     #[test]
     fn progress_counts_the_file_being_worked_on() {
         assert_eq!(
-            progress_title(&ID, ToolId::KompresFoto, 2, 12),
+            progress_title(&ID, ToolId::CompressPhoto, 2, 12),
             "Kompres Foto · 3 dari 12 file"
         );
         assert_eq!(
-            progress_title(&EN, ToolId::KompresPdf, 0, 1),
+            progress_title(&EN, ToolId::CompressPdf, 0, 1),
             "Compress PDF · 1 of 1 file"
         );
     }

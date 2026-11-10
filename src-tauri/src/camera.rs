@@ -1,4 +1,4 @@
-//! Scan Dokumen's camera on Android (D3). The Kotlin side, `CameraPlugin.kt`,
+//! Scan Document's camera on Android (D3). The Kotlin side, `CameraPlugin.kt`,
 //! asks for the camera permission and opens `CameraActivity.kt`, which saves
 //! each photo into the app's cache (`scans/`), never to Gallery. The photos
 //! are removed when the Task ends or is left, and at the next launch.

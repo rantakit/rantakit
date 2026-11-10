@@ -8,52 +8,52 @@ use crate::kinds::{FileKind, detect_kind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ToolId {
-    KompresFoto,
-    KompresPdf,
-    UbahKeJpg,
-    UbahKePng,
-    UbahUkuranFoto,
-    KompresDokumen,
-    KompresAudio,
-    UbahFormatAudio,
-    KompresVideo,
-    UbahKePdf,
-    ScanDokumen,
-    GabungPdf,
-    PisahPdf,
-    AturHalamanPdf,
-    BeriWatermark,
-    HapusInfoLokasi,
+    CompressPhoto,
+    CompressPdf,
+    ConvertToJpg,
+    ConvertToPng,
+    ResizePhoto,
+    CompressDocument,
+    CompressAudio,
+    ConvertAudioFormat,
+    CompressVideo,
+    ConvertToPdf,
+    ScanDocument,
+    MergePdf,
+    SplitPdf,
+    OrganizePdf,
+    AddWatermark,
+    RemoveLocationInfo,
 }
 
 /// Ids of the Tools that 0.4.1 folded into the goal-based convert Tools,
 /// still found in History, recent Tools, and Presets saved before then.
 const LEGACY_IDS: &[(&str, ToolId)] = &[
-    ("ubah-format-foto", ToolId::UbahKeJpg),
-    ("jpg-ke-pdf", ToolId::UbahKePdf),
-    ("pdf-ke-jpg", ToolId::UbahKeJpg),
+    ("ubah-format-foto", ToolId::ConvertToJpg),
+    ("jpg-ke-pdf", ToolId::ConvertToPdf),
+    ("pdf-ke-jpg", ToolId::ConvertToJpg),
 ];
 
 impl ToolId {
     /// The stable id the frontend keys names, descriptions, and icons by.
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::KompresFoto => "kompres-foto",
-            Self::KompresPdf => "kompres-pdf",
-            Self::UbahKeJpg => "ubah-ke-jpg",
-            Self::UbahKePng => "ubah-ke-png",
-            Self::UbahUkuranFoto => "ubah-ukuran-foto",
-            Self::KompresDokumen => "kompres-dokumen",
-            Self::KompresAudio => "kompres-audio",
-            Self::UbahFormatAudio => "ubah-format-audio",
-            Self::KompresVideo => "kompres-video",
-            Self::UbahKePdf => "ubah-ke-pdf",
-            Self::ScanDokumen => "scan-dokumen",
-            Self::GabungPdf => "gabung-pdf",
-            Self::PisahPdf => "pisah-pdf",
-            Self::AturHalamanPdf => "atur-halaman-pdf",
-            Self::BeriWatermark => "beri-watermark",
-            Self::HapusInfoLokasi => "hapus-info-lokasi",
+            Self::CompressPhoto => "kompres-foto",
+            Self::CompressPdf => "kompres-pdf",
+            Self::ConvertToJpg => "ubah-ke-jpg",
+            Self::ConvertToPng => "ubah-ke-png",
+            Self::ResizePhoto => "ubah-ukuran-foto",
+            Self::CompressDocument => "kompres-dokumen",
+            Self::CompressAudio => "kompres-audio",
+            Self::ConvertAudioFormat => "ubah-format-audio",
+            Self::CompressVideo => "kompres-video",
+            Self::ConvertToPdf => "ubah-ke-pdf",
+            Self::ScanDocument => "scan-dokumen",
+            Self::MergePdf => "gabung-pdf",
+            Self::SplitPdf => "pisah-pdf",
+            Self::OrganizePdf => "atur-halaman-pdf",
+            Self::AddWatermark => "beri-watermark",
+            Self::RemoveLocationInfo => "hapus-info-lokasi",
         }
     }
 
@@ -82,26 +82,26 @@ impl ToolId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Job {
     /// "Kecilkan & Ubah"
-    KecilkanUbah,
+    ShrinkAndConvert,
     /// "Scan"
     Scan,
     /// "Atur PDF"
-    AturPdf,
+    RearrangePdf,
     /// "Ambil Teks"
-    AmbilTeks,
+    GetText,
     /// "Bagikan dengan Aman"
-    BagikanAman,
+    ShareSafely,
 }
 
 impl Job {
     /// The stable id the frontend keys Job headings by.
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::KecilkanUbah => "kecilkan-ubah",
+            Self::ShrinkAndConvert => "kecilkan-ubah",
             Self::Scan => "scan",
-            Self::AturPdf => "atur-pdf",
-            Self::AmbilTeks => "ambil-teks",
-            Self::BagikanAman => "bagikan-aman",
+            Self::RearrangePdf => "atur-pdf",
+            Self::GetText => "ambil-teks",
+            Self::ShareSafely => "bagikan-aman",
         }
     }
 }
@@ -204,22 +204,76 @@ const OFFICE: &[FileKind] = &[Word, Excel, PowerPoint, LockedOffice];
 /// within a Job. Tools planned for after 1.0 are not listed, so they never
 /// appear.
 pub const CATALOGUE: &[Tool] = &[
-    tool(ToolId::KompresFoto, KecilkanUbah, &[PHOTOS], ALL, Shipped),
-    tool(ToolId::KompresPdf, KecilkanUbah, &[PDF], ALL, Shipped),
-    tool(ToolId::UbahKeJpg, KecilkanUbah, &[PHOTOS, PDF], ALL, Shipped),
-    tool(ToolId::UbahKePng, KecilkanUbah, &[PHOTOS], ALL, Shipped),
-    tool(ToolId::UbahUkuranFoto, KecilkanUbah, &[PHOTOS], ALL, Shipped),
-    tool(ToolId::KompresDokumen, KecilkanUbah, &[OFFICE], ALL, Shipped),
-    tool(ToolId::KompresAudio, KecilkanUbah, &[&[Audio]], ALL, ComingSoon),
-    tool(ToolId::UbahFormatAudio, KecilkanUbah, &[&[Audio]], ALL, ComingSoon),
-    tool(ToolId::KompresVideo, KecilkanUbah, &[&[Video]], ALL, ComingSoon),
-    tool(ToolId::UbahKePdf, Scan, &[PHOTOS], ALL, Shipped),
-    tool(ToolId::ScanDokumen, Scan, &[], &[Platform::Android], Shipped),
-    tool(ToolId::GabungPdf, AturPdf, &[PDF], ALL, Shipped).taking(FileCount::AtLeastTwo),
-    tool(ToolId::PisahPdf, AturPdf, &[PDF], ALL, Shipped),
-    tool(ToolId::AturHalamanPdf, AturPdf, &[PDF], ALL, Shipped).taking(FileCount::One),
-    tool(ToolId::BeriWatermark, BagikanAman, &[PHOTOS, PDF], ALL, Shipped),
-    tool(ToolId::HapusInfoLokasi, BagikanAman, &[PHOTOS], ALL, Shipped),
+    tool(ToolId::CompressPhoto, ShrinkAndConvert, &[PHOTOS], ALL, Shipped),
+    tool(ToolId::CompressPdf, ShrinkAndConvert, &[PDF], ALL, Shipped),
+    tool(
+        ToolId::ConvertToJpg,
+        ShrinkAndConvert,
+        &[PHOTOS, PDF],
+        ALL,
+        Shipped,
+    ),
+    tool(ToolId::ConvertToPng, ShrinkAndConvert, &[PHOTOS], ALL, Shipped),
+    tool(
+        ToolId::ResizePhoto,
+        ShrinkAndConvert,
+        &[PHOTOS],
+        ALL,
+        Shipped,
+    ),
+    tool(
+        ToolId::CompressDocument,
+        ShrinkAndConvert,
+        &[OFFICE],
+        ALL,
+        Shipped,
+    ),
+    tool(
+        ToolId::CompressAudio,
+        ShrinkAndConvert,
+        &[&[Audio]],
+        ALL,
+        ComingSoon,
+    ),
+    tool(
+        ToolId::ConvertAudioFormat,
+        ShrinkAndConvert,
+        &[&[Audio]],
+        ALL,
+        ComingSoon,
+    ),
+    tool(
+        ToolId::CompressVideo,
+        ShrinkAndConvert,
+        &[&[Video]],
+        ALL,
+        ComingSoon,
+    ),
+    tool(ToolId::ConvertToPdf, Scan, &[PHOTOS], ALL, Shipped),
+    tool(
+        ToolId::ScanDocument,
+        Scan,
+        &[],
+        &[Platform::Android],
+        Shipped,
+    ),
+    tool(ToolId::MergePdf, RearrangePdf, &[PDF], ALL, Shipped).taking(FileCount::AtLeastTwo),
+    tool(ToolId::SplitPdf, RearrangePdf, &[PDF], ALL, Shipped),
+    tool(ToolId::OrganizePdf, RearrangePdf, &[PDF], ALL, Shipped).taking(FileCount::One),
+    tool(
+        ToolId::AddWatermark,
+        ShareSafely,
+        &[PHOTOS, PDF],
+        ALL,
+        Shipped,
+    ),
+    tool(
+        ToolId::RemoveLocationInfo,
+        ShareSafely,
+        &[PHOTOS],
+        ALL,
+        Shipped,
+    ),
 ];
 
 const fn tool(
@@ -282,22 +336,22 @@ fn home_defaults(platform: Platform) -> &'static [ToolId] {
     use ToolId::*;
     match platform {
         Platform::Android => &[
-            ScanDokumen,
-            KompresFoto,
-            KompresPdf,
-            UbahKePdf,
-            GabungPdf,
-            UbahKeJpg,
-            BeriWatermark,
+            ScanDocument,
+            CompressPhoto,
+            CompressPdf,
+            ConvertToPdf,
+            MergePdf,
+            ConvertToJpg,
+            AddWatermark,
         ],
         Platform::Windows | Platform::Linux => &[
-            KompresPdf,
-            KompresFoto,
-            UbahKePdf,
-            GabungPdf,
-            UbahKeJpg,
-            PisahPdf,
-            BeriWatermark,
+            CompressPdf,
+            CompressPhoto,
+            ConvertToPdf,
+            MergePdf,
+            ConvertToJpg,
+            SplitPdf,
+            AddWatermark,
         ],
     }
 }
@@ -415,12 +469,12 @@ mod tests {
 
     #[test]
     fn old_ids_name_the_tools_they_were_folded_into() {
-        assert_eq!(ToolId::parse("ubah-format-foto"), Some(ToolId::UbahKeJpg));
-        assert_eq!(ToolId::parse("jpg-ke-pdf"), Some(ToolId::UbahKePdf));
-        assert_eq!(ToolId::parse("pdf-ke-jpg"), Some(ToolId::UbahKeJpg));
+        assert_eq!(ToolId::parse("ubah-format-foto"), Some(ToolId::ConvertToJpg));
+        assert_eq!(ToolId::parse("jpg-ke-pdf"), Some(ToolId::ConvertToPdf));
+        assert_eq!(ToolId::parse("pdf-ke-jpg"), Some(ToolId::ConvertToJpg));
         assert_eq!(ToolId::parse("word-ke-pdf"), None);
-        assert!(ToolId::UbahKeJpg.is_named("pdf-ke-jpg"));
-        assert!(!ToolId::UbahKePng.is_named("ubah-format-foto"));
+        assert!(ToolId::ConvertToJpg.is_named("pdf-ke-jpg"));
+        assert!(!ToolId::ConvertToPng.is_named("ubah-format-foto"));
     }
 
     #[test]
@@ -430,25 +484,28 @@ mod tests {
         assert_eq!(
             tools_for_kinds(&[Jpg, Png], on),
             [
-                KompresFoto,
-                UbahKeJpg,
-                UbahKePng,
-                UbahUkuranFoto,
-                UbahKePdf,
-                BeriWatermark,
-                HapusInfoLokasi
+                CompressPhoto,
+                ConvertToJpg,
+                ConvertToPng,
+                ResizePhoto,
+                ConvertToPdf,
+                AddWatermark,
+                RemoveLocationInfo
             ]
         );
         assert_eq!(
             tools_for_kinds(&[Pdf, Pdf], on),
-            [KompresPdf, UbahKeJpg, GabungPdf, PisahPdf, BeriWatermark]
+            [CompressPdf, ConvertToJpg, MergePdf, SplitPdf, AddWatermark]
         );
     }
 
     #[test]
     fn heic_and_webp_go_where_jpg_goes() {
         let on = Platform::Android;
-        assert_eq!(tools_for_kinds(&[Heic, Webp, Jpg], on), tools_for_kinds(&[Jpg], on));
+        assert_eq!(
+            tools_for_kinds(&[Heic, Webp, Jpg], on),
+            tools_for_kinds(&[Jpg], on)
+        );
     }
 
     #[test]
@@ -489,7 +546,7 @@ mod tests {
 
     #[test]
     fn scan_dokumen_is_android_only() {
-        let listed = |platform| tools_for(platform).any(|t| t.id == ToolId::ScanDokumen);
+        let listed = |platform| tools_for(platform).any(|t| t.id == ToolId::ScanDocument);
         assert!(listed(Platform::Android));
         assert!(!listed(Platform::Windows));
         assert!(!listed(Platform::Linux));
@@ -509,20 +566,26 @@ mod tests {
         use ToolId::*;
         assert_eq!(
             once_shipped(&[Pdf]),
-            [KompresPdf, UbahKeJpg, PisahPdf, AturHalamanPdf, BeriWatermark],
+            [
+                CompressPdf,
+                ConvertToJpg,
+                SplitPdf,
+                OrganizePdf,
+                AddWatermark
+            ],
             "one PDF: no Gabung PDF"
         );
         assert_eq!(
             once_shipped(&[Pdf, Pdf]),
-            [KompresPdf, UbahKeJpg, GabungPdf, PisahPdf, BeriWatermark],
+            [CompressPdf, ConvertToJpg, MergePdf, SplitPdf, AddWatermark],
             "two PDFs: Gabung PDF, and no Atur Halaman PDF"
         );
     }
 
     #[test]
     fn office_documents_lead_to_kompres_dokumen() {
-        assert!(once_shipped(&[Word, Excel, PowerPoint]).contains(&ToolId::KompresDokumen));
-        assert_eq!(once_shipped(&[LockedOffice]), [ToolId::KompresDokumen]);
+        assert!(once_shipped(&[Word, Excel, PowerPoint]).contains(&ToolId::CompressDocument));
+        assert_eq!(once_shipped(&[LockedOffice]), [ToolId::CompressDocument]);
         assert!(once_shipped(&[OldOffice]).is_empty());
         assert!(once_shipped(&[Word, Pdf]).is_empty());
     }
@@ -538,14 +601,17 @@ mod tests {
     #[test]
     fn recently_used_tools_come_first() {
         use ToolId::*;
-        let tools = vec![KompresFoto, UbahKeJpg, UbahUkuranFoto, UbahKePdf];
+        let tools = vec![CompressPhoto, ConvertToJpg, ResizePhoto, ConvertToPdf];
         assert_eq!(
-            recent_first(tools.clone(), &["ubah-ke-pdf", "kompres-pdf", "ubah-ke-jpg"]),
-            [UbahKePdf, UbahKeJpg, KompresFoto, UbahUkuranFoto]
+            recent_first(
+                tools.clone(),
+                &["ubah-ke-pdf", "kompres-pdf", "ubah-ke-jpg"]
+            ),
+            [ConvertToPdf, ConvertToJpg, CompressPhoto, ResizePhoto]
         );
         assert_eq!(
             recent_first(tools.clone(), &["jpg-ke-pdf"]),
-            [UbahKePdf, KompresFoto, UbahKeJpg, UbahUkuranFoto],
+            [ConvertToPdf, CompressPhoto, ConvertToJpg, ResizePhoto],
             "an old id still counts"
         );
         assert_eq!(recent_first(tools.clone(), &[] as &[&str]), tools);
@@ -557,11 +623,27 @@ mod tests {
         let none: &[&str] = &[];
         assert_eq!(
             home_tools(Platform::Android, none),
-            [ScanDokumen, KompresFoto, KompresPdf, UbahKePdf, GabungPdf, UbahKeJpg, BeriWatermark]
+            [
+                ScanDocument,
+                CompressPhoto,
+                CompressPdf,
+                ConvertToPdf,
+                MergePdf,
+                ConvertToJpg,
+                AddWatermark
+            ]
         );
         assert_eq!(
             home_tools(Platform::Windows, none),
-            [KompresPdf, KompresFoto, UbahKePdf, GabungPdf, UbahKeJpg, PisahPdf, BeriWatermark]
+            [
+                CompressPdf,
+                CompressPhoto,
+                ConvertToPdf,
+                MergePdf,
+                ConvertToJpg,
+                SplitPdf,
+                AddWatermark
+            ]
         );
     }
 
@@ -578,7 +660,15 @@ mod tests {
         ];
         assert_eq!(
             home_tools(Platform::Linux, &recent),
-            [HapusInfoLokasi, UbahKeJpg, KompresPdf, KompresFoto, UbahKePdf, GabungPdf, PisahPdf],
+            [
+                RemoveLocationInfo,
+                ConvertToJpg,
+                CompressPdf,
+                CompressPhoto,
+                ConvertToPdf,
+                MergePdf,
+                SplitPdf
+            ],
             "old ids map to their new Tool once; unknown, Android-only, and coming-soon Tools are skipped"
         );
     }

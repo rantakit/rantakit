@@ -54,7 +54,7 @@ fn main() {
         let results = dir.join(name.replace(' ', "-"));
         fs::create_dir_all(&results).unwrap();
         let task = Task {
-            tool: ToolOptions::KompresPdf(compression.pdf()),
+            tool: ToolOptions::CompressPdf(compression.pdf()),
             originals: vec![original.clone()],
             results_folder: Some(results),
         };

@@ -52,18 +52,18 @@ pub struct TaskRequest {
     rename_all_fields = "camelCase"
 )]
 pub enum OptionsRequest {
-    KompresFoto {
+    CompressPhoto {
         /// Output format; `None` keeps the Original's format.
         #[serde(default)]
         format: Option<Format>,
         #[serde(flatten)]
         compression: CompressionRequest,
     },
-    KompresPdf {
+    CompressPdf {
         #[serde(flatten)]
         compression: CompressionRequest,
     },
-    KompresDokumen {
+    CompressDocument {
         #[serde(flatten)]
         compression: CompressionRequest,
     },
@@ -77,18 +77,18 @@ pub enum OptionsRequest {
         #[serde(default)]
         background: Option<String>,
     },
-    UbahUkuranFoto {
+    ResizePhoto {
         #[serde(default)]
         size: SizeRequest,
         /// "Sisi terpanjang (px)" from Advanced options; wins over `size`.
         #[serde(default)]
         max_side: Option<u32>,
     },
-    GabungPdf {
+    MergePdf {
         /// The user's today, such as "2026-11-07", for `merged 2026-11-07.pdf`.
         date: String,
     },
-    PisahPdf {
+    SplitPdf {
         /// "Ambil halaman": pages counted from 1, in order.
         #[serde(default)]
         pages: Option<Vec<usize>>,
@@ -96,7 +96,7 @@ pub enum OptionsRequest {
         #[serde(default)]
         every: Option<usize>,
     },
-    AturHalamanPdf {
+    OrganizePdf {
         /// The Result's pages in order.
         pages: Vec<PageRequest>,
     },
@@ -114,7 +114,7 @@ pub enum OptionsRequest {
         edits: Vec<EditRequest>,
     },
     /// Like JPG ke PDF, for the photos the camera took.
-    ScanDokumen {
+    ScanDocument {
         date: String,
         #[serde(default)]
         paper: PaperRequest,
@@ -127,8 +127,8 @@ pub enum OptionsRequest {
         look: LookRequest,
     },
     /// No options: every piece of photo info goes but the orientation.
-    HapusInfoLokasi,
-    BeriWatermark(WatermarkRequest),
+    RemoveLocationInfo,
+    AddWatermark(WatermarkRequest),
     PdfKeJpg {
         /// "Pilih halaman": pages counted from 1; left out for "Semua halaman".
         #[serde(default)]
@@ -318,7 +318,7 @@ impl OptionsRequest {
     /// The Size limit typed for a compress Tool, if any.
     fn limit(&self) -> Option<u64> {
         match self {
-            Self::KompresFoto { compression, .. } | Self::KompresPdf { compression } | Self::KompresDokumen { compression } => {
+            Self::CompressPhoto { compression, .. } | Self::CompressPdf { compression } | Self::CompressDocument { compression } => {
                 compression.limit
             }
             _ => None,
@@ -372,19 +372,19 @@ impl From<CompressionRequest> for Compression {
 impl From<OptionsRequest> for ToolOptions {
     fn from(request: OptionsRequest) -> Self {
         match request {
-            OptionsRequest::KompresFoto {
+            OptionsRequest::CompressPhoto {
                 format,
                 compression,
-            } => Self::KompresFoto(Compression::from(compression).photo(match format {
+            } => Self::CompressPhoto(Compression::from(compression).photo(match format {
                 None => OutputFormat::Same,
                 Some(Format::Jpeg) => OutputFormat::To(ImageFormat::Jpeg),
                 Some(Format::Png) => OutputFormat::To(ImageFormat::Png),
             })),
-            OptionsRequest::KompresPdf { compression } => {
-                Self::KompresPdf(Compression::from(compression).pdf())
+            OptionsRequest::CompressPdf { compression } => {
+                Self::CompressPdf(Compression::from(compression).pdf())
             }
-            OptionsRequest::KompresDokumen { compression } => {
-                Self::KompresDokumen(Compression::from(compression).document())
+            OptionsRequest::CompressDocument { compression } => {
+                Self::CompressDocument(Compression::from(compression).document())
             }
             OptionsRequest::UbahFormatFoto {
                 to,
@@ -398,15 +398,15 @@ impl From<OptionsRequest> for ToolOptions {
                 quality,
                 parse_color(background.as_deref()),
             ),
-            OptionsRequest::UbahUkuranFoto { size, max_side } => {
+            OptionsRequest::ResizePhoto { size, max_side } => {
                 Self::resize(max_side.unwrap_or(PhotoSize::from(size).side()))
             }
-            OptionsRequest::GabungPdf { date } => Self::GabungPdf { date },
-            OptionsRequest::PisahPdf { pages, every } => Self::PisahPdf(match pages {
+            OptionsRequest::MergePdf { date } => Self::MergePdf { date },
+            OptionsRequest::SplitPdf { pages, every } => Self::SplitPdf(match pages {
                 Some(pages) => Split::Take(pages),
                 None => Split::Every(every.unwrap_or(1).max(1)),
             }),
-            OptionsRequest::AturHalamanPdf { pages } => Self::AturHalamanPdf(
+            OptionsRequest::OrganizePdf { pages } => Self::OrganizePdf(
                 pages
                     .into_iter()
                     .map(|page| PageEdit {
@@ -421,15 +421,15 @@ impl From<OptionsRequest> for ToolOptions {
                 margin,
                 edits,
             } => Self::JpgKePdf(photos_to_pdf(date, paper, margin, edits, false)),
-            OptionsRequest::ScanDokumen {
+            OptionsRequest::ScanDocument {
                 date,
                 paper,
                 margin,
                 edits,
                 look,
-            } => Self::ScanDokumen(photos_to_pdf(date, paper, margin, edits, look == LookRequest::Clean)),
-            OptionsRequest::HapusInfoLokasi => Self::HapusInfoLokasi,
-            OptionsRequest::BeriWatermark(request) => Self::BeriWatermark(request.into()),
+            } => Self::ScanDocument(photos_to_pdf(date, paper, margin, edits, look == LookRequest::Clean)),
+            OptionsRequest::RemoveLocationInfo => Self::RemoveLocationInfo,
+            OptionsRequest::AddWatermark(request) => Self::AddWatermark(request.into()),
             OptionsRequest::PdfKeJpg { pages, dpi } => Self::PdfKeJpg(PdfToJpg {
                 pages,
                 dpi: dpi.clamp(72, 600),
@@ -835,7 +835,7 @@ mod tests {
 
         assert!(matches!(
             request.options.into(),
-            ToolOptions::KompresFoto(ImageOptions {
+            ToolOptions::CompressPhoto(ImageOptions {
                 format: OutputFormat::Same,
                 target: Target::MaxBytes(200_000),
                 max_dimension: None,

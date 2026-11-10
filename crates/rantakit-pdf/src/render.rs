@@ -54,7 +54,7 @@ impl PdfPages {
     }
 
     /// Page `index`, counting from 0, at `dpi` dots per inch of the paper, for
-    /// PDF ke JPG: 150 dpi makes an A4 page 1240 × 1754 pixels. A page that
+    /// PDF to JPG: 150 dpi makes an A4 page 1240 × 1754 pixels. A page that
     /// would be larger than 8000 pixels is drawn smaller to fit.
     pub fn render_at(&self, index: usize, dpi: u32) -> Result<RgbImage> {
         self.render_scaled(index, |longest| {

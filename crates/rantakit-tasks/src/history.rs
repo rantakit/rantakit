@@ -64,8 +64,8 @@ impl Entry {
             })
         };
         let tool = match ToolId::parse(&self.tool) {
-            Some(ToolId::UbahKeJpg) if self.tool == "ubah-format-foto" && made_png() => {
-                ToolId::UbahKePng
+            Some(ToolId::ConvertToJpg) if self.tool == "ubah-format-foto" && made_png() => {
+                ToolId::ConvertToPng
             }
             Some(tool) => tool,
             None => return,
@@ -309,7 +309,7 @@ mod tests {
     fn a_task_is_one_entry_with_each_of_its_results() {
         let (history, dir) = temp_history("record");
         let task = Task {
-            tool: ToolOptions::KompresPdf(crate::PdfOptions {
+            tool: ToolOptions::CompressPdf(crate::PdfOptions {
                 quality: 70,
                 max_dimension: None,
                 max_bytes: None,
@@ -364,7 +364,7 @@ mod tests {
     fn several_results_from_one_original_stay_one_entry() {
         let (history, dir) = temp_history("folder");
         let task = Task {
-            tool: ToolOptions::KompresPdf(crate::PdfOptions {
+            tool: ToolOptions::CompressPdf(crate::PdfOptions {
                 quality: 70,
                 max_dimension: None,
                 max_bytes: None,

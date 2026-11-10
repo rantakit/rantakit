@@ -1,4 +1,4 @@
-//! "Versi baru" for the APK from GitHub. The Kotlin side, `UpdatePlugin.kt`,
+//! "New version" for the APK from GitHub. The Kotlin side, `UpdatePlugin.kt`,
 //! reads the version in the latest release's `latest.json`; the user then
 //! downloads and installs the new APK from the release page, so Rantakit needs
 //! no permission to install apps.

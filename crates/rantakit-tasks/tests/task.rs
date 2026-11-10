@@ -90,7 +90,7 @@ fn scan_pdf() -> Vec<u8> {
 }
 
 fn kompres_foto(target: Target) -> ToolOptions {
-    ToolOptions::KompresFoto(ImageOptions {
+    ToolOptions::CompressPhoto(ImageOptions {
         format: OutputFormat::Same,
         target,
         max_dimension: None,
@@ -99,7 +99,7 @@ fn kompres_foto(target: Target) -> ToolOptions {
 }
 
 fn kompres_pdf() -> ToolOptions {
-    ToolOptions::KompresPdf(PdfOptions {
+    ToolOptions::CompressPdf(PdfOptions {
         quality: 50,
         max_dimension: None,
         max_bytes: None,
@@ -140,7 +140,7 @@ fn report_docx() -> Vec<u8> {
 }
 
 fn kompres_dokumen() -> ToolOptions {
-    ToolOptions::KompresDokumen(OfficeOptions {
+    ToolOptions::CompressDocument(OfficeOptions {
         quality: 70,
         max_dimension: None,
         max_bytes: None,
@@ -151,25 +151,25 @@ fn kompres_dokumen() -> ToolOptions {
 /// does not compile until it gets a fixture and is covered by the tests below.
 fn original_for(tool: &ToolOptions) -> (&'static str, Vec<u8>) {
     match tool {
-        ToolOptions::KompresFoto(_) => ("foto.jpg", photo_jpg()),
-        ToolOptions::KompresPdf(_) => ("ijazah.pdf", scan_pdf()),
-        ToolOptions::GabungPdf { .. } | ToolOptions::PisahPdf(_) | ToolOptions::AturHalamanPdf(_)
+        ToolOptions::CompressPhoto(_) => ("foto.jpg", photo_jpg()),
+        ToolOptions::CompressPdf(_) => ("ijazah.pdf", scan_pdf()),
+        ToolOptions::MergePdf { .. } | ToolOptions::SplitPdf(_) | ToolOptions::OrganizePdf(_)
         | ToolOptions::PdfKeJpg(_) => {
             ("ijazah.pdf", pages_pdf(3))
         }
-        ToolOptions::UbahFormatFoto(_) | ToolOptions::UbahUkuranFoto(_) | ToolOptions::JpgKePdf(_)
-        | ToolOptions::ScanDokumen(_) => {
+        ToolOptions::UbahFormatFoto(_) | ToolOptions::ResizePhoto(_) | ToolOptions::JpgKePdf(_)
+        | ToolOptions::ScanDocument(_) => {
             ("foto.jpg", photo_jpg())
         }
-        ToolOptions::HapusInfoLokasi => ("foto.jpg", located_jpg()),
-        ToolOptions::KompresDokumen(_) => ("laporan.docx", report_docx()),
-        ToolOptions::BeriWatermark(opts) if opts.text.contains("PDF") => ("ijazah.pdf", pages_pdf(3)),
-        ToolOptions::BeriWatermark(_) => ("ktp.jpg", photo_jpg()),
+        ToolOptions::RemoveLocationInfo => ("foto.jpg", located_jpg()),
+        ToolOptions::CompressDocument(_) => ("laporan.docx", report_docx()),
+        ToolOptions::AddWatermark(opts) if opts.text.contains("PDF") => ("ijazah.pdf", pages_pdf(3)),
+        ToolOptions::AddWatermark(_) => ("ktp.jpg", photo_jpg()),
     }
 }
 
 fn beri_watermark(text: &str) -> ToolOptions {
-    ToolOptions::BeriWatermark(WatermarkOptions {
+    ToolOptions::AddWatermark(WatermarkOptions {
         text: text.into(),
         date: Some("08/11/2026".into()),
         placement: Placement::Repeated,
@@ -184,7 +184,7 @@ fn every_tool() -> Vec<ToolOptions> {
     vec![
         kompres_foto(Target::Quality(60)),
         kompres_foto(Target::MaxBytes(20_000)),
-        ToolOptions::KompresFoto(ImageOptions {
+        ToolOptions::CompressPhoto(ImageOptions {
             format: OutputFormat::To(ImageFormat::Png),
             target: Target::Quality(80),
             max_dimension: Some(300),
@@ -194,9 +194,9 @@ fn every_tool() -> Vec<ToolOptions> {
         ToolOptions::convert(ImageFormat::Png, 90, WHITE),
         ToolOptions::resize(300),
         gabung_pdf(),
-        ToolOptions::PisahPdf(Split::Take(vec![1, 3])),
-        ToolOptions::PisahPdf(Split::Every(1)),
-        ToolOptions::AturHalamanPdf(vec![
+        ToolOptions::SplitPdf(Split::Take(vec![1, 3])),
+        ToolOptions::SplitPdf(Split::Every(1)),
+        ToolOptions::OrganizePdf(vec![
             PageEdit {
                 page: 2,
                 quarter_turns: 1,
@@ -213,7 +213,7 @@ fn every_tool() -> Vec<ToolOptions> {
             }],
         ),
         scan_dokumen(true),
-        ToolOptions::HapusInfoLokasi,
+        ToolOptions::RemoveLocationInfo,
         beri_watermark("Hanya untuk verifikasi Bank X"),
         beri_watermark("Salinan PDF untuk lamaran"),
         pdf_ke_jpg(Some(vec![2])),
@@ -223,7 +223,7 @@ fn every_tool() -> Vec<ToolOptions> {
 }
 
 fn gabung_pdf() -> ToolOptions {
-    ToolOptions::GabungPdf {
+    ToolOptions::MergePdf {
         date: "2026-11-07".into(),
     }
 }
@@ -239,7 +239,7 @@ fn jpg_ke_pdf(paper: PaperSize, edits: Vec<PhotoEdit>) -> ToolOptions {
 }
 
 fn scan_dokumen(clean: bool) -> ToolOptions {
-    ToolOptions::ScanDokumen(PhotosToPdf {
+    ToolOptions::ScanDocument(PhotosToPdf {
         date: "2026-11-07".into(),
         paper: PaperSize::A4,
         margin: true,
@@ -480,7 +480,7 @@ fn every_tool_that_runs_is_shipped_and_accepts_its_original() {
 
         assert_eq!(facts.availability, Availability::Shipped, "{tool:?}");
         // Scan Dokumen takes photos from its camera, never files dropped in.
-        let from_camera = facts.id == ToolId::ScanDokumen && facts.accepts.is_empty();
+        let from_camera = facts.id == ToolId::ScanDocument && facts.accepts.is_empty();
         assert!(
             from_camera || facts.accepts_kind(detect_kind(&path).unwrap()),
             "{tool:?}"
@@ -490,10 +490,10 @@ fn every_tool_that_runs_is_shipped_and_accepts_its_original() {
 
 #[test]
 fn converting_tasks_belong_to_the_tool_named_after_their_goal() {
-    assert_eq!(ToolOptions::convert(ImageFormat::Png, 90, WHITE).id(), ToolId::UbahKePng);
-    assert_eq!(ToolOptions::convert(ImageFormat::Jpeg, 90, WHITE).id(), ToolId::UbahKeJpg);
-    assert_eq!(pdf_ke_jpg(None).id(), ToolId::UbahKeJpg);
-    assert_eq!(jpg_ke_pdf(PaperSize::A4, vec![]).id(), ToolId::UbahKePdf);
+    assert_eq!(ToolOptions::convert(ImageFormat::Png, 90, WHITE).id(), ToolId::ConvertToPng);
+    assert_eq!(ToolOptions::convert(ImageFormat::Jpeg, 90, WHITE).id(), ToolId::ConvertToJpg);
+    assert_eq!(pdf_ke_jpg(None).id(), ToolId::ConvertToJpg);
+    assert_eq!(jpg_ke_pdf(PaperSize::A4, vec![]).id(), ToolId::ConvertToPdf);
 }
 
 #[test]
@@ -512,23 +512,23 @@ fn dropped_files_fit_tools_by_content_not_extension() {
     assert_eq!(
         tools_for_files(&[&photo_named_pdf, &png], on),
         [
-            ToolId::KompresFoto,
-            ToolId::UbahKeJpg,
-            ToolId::UbahKePng,
-            ToolId::UbahUkuranFoto,
-            ToolId::UbahKePdf,
-            ToolId::BeriWatermark,
-            ToolId::HapusInfoLokasi
+            ToolId::CompressPhoto,
+            ToolId::ConvertToJpg,
+            ToolId::ConvertToPng,
+            ToolId::ResizePhoto,
+            ToolId::ConvertToPdf,
+            ToolId::AddWatermark,
+            ToolId::RemoveLocationInfo
         ]
     );
     assert_eq!(
         tools_for_files(&[&pdf], on),
         [
-            ToolId::KompresPdf,
-            ToolId::UbahKeJpg,
-            ToolId::PisahPdf,
-            ToolId::AturHalamanPdf,
-            ToolId::BeriWatermark
+            ToolId::CompressPdf,
+            ToolId::ConvertToJpg,
+            ToolId::SplitPdf,
+            ToolId::OrganizePdf,
+            ToolId::AddWatermark
         ]
     );
     assert!(tools_for_files(&[&photo_named_pdf, &pdf], on).is_empty());
@@ -576,7 +576,7 @@ fn beri_watermark_without_text_changes_nothing() {
     let ktp = dir.join("ktp.jpg");
     fs::write(&ktp, photo_jpg()).unwrap();
     let mut empty = beri_watermark("   ");
-    if let ToolOptions::BeriWatermark(opts) = &mut empty {
+    if let ToolOptions::AddWatermark(opts) = &mut empty {
         opts.date = None;
     }
     assert_eq!(run(&task(empty, vec![ktp])), [Err(ErrorKind::Unchanged)]);
@@ -595,7 +595,7 @@ fn hapus_info_lokasi_cleans_located_photos_and_leaves_clean_ones() {
     assert!(found.location && !found.camera);
     assert!(file_info(&plain).found.unwrap().is_clean());
 
-    let outcomes = run(&task(ToolOptions::HapusInfoLokasi, vec![located.clone(), plain.clone()]));
+    let outcomes = run(&task(ToolOptions::RemoveLocationInfo, vec![located.clone(), plain.clone()]));
     let result = outcomes[0].as_ref().unwrap();
     assert_eq!(result.path, dir.join("foto (cleaned).jpg"));
     assert_eq!(
@@ -662,7 +662,7 @@ fn webp_photos_go_through_every_photo_tool_as_jpgs() {
     assert!(ends(ToolOptions::resize(300)).unwrap().ends_with("stiker (resized).jpg"));
     assert!(ends(beri_watermark("Hanya untuk verifikasi")).unwrap().ends_with("stiker (watermarked).jpg"));
     // A WebP with no photo info has nothing to remove.
-    assert_eq!(ends(ToolOptions::HapusInfoLokasi), Err(ErrorKind::Unchanged));
+    assert_eq!(ends(ToolOptions::RemoveLocationInfo), Err(ErrorKind::Unchanged));
     let pdf = ends(jpg_ke_pdf(PaperSize::A4, vec![])).unwrap();
     assert_eq!(pages_in(&pdf), 1);
 }
@@ -816,7 +816,7 @@ fn taking_pages_skips_the_ones_a_pdf_does_not_have() {
     let dir = scratch("take_pages");
     let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
     let take = |pages: Vec<usize>| {
-        run(&task(ToolOptions::PisahPdf(Split::Take(pages)), vec![original.clone()])).remove(0)
+        run(&task(ToolOptions::SplitPdf(Split::Take(pages)), vec![original.clone()])).remove(0)
     };
 
     let result = take(vec![2, 5]).unwrap();
@@ -843,7 +843,7 @@ fn splitting_makes_a_folder_of_parts() {
     let dir = scratch("split_every");
     let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
     let split = |every| {
-        run(&task(ToolOptions::PisahPdf(Split::Every(every)), vec![original.clone()])).remove(0)
+        run(&task(ToolOptions::SplitPdf(Split::Every(every)), vec![original.clone()])).remove(0)
     };
 
     let result = split(1).unwrap();
@@ -875,7 +875,7 @@ fn a_cancelled_split_leaves_no_folder() {
     let stopper = cancel.clone();
     let mut parts = 0;
     let outcomes = run_task(
-        &task(ToolOptions::PisahPdf(Split::Every(1)), vec![original]),
+        &task(ToolOptions::SplitPdf(Split::Every(1)), vec![original]),
         &mut |event| {
             if let TaskEvent::Progress { .. } = event {
                 parts += 1;
@@ -1014,7 +1014,7 @@ fn old_and_locked_documents_are_told_apart() {
 
     assert_eq!(match_files(&[&old], Platform::Linux), FileMatch::OldOffice);
     assert_eq!(match_files(&[&docx, &old], Platform::Linux), FileMatch::OldOffice);
-    assert_eq!(tools_for_files(&[&locked], Platform::Linux), [ToolId::KompresDokumen]);
+    assert_eq!(tools_for_files(&[&locked], Platform::Linux), [ToolId::CompressDocument]);
     assert_eq!(
         run(&task(kompres_dokumen(), vec![locked])),
         [Err(ErrorKind::PasswordProtected)]
@@ -1026,7 +1026,7 @@ fn arranging_pages_makes_an_edited_copy() {
     let dir = scratch("arrange_pages");
     let original = write(&dir, "ijazah.pdf", &pages_pdf(3));
     let arrange = |edits: Vec<PageEdit>| {
-        run(&task(ToolOptions::AturHalamanPdf(edits), vec![original.clone()])).remove(0)
+        run(&task(ToolOptions::OrganizePdf(edits), vec![original.clone()])).remove(0)
     };
 
     let result = arrange(vec![PageEdit::keep(2), PageEdit::keep(0)]).unwrap();
