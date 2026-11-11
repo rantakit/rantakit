@@ -6,15 +6,7 @@ import { pickImages } from "@/features/compress/imageApi";
 import type { TaskResult } from "@/features/tool/taskApi";
 import { OptionField } from "@/features/tool/OptionField";
 import { defineTool, type OptionsProps, type SourceProps } from "@/features/tool/toolDef";
-import {
-  CropHost,
-  NoMarginOption,
-  PAPERS,
-  PaperField,
-  PdfNote,
-  usePhotoRow,
-  type Paper,
-} from "@/features/photo-pdf/PhotoPdfOptions";
+import { NoMarginOption, PAPERS, PaperField, PdfNote, type Paper } from "@/features/photo-pdf/PhotoPdfOptions";
 import { photoEditsFor } from "@/features/photo-pdf/photoEdits";
 import { useT, type Translator } from "@/i18n";
 import { today } from "@/lib/format";
@@ -27,9 +19,11 @@ import {
   takePhotos,
   type CameraPermission,
 } from "./cameraApi";
+import { forgetPages } from "./preparedPages";
+import { ScanReview } from "./ScanReview";
 
 const LOOKS = ["clean", "original"] as const;
-type Look = (typeof LOOKS)[number];
+export type Look = (typeof LOOKS)[number];
 
 export interface ScanSettings {
   /** "Tampilan": "Bersihkan" or "Warna asli". */
@@ -71,7 +65,6 @@ function Main({ settings, onChange, paths }: OptionsProps<ScanSettings>) {
       </OptionField>
       <PaperField paper={settings.paper} onChange={(paper) => onChange({ paper })} />
       {paths.length > 0 && <PdfNote files={count("pages", paths.length)} paper={settings.paper} />}
-      <CropHost paths={paths} />
     </>
   );
 }
@@ -213,7 +206,10 @@ export const scanDokumen = defineTool({
   presets: false,
   pick: pickImages,
   Source: ScanSource,
-  discard: discardPhotos,
+  discard: (paths) => {
+    discardPhotos(paths);
+    forgetPages(paths);
+  },
   useSettings: useScanSettings,
   Main,
   Advanced: NoMarginOption,
@@ -227,5 +223,5 @@ export const scanDokumen = defineTool({
     look: settings.look,
   }),
   summary,
-  useRow: (path, _paths, settings) => usePhotoRow(path, settings.look === "clean"),
+  Review: ScanReview,
 });

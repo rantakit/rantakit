@@ -3,9 +3,9 @@
 
 use std::path::{Path, PathBuf};
 
-use rantakit_tasks::{Corners, ErrorKind, PhotoEdit};
+use rantakit_tasks::{Corners, ErrorKind, PhotoEdit, PreparedPages};
 use serde::Deserialize;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri::ipc::Response;
 
 #[cfg(target_os = "android")]
@@ -85,6 +85,37 @@ pub async fn edited_preview(app: AppHandle, path: PathBuf, edit: EditRequest, si
         }
         Err(err) => {
             eprintln!("photo preview stopped: {err}");
+            Response::new(Vec::new())
+        }
+    }
+}
+
+/// Makes the photo at `path` into its Scan Dokumen page as `edit` says,
+/// keeping it for "Simpan PDF", and answers with a JPG of that page at most
+/// `size` px on its longest side. An empty body when it can't be made; the
+/// page is then made again when the PDF is saved.
+#[tauri::command]
+pub async fn prepare_page(app: AppHandle, path: PathBuf, edit: EditRequest, size: u32) -> Response {
+    let size = size.clamp(32, 2048);
+    let made = tauri::async_runtime::spawn_blocking(move || {
+        let edit = PhotoEdit::from(edit);
+        let pages = app.state::<PreparedPages>();
+        let page = match pages.get(&path, &edit) {
+            Some(page) => page,
+            None => pages.prepare(&path, &read(&app, &path)?, &edit)?,
+        };
+        let jpeg = std::fs::read(&page.path).map_err(|err| ErrorKind::reading(&err))?;
+        rantakit_tasks::edited_preview(&jpeg, &PhotoEdit::default(), size)
+    })
+    .await;
+    match made {
+        Ok(Ok(jpg)) => Response::new(jpg),
+        Ok(Err(err)) => {
+            eprintln!("preparing the page failed: {err}");
+            Response::new(Vec::new())
+        }
+        Err(err) => {
+            eprintln!("preparing the page stopped: {err}");
             Response::new(Vec::new())
         }
     }

@@ -75,6 +75,13 @@ export function setPhotoEdit(path: string, edit: PhotoEdit) {
   set(path, { edit: { corners: isWhole(edit.corners) ? null : edit.corners, turns: ((edit.turns % 4) + 4) % 4 }, source: "user" });
 }
 
+/** Turns a photo a quarter clockwise; its crop, and where that came from, stay. */
+export function turnPhoto(path: string) {
+  const state = states.get(path);
+  if (!state || state.source === "finding") return;
+  set(path, { ...state, edit: { ...state.edit, turns: (state.edit.turns + 1) % 4 } });
+}
+
 /** The edits for a Task, in the order of `paths`. */
 export function photoEditsFor(paths: string[]): PhotoEdit[] {
   return paths.map((path) => states.get(path)?.edit ?? NO_EDIT);

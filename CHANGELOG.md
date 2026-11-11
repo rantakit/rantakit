@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Scan Document shows the pages one at a time once the camera closes, large, with swipe or arrows to turn the page. Under each page are Crop, Rotate, and Delete, and below them a strip of every page to tap, drag into a new order, or add more pages from the camera or Gallery. Clean up and Original colors switch every page at once
+- Scan Document makes each page in the background as soon as it is taken, one at a time, so Save PDF only packs the pages and is quick. A page still being made shows its photo dimmed until it is ready
+- Save PDF in Scan Document opens a sheet with the paper size and No margin. If pages are still being made, it waits with a progress bar and saves by itself once they are ready
+- Deleting a page in Scan Document no longer asks first; Undo brings it back for five seconds
+- Going back from Scan Document asks whether to discard the pages, with Keep scanning as the main choice
+
 ## [0.4.1] - 2026-11-09
 
 Rantakit 0.4.1 brings a new Home, convert Tools named after the format you need, a new icon and color, and a menu in the title bar on Windows and Linux. Rantakit is in early development and is not stable yet.

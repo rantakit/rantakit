@@ -3,9 +3,10 @@
 
 use std::path::PathBuf;
 
+use rantakit_tasks::PreparedPages;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 /// "granted", "ask", or "refused"; "refused" where there is no camera.
 #[tauri::command]
@@ -62,10 +63,12 @@ pub async fn take_photos(app: AppHandle, words: Value) -> Taken {
     }
 }
 
-/// Removes photos the camera took, once their Task has ended or been left.
-/// Anything not taken by the camera is left alone.
+/// Removes photos the camera took, once their Task has ended or been left,
+/// and the pages made from any of these photos. A photo not taken by the
+/// camera is left alone.
 #[tauri::command]
 pub async fn discard_photos(app: AppHandle, paths: Vec<PathBuf>) {
+    app.state::<PreparedPages>().forget(&paths);
     #[cfg(target_os = "android")]
     for path in paths
         .iter()

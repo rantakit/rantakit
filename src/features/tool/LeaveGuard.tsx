@@ -19,7 +19,7 @@ interface LeaveToolDialogProps {
  * on it, a work area's changes, or Scan Dokumen's photos would be lost.
  */
 export function LeaveToolDialog({ working, tool, paths, onLeave, onStay }: LeaveToolDialogProps) {
-  const { t } = useT();
+  const { t, count } = useT();
   const noun = tool ? pageNoun(toolDef(tool).noun, paths) : "photo";
   const words = working
     ? {
@@ -28,17 +28,23 @@ export function LeaveToolDialog({ working, tool, paths, onLeave, onStay }: Leave
         leaveLabel: t("leave.working.stop"),
         stayLabel: t("leave.working.keep"),
       }
-    : {
-        title: t("leave.title"),
-        body:
-          tool && toolDef(tool).Workspace && paths[0]
-            ? t("arrange.replace.body", { name: fileName(paths[0]) })
-            : tool && toolDef(tool).Source
-              ? t("leave.body.scan")
+    : tool && toolDef(tool).Source
+      ? {
+          // Scan Dokumen's pages exist nowhere else yet: "Buang 5 halaman?"
+          title: t("scan.discard.title", { pages: count("pages", paths.length) }),
+          body: t("scan.discard.body"),
+          leaveLabel: t("scan.discard"),
+          stayLabel: t("scan.discard.keep"),
+        }
+      : {
+          title: t("leave.title"),
+          body:
+            tool && toolDef(tool).Workspace && paths[0]
+              ? t("arrange.replace.body", { name: fileName(paths[0]) })
               : t(`leave.body.${noun}`),
-        leaveLabel: t("leave.leave"),
-        stayLabel: t("leave.stay"),
-      };
+          leaveLabel: t("leave.leave"),
+          stayLabel: t("leave.stay"),
+        };
   return <LeaveDialog {...words} onStay={onStay} onLeave={onLeave} />;
 }
 

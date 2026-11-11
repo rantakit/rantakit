@@ -8,6 +8,7 @@ mod history;
 mod info;
 mod kinds;
 mod names;
+mod prepared;
 mod presets;
 mod recent;
 mod settings;
@@ -26,6 +27,7 @@ pub use kinds::{FileKind, detect_kind, read_kind};
 pub use names::{
     named_path, numbered, pages_suffix, result_folder, result_folder_name, result_name, result_path,
 };
+pub use prepared::{PreparedPage, PreparedPages};
 pub use presets::{Preset, Presets};
 pub use recent::{RECENT_LIMITS, RECENT_TOOLS, Recent, RecentLimits, RecentTools};
 pub use settings::{Settings, SettingsStore};

@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use rantakit_tasks::{
     CancelToken, Compression, Details, ErrorKind, FileOutcome, History, ImageFormat, Level, OutputFormat,
-    PageEdit, PaperSize, PdfToJpg, PhotoEdit, PhotoSize, PhotosToPdf, Progress, RecentLimits, RecentTools, SettingsStore,
+    PageEdit, PaperSize, PdfToJpg, PhotoEdit, PhotoSize, PhotosToPdf, PreparedPages, Progress, RecentLimits, RecentTools, SettingsStore,
     Split, Task, TaskEvent, ToolOptions, WHITE, dpi_to_side, run_task, MarkColor, MarkOpacity, MarkSize, Placement,
     WatermarkOptions,
 };
@@ -273,6 +273,7 @@ fn photos_to_pdf(date: String, paper: PaperRequest, margin: bool, edits: Vec<Edi
         margin,
         edits: edits.into_iter().map(PhotoEdit::from).collect(),
         clean,
+        prepared: Vec::new(),
     }
 }
 
@@ -584,11 +585,13 @@ pub fn start_task(
     }
     // "Tempat menyimpan hasil" from Settings; unreadable settings save next to each Original.
     let settings = app.state::<SettingsStore>().get().unwrap_or_default();
-    let task = Task {
+    let mut task = Task {
         tool: request.options.into(),
         originals: request.paths,
         results_folder: settings.results_folder.clone(),
     };
+    // Scan Dokumen's pages were made while the user looked them over.
+    app.state::<PreparedPages>().attach(&mut task);
     // Recent tools are kept even while History is off.
     if let Err(err) = app
         .state::<RecentTools>()

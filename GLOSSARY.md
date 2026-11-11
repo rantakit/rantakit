@@ -22,6 +22,10 @@ _Avoid_: source, input
 A new file produced by a Task, always saved separately from the Original.
 _Avoid_: output, export
 
+**Page**:
+In Scan Dokumen, one photo as it goes into the PDF: cropped, straightened, turned, and in the chosen Look. The UI calls it "halaman", also while it is still being made ("Menyiapkan halaman…"). The photo itself is the Original.
+_Avoid_: "foto" or "jepretan" for a page on the review screen, "scan" as a noun
+
 **History**:
 The list of past Tasks and their Results, shown in the UI as "Riwayat".
 _Avoid_: recents, "Terbaru", log
@@ -46,6 +50,10 @@ _Avoid_: target size, quota, max size
 **Preset**:
 A saved, named set of Tool options created by the user, such as "Pas foto CPNS: JPG, 200 KB".
 _Avoid_: profile, template, institution preset
+
+**Look**:
+How every Page of a Scan Dokumen looks: "Bersihkan" (background made white, writing made sharper) or "Warna asli" (as photographed). One choice for all Pages, labelled "Tampilan" for screen readers.
+_Avoid_: filter, mode, enhance
 
 **Advanced options**:
 Options hidden by default inside a Tool. Every one has a safe default, so the user can ignore them.

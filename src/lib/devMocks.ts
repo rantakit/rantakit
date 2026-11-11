@@ -608,6 +608,17 @@ export function installDevMocks() {
         };
         return edit.corners ? fakeCrop(edit.corners, edit.turns, size) : fakeThumbnail(path, size);
       }
+      case "prepare_page": {
+        // Slow, like straightening and cleaning a full photo on a phone.
+        const { path, edit, size } = args as {
+          path: string;
+          edit: { corners: [number, number][] | null; turns: number };
+          size: number;
+        };
+        return new Promise((resolve) => setTimeout(resolve, 1500)).then(() =>
+          edit.corners ? fakeCrop(edit.corners, edit.turns, size) : fakeThumbnail(path, size),
+        );
+      }
       case "watermark_preview": {
         const { path, watermark, size } = args as { path: string; watermark: Parameters<typeof fakeWatermark>[1]; size: number };
         return fakeWatermark(path, watermark, size);

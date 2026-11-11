@@ -14,7 +14,7 @@ mod share_in;
 #[cfg(target_os = "android")]
 mod task_notice;
 
-use rantakit_tasks::{History, Presets, RecentLimits, RecentTools, SettingsStore};
+use rantakit_tasks::{History, PreparedPages, Presets, RecentLimits, RecentTools, SettingsStore};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -29,6 +29,8 @@ pub fn run() {
             app.manage(RecentTools::tools(data.join("recent-tools.json")));
             app.manage(SettingsStore::new(data.join("settings.json")));
             app.manage(Presets::new(data.join("presets.json")));
+            // Scan Dokumen's pages made ahead; nothing from an earlier run is kept.
+            app.manage(PreparedPages::new(app.path().app_cache_dir()?.join("prepared-pages")));
             app.manage(commands::task::RunningTasks::default());
             app.manage(commands::pages::OpenPdfs::default());
             app.manage(commands::watermark::PreviewBase::default());
@@ -87,6 +89,7 @@ pub fn run() {
             commands::pages::page_thumbnail,
             commands::photos::find_paper,
             commands::photos::edited_preview,
+            commands::photos::prepare_page,
             commands::watermark::watermark_preview,
             commands::camera::camera_permission,
             commands::camera::ask_camera_permission,

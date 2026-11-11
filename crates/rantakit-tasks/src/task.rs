@@ -12,6 +12,7 @@ use rantakit_pdf::{
 use crate::catalogue::ToolId;
 use crate::kinds::{FileKind, detect_kind};
 use crate::names::{named_path, pages_suffix, result_folder, result_path};
+use crate::prepared::PreparedPage;
 
 /// One run of a Tool on one or more Originals.
 #[derive(Debug, Clone)]
@@ -162,11 +163,25 @@ pub struct PhotosToPdf {
     /// "Bersihkan": every page made to look scanned. Scan Dokumen's
     /// "Tampilan"; JPG ke PDF leaves it off.
     pub clean: bool,
+    /// Pages already made for each Original, by index, by
+    /// [`PreparedPages::attach`](crate::PreparedPages::attach); one left out
+    /// is made while the PDF is saved.
+    pub prepared: Vec<Option<PreparedPage>>,
+}
+
+impl PhotosToPdf {
+    /// How the Original at `file` becomes its page.
+    pub fn edit(&self, file: usize) -> PhotoEdit {
+        PhotoEdit {
+            clean: self.clean,
+            ..self.edits.get(file).copied().unwrap_or_default()
+        }
+    }
 }
 
 /// A page photo is at most this long, about 200 dpi on A4, so a few phone
 /// photos do not make a PDF too big to send.
-const PAGE_PHOTO_SIDE: u32 = 2400;
+pub(crate) const PAGE_PHOTO_SIDE: u32 = 2400;
 
 /// How Pisah PDF splits each PDF.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -257,6 +272,13 @@ impl ToolOptions {
 
     /// The choices of a Tool that makes photos into a PDF.
     fn photos(&self) -> Option<&PhotosToPdf> {
+        match self {
+            Self::JpgKePdf(opts) | Self::ScanDocument(opts) => Some(opts),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn photos_mut(&mut self) -> Option<&mut PhotosToPdf> {
         match self {
             Self::JpgKePdf(opts) | Self::ScanDocument(opts) => Some(opts),
             _ => None,
@@ -626,17 +648,21 @@ fn merge(task: &Task, on_event: &mut dyn FnMut(TaskEvent), cancel: &CancelToken)
                 match (&mut parts, task.tool.photos()) {
                     (Parts::Pdfs(pdfs), _) => pdfs.push(PdfDocument::open(original)?),
                     (Parts::Photos(photos), Some(opts)) => {
-                        let edit = PhotoEdit {
-                            clean: opts.clean,
-                            ..opts.edits.get(file).copied().unwrap_or_default()
+                        // A page made ahead is used when it can still be read.
+                        let ready = opts.prepared.get(file).cloned().flatten().and_then(|page| page.read().ok());
+                        let page = match ready {
+                            Some(page) => page,
+                            None => {
+                                let made = rantakit_image::page_photo(&read_original(original)?, &opts.edit(file), PAGE_PHOTO_SIDE)?;
+                                PagePhoto {
+                                    jpeg: made.jpeg,
+                                    width: made.width,
+                                    height: made.height,
+                                    gray: made.gray,
+                                }
+                            }
                         };
-                        let page = rantakit_image::page_photo(&read_original(original)?, &edit, PAGE_PHOTO_SIDE)?;
-                        photos.push(PagePhoto {
-                            jpeg: page.jpeg,
-                            width: page.width,
-                            height: page.height,
-                            gray: page.gray,
-                        });
+                        photos.push(page);
                     }
                     (Parts::Photos(_), _) => return Err(ErrorKind::UnsupportedFormat),
                 }

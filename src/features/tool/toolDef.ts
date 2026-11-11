@@ -84,6 +84,28 @@ export interface ToolDef<S extends object> {
    * on one file per Task.
    */
   Workspace?: ComponentType<WorkspaceProps>;
+  /**
+   * The Tool's own screen for looking its files over once there are some,
+   * such as Scan Dokumen's pages one at a time. It takes the place of Files
+   * and Options, with the Tool's options inside it.
+   */
+  Review?: ComponentType<ReviewProps<S>>;
+}
+
+export interface ReviewProps<S> {
+  /** Every file, in order. */
+  paths: string[];
+  settings: S;
+  onChange: (patch: Partial<S>) => void;
+  /** Leaves the Tool page, asking first. */
+  onBack: () => void;
+  onAdd: (paths: string[]) => void;
+  /** The files in a new order, or with some left out; a file left out is not discarded. */
+  onReorder: (paths: string[]) => void;
+  /** Starts the Task with the current settings. */
+  onStart: () => void;
+  /** While the Task runs: its progress, in the main button's place. */
+  working: ReactNode | null;
 }
 
 export interface RowExtras {

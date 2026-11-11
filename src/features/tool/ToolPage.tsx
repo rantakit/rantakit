@@ -109,6 +109,24 @@ export function ToolPage({
     />
   ) : null;
 
+  // A Tool with its own screen for its files, once there are some.
+  if (def.Review && paths.length > 0 && !hasResult) {
+    return (
+      <div className="flex flex-1 flex-col md:min-h-0">
+        <def.Review
+          paths={paths}
+          settings={settings}
+          onChange={update}
+          onBack={onBack}
+          onAdd={onAdd}
+          onReorder={onReorder}
+          onStart={() => onStart(def.toRequest(settings, files, paths))}
+          working={working}
+        />
+      </div>
+    );
+  }
+
   // A Tool with its own work area, once its file is chosen (M3).
   if (def.Workspace && paths.length > 0 && !hasResult) {
     return (
@@ -252,7 +270,7 @@ const parseOpen = (stored: unknown) =>
   ) as Record<string, boolean>;
 
 /** "Pilihan lanjutan": closed at first, then open or closed as the user left it, per Tool. */
-function MoreOptions({ tool, children }: { tool: ShippedTool; children: React.ReactNode }) {
+export function MoreOptions({ tool, children }: { tool: ShippedTool; children: React.ReactNode }) {
   const { t } = useT();
   const [openTools, update] = useStoredState("rantakit.advancedOptions", parseOpen);
   const isOpen = openTools[tool] === true;

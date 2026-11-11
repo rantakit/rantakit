@@ -7,7 +7,7 @@ use lopdf::{Document, Object, Stream, dictionary};
 use rantakit_tasks::{
     Availability, CATALOGUE, CancelToken, Details, ErrorKind, FileKind, FileMatch, FileOutcome, ImageFormat,
     ImageOptions, MarkColor, MarkOpacity, MarkSize, OutputFormat, PageEdit, PaperSize, PdfOptions, PdfPages, PdfToJpg, PhotoEdit,
-    PhotosToPdf, Placement, Platform, Split, Target, Task, TaskEvent, ToolId, ToolOptions, WHITE, WatermarkOptions,
+    PhotosToPdf, Placement, Platform, PreparedPages, Split, Target, Task, TaskEvent, ToolId, ToolOptions, WHITE, WatermarkOptions,
     OfficeOptions, detect_kind, file_info, file_info_of, match_files, run_task, tools_for_files,
 };
 
@@ -235,6 +235,7 @@ fn jpg_ke_pdf(paper: PaperSize, edits: Vec<PhotoEdit>) -> ToolOptions {
         margin: true,
         edits,
         clean: false,
+        prepared: vec![],
     })
 }
 
@@ -245,6 +246,7 @@ fn scan_dokumen(clean: bool) -> ToolOptions {
         margin: true,
         edits: vec![],
         clean,
+        prepared: vec![],
     })
 }
 
@@ -1052,4 +1054,46 @@ fn scanned_pages_become_one_pdf_and_the_photos_stay() {
     assert_eq!(pages_in(&scan), 2);
     assert_eq!(fs::read(&first).unwrap(), photo_jpg(), "the Original is untouched");
     assert_eq!(file_names(&dir), ["scan 2026-11-07.pdf", "scan-1.jpg", "scan-2.jpg"]);
+}
+
+#[test]
+fn pages_made_ahead_are_packed_as_they_are() {
+    let dir = scratch("scan_prepared");
+    let first = write(&dir, "scan-1.jpg", &photo_jpg());
+    let second = write(&dir, "scan-2.jpg", &photo_jpg());
+    let pages = PreparedPages::new(dir.join("prepared"));
+    // Made from a different photo, so the PDF shows which one was used.
+    let small = PhotoEdit {
+        quarter_turns: 1,
+        clean: true,
+        ..PhotoEdit::default()
+    };
+    let made = pages.prepare(&first, &photo_jpg(), &small).unwrap();
+    let mut scan = task(
+        ToolOptions::ScanDocument(PhotosToPdf {
+            edits: vec![PhotoEdit {
+                quarter_turns: 1,
+                ..PhotoEdit::default()
+            }],
+            ..match scan_dokumen(true) {
+                ToolOptions::ScanDocument(opts) => opts,
+                _ => unreachable!(),
+            }
+        }),
+        vec![first, second],
+    );
+    pages.attach(&mut scan);
+
+    let outcomes = run(&scan);
+
+    let pdf = Document::load(&outcomes[0].as_ref().unwrap().path).unwrap();
+    let jpegs: Vec<Vec<u8>> = pdf
+        .objects
+        .values()
+        .filter_map(|object| object.as_stream().ok())
+        .filter(|stream| stream.dict.get(b"Filter").ok().and_then(|f| f.as_name().ok()) == Some(b"DCTDecode"))
+        .map(|stream| stream.content.clone())
+        .collect();
+    assert_eq!(jpegs.len(), 2);
+    assert!(jpegs.contains(&fs::read(&made.path).unwrap()), "the page made ahead is used byte for byte");
 }

@@ -124,6 +124,20 @@ Every Tool follows the same layout:
 
 On desktop, steps 1 and 2 sit side by side on one screen. On a phone they are stacked, and the Result is its own screen.
 
+### Scan Dokumen's pages
+
+Scan Dokumen opens straight to the camera. Once the camera closes, or photos come from "Dari Galeri" (From Gallery), steps 1 and 2 become one screen for looking the pages over:
+
+- **One page at a time**, large, with the pages before and after peeking in at the sides. Swipe or the arrow buttons turn the page; the top bar says "Halaman 2 dari 5" (Page 2 of 5).
+- **Pages are made in the background.** Each photo is cropped, straightened, and cleaned up as soon as it arrives, one at a time, so saving only packs pages that are done. A page still being made shows its photo dimmed with "Menyiapkan halaman…" (Getting the page ready…). A crop or a turn makes that page again; changing the look makes them all again.
+- **The look** is a toggle for every page under the top bar: "Bersihkan" (Clean up) or "Warna asli" (Original colors).
+- **Three actions for the page on screen:** "Potong" (Crop) opens the corner editor, "Putar" (Rotate) turns it a quarter, and "Hapus" (Delete) removes it at once with "Urungkan" (Undo) for five seconds instead of asking. The last page can't be deleted.
+- **A strip of every page** sets the order: tap a page to open it, hold and drag to move it, or tap the open page for "Pindah ke kiri" / "Pindah ke kanan" (Move left / right). The "+" at its end adds pages from the camera or Gallery.
+- **"Simpan PDF"** (Save PDF) opens a sheet with "Ukuran kertas" (Paper size, remembered) and "Tanpa margin" (No margin) under Advanced options. If pages are still being made, "Simpan" waits with a progress bar and saves by itself once they are all ready.
+- **Going back** asks "Buang 5 halaman?" (Discard 5 pages?), with "Lanjut memindai" (Keep scanning) as the main button, because the photos exist nowhere else yet.
+
+The Result screen is the same as every Tool's.
+
 ### Where Results go and what they are called
 
 - **Desktop:** next to the Original by default; the folder can be changed in Settings.
