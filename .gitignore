@@ -28,3 +28,6 @@ dist-ssr
 
 # Real photos for local tests only (ARCHITECTURE.md, Testing); never committed
 /crates/rantakit-image/tests/local/
+
+# Model files for the ml feature (crates/rantakit-image/models/README.md)
+/crates/rantakit-image/models/*.onnx

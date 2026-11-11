@@ -13,3 +13,9 @@ heic = { version = "0.1.6", default-features = false, features = ["std"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 imageproc = { version = "0.27", default-features = false }
 rantakit-core = { path = "../rantakit-core" }
+tract-onnx = { version = "0.23.10", optional = true }
+
+[features]
+# Experimental learned paper finding and cleaning, off by default and not in
+# release builds; needs the model files in models/ (models/README.md).
+ml = ["dep:tract-onnx"]

@@ -16,6 +16,10 @@ edition = "2024"
 name = "rantakit_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Experimental learned paper finding and cleaning (rantakit-image `ml`).
+ml = ["rantakit-tasks/ml"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

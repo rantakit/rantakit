@@ -67,8 +67,19 @@ pub fn find_paper(original: &[u8]) -> Result<Option<Corners>> {
     Ok(find_paper_in(&img))
 }
 
-/// `find_paper` on a photo already decoded and upright.
+/// `find_paper` on a photo already decoded and upright. With the `ml`
+/// feature, DocCornerNet looks first and the edges are traced only when
+/// it finds nothing.
 pub fn find_paper_in(img: &DynamicImage) -> Option<Corners> {
+    #[cfg(feature = "ml")]
+    if let Some(corners) = crate::ml::find_paper(img) {
+        return Some(corners);
+    }
+    find_paper_by_edges(img)
+}
+
+/// The paper's outline traced from the photo's edges.
+fn find_paper_by_edges(img: &DynamicImage) -> Option<Corners> {
     let small = img.thumbnail(FIND_SIDE, FIND_SIDE).to_luma8();
     let (width, height) = small.dimensions();
     if width < 16 || height < 16 {
@@ -168,11 +179,15 @@ pub fn edited(img: &DynamicImage, edit: &PhotoEdit, max_side: u32) -> DynamicIma
         3 => straight.rotate270(),
         _ => straight,
     };
-    if edit.clean {
-        DynamicImage::ImageRgb8(cleaned(&turned.to_rgb8()))
-    } else {
-        turned
+    if !edit.clean {
+        return turned;
     }
+    let rgb = turned.to_rgb8();
+    #[cfg(feature = "ml")]
+    if let Some(page) = crate::ml::cleaned(&rgb) {
+        return DynamicImage::ImageRgb8(page);
+    }
+    DynamicImage::ImageRgb8(cleaned(&rgb))
 }
 
 /// The paper inside `corners`, made rectangular.

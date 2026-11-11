@@ -1,6 +1,8 @@
 mod clean;
 mod encode;
 mod info;
+#[cfg(feature = "ml")]
+mod ml;
 mod photo;
 pub mod paper;
 pub mod options;
