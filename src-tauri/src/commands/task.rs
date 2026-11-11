@@ -45,6 +45,8 @@ pub struct TaskRequest {
     pub paths: Vec<PathBuf>,
 }
 
+/// The `tool` tag is the Tool id the frontend sends (`ToolId::as_str`),
+/// not the variant name, so renaming a variant cannot break the request.
 #[derive(Debug, Deserialize)]
 #[serde(
     tag = "tool",
@@ -52,6 +54,7 @@ pub struct TaskRequest {
     rename_all_fields = "camelCase"
 )]
 pub enum OptionsRequest {
+    #[serde(rename = "kompres-foto")]
     CompressPhoto {
         /// Output format; `None` keeps the Original's format.
         #[serde(default)]
@@ -59,10 +62,12 @@ pub enum OptionsRequest {
         #[serde(flatten)]
         compression: CompressionRequest,
     },
+    #[serde(rename = "kompres-pdf")]
     CompressPdf {
         #[serde(flatten)]
         compression: CompressionRequest,
     },
+    #[serde(rename = "kompres-dokumen")]
     CompressDocument {
         #[serde(flatten)]
         compression: CompressionRequest,
@@ -77,6 +82,7 @@ pub enum OptionsRequest {
         #[serde(default)]
         background: Option<String>,
     },
+    #[serde(rename = "ubah-ukuran-foto")]
     ResizePhoto {
         #[serde(default)]
         size: SizeRequest,
@@ -84,10 +90,12 @@ pub enum OptionsRequest {
         #[serde(default)]
         max_side: Option<u32>,
     },
+    #[serde(rename = "gabung-pdf")]
     MergePdf {
         /// The user's today, such as "2026-11-07", for `merged 2026-11-07.pdf`.
         date: String,
     },
+    #[serde(rename = "pisah-pdf")]
     SplitPdf {
         /// "Ambil halaman": pages counted from 1, in order.
         #[serde(default)]
@@ -96,6 +104,7 @@ pub enum OptionsRequest {
         #[serde(default)]
         every: Option<usize>,
     },
+    #[serde(rename = "atur-halaman-pdf")]
     OrganizePdf {
         /// The Result's pages in order.
         pages: Vec<PageRequest>,
@@ -114,6 +123,7 @@ pub enum OptionsRequest {
         edits: Vec<EditRequest>,
     },
     /// Like JPG ke PDF, for the photos the camera took.
+    #[serde(rename = "scan-dokumen")]
     ScanDocument {
         date: String,
         #[serde(default)]
@@ -127,7 +137,9 @@ pub enum OptionsRequest {
         look: LookRequest,
     },
     /// No options: every piece of photo info goes but the orientation.
+    #[serde(rename = "hapus-info-lokasi")]
     RemoveLocationInfo,
+    #[serde(rename = "beri-watermark")]
     AddWatermark(WatermarkRequest),
     PdfKeJpg {
         /// "Pilih halaman": pages counted from 1; left out for "Semua halaman".
@@ -842,6 +854,27 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn every_tool_id_the_frontend_sends_is_understood() {
+        for options in [
+            json!({ "tool": "kompres-foto", "limit": 200000 }),
+            json!({ "tool": "kompres-pdf", "limit": 200000 }),
+            json!({ "tool": "kompres-dokumen", "limit": 200000 }),
+            json!({ "tool": "ubah-format-foto", "to": "png" }),
+            json!({ "tool": "ubah-ukuran-foto" }),
+            json!({ "tool": "gabung-pdf", "date": "2026-11-11" }),
+            json!({ "tool": "pisah-pdf" }),
+            json!({ "tool": "atur-halaman-pdf", "pages": [] }),
+            json!({ "tool": "scan-dokumen", "date": "2026-11-11", "edits": [], "look": "clean" }),
+            json!({ "tool": "hapus-info-lokasi" }),
+            json!({ "tool": "pdf-ke-jpg", "dpi": 150 }),
+        ] {
+            if let Err(err) = serde_json::from_value::<OptionsRequest>(options.clone()) {
+                panic!("{options} is not understood: {err}");
+            }
+        }
     }
 
     #[test]
