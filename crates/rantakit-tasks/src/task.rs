@@ -746,24 +746,41 @@ fn split_every(
     if every >= count {
         return Err(ErrorKind::Unchanged);
     }
-    let into = result_folder(original, folder, "pages").map_err(|e| ErrorKind::writing(&e))?;
     let parts: Vec<Vec<usize>> = (1..=count)
         .collect::<Vec<_>>()
         .chunks(every)
         .map(<[usize]>::to_vec)
         .collect();
-    let mut files = Vec::with_capacity(parts.len());
-    for (at, pages) in parts.iter().enumerate() {
+    pages_folder(original, original_size, folder, &parts, tracker, |pages, into, quiet| {
+        let edits: Vec<PageEdit> = pages.iter().map(|&page| PageEdit::keep(page - 1)).collect();
+        let path = result_path(original, into, &pages_suffix(pages), "pdf");
+        let size = pdf.arrange(&edits)?.save(&path, quiet)?;
+        Ok(FolderFile { path, size })
+    })
+}
+
+/// Writes one file for each of `items` into a new `<Original> (pages)`
+/// folder next to the Original, the folder's progress moving one item at a
+/// time. `write` gets the item, the folder, and a tracker that reports
+/// nothing. A stop or a failure halfway removes the folder, so it leaves
+/// nothing behind.
+fn pages_folder<T>(
+    original: &Path,
+    original_size: u64,
+    folder: &Path,
+    items: &[T],
+    tracker: &mut Tracker<'_>,
+    mut write: impl FnMut(&T, &Path, &mut Tracker<'_>) -> Result<FolderFile, ErrorKind>,
+) -> FileOutcome {
+    let into = result_folder(original, folder, "pages").map_err(|e| ErrorKind::writing(&e))?;
+    let mut files = Vec::with_capacity(items.len());
+    for (at, item) in items.iter().enumerate() {
         let written = tracker.check().and_then(|()| {
-            let edits: Vec<PageEdit> = pages.iter().map(|&page| PageEdit::keep(page - 1)).collect();
-            let path = result_path(original, &into, &pages_suffix(pages), "pdf");
-            // Each part reports nothing itself; the folder's progress is by part.
             let mut quiet = |_| {};
             let cancel = CancelToken::new();
-            let size = pdf.arrange(&edits)?.save(&path, &mut Tracker::new(&mut quiet, &cancel))?;
-            Ok(FolderFile { path, size })
+            write(item, &into, &mut Tracker::new(&mut quiet, &cancel))
         });
-        match written.and_then(|file| tracker.step((at + 1) as f32 / parts.len() as f32).map(|()| file)) {
+        match written.and_then(|file| tracker.step((at + 1) as f32 / items.len() as f32).map(|()| file)) {
             Ok(file) => files.push(file),
             Err(kind) => {
                 let _ = fs::remove_dir_all(&into);
@@ -826,31 +843,11 @@ fn pdf_to_jpg(
         });
     }
 
-    let into = result_folder(original, folder, "pages").map_err(|e| ErrorKind::writing(&e))?;
-    let mut files = Vec::with_capacity(kept.len());
-    for (at, &page) in kept.iter().enumerate() {
-        let written = tracker.check().and_then(|()| {
-            let (jpg, _, _) = photo(page)?;
-            let path = result_path(original, &into, &pages_suffix(&[page]), "jpg");
-            // Each photo reports nothing itself; the folder's progress is by page.
-            let mut quiet = |_| {};
-            let cancel = CancelToken::new();
-            let size = write_result(&path, &mut Tracker::new(&mut quiet, &cancel), |file| file.write_all(&jpg))?;
-            Ok(FolderFile { path, size })
-        });
-        match written.and_then(|file| tracker.step((at + 1) as f32 / kept.len() as f32).map(|()| file)) {
-            Ok(file) => files.push(file),
-            Err(kind) => {
-                let _ = fs::remove_dir_all(&into);
-                return Err(kind);
-            }
-        }
-    }
-    Ok(ResultFile {
-        path: into,
-        original_size,
-        size: files.iter().map(|file| file.size).sum(),
-        details: Details::Folder { files },
+    pages_folder(original, original_size, folder, &kept, &mut tracker, |&page, into, quiet| {
+        let (jpg, _, _) = photo(page)?;
+        let path = result_path(original, into, &pages_suffix(&[page]), "jpg");
+        let size = write_result(&path, quiet, |file| file.write_all(&jpg))?;
+        Ok(FolderFile { path, size })
     })
 }
 
